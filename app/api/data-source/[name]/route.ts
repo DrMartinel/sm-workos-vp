@@ -5,7 +5,7 @@ import * as fs from 'fs/promises';
 
 // In-memory cache
 const cache = new Map<string, { data: any[], timestamp: number }>();
-const CACHE_DURATION_MS = 5 * 60 * 1000; // 5 minutes
+const CACHE_DURATION_MS = 500 * 60 * 1000; // 500 minutes
 
 interface DataSourceDefinition {
     source: 'bigquery' | 'mysql' | 'google_sheet';
