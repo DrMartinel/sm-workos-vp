@@ -44,8 +44,10 @@ import {
   RefreshCw,
   MoreHorizontal,
   Loader2,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -59,6 +61,7 @@ import { MultiSelectFilter } from "@/components/ui/multi-select-filter"
 import { cn } from "@/lib/utils"
 import { DateRange } from "react-day-picker"
 import React from "react"
+import { Slider } from "@/components/ui/slider"
 
 // --- Helper Functions ---
 function formatLargeNumber(value: number, decimalPlaces: number = 2): string {
@@ -101,39 +104,60 @@ const dateRanges = {
 type DateRangeKey = keyof typeof dateRanges;
 
 function calculateDateRange(key: DateRangeKey): { startDate: string, endDate: string } {
-    const today = startOfToday();
-    const end = today; // Most ranges end today
-    let start;
+    console.log(`[DEBUG] calculateDateRange called with key: ${key}`);
+    const toYYYYMMDD = (date: Date) => {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    };
+
+    const now = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(now.getDate() - 1);
+    
+    console.log(`[DEBUG] Today is: ${toYYYYMMDD(now)}, Yesterday is: ${toYYYYMMDD(yesterday)}`);
+
+    let startDate: Date;
+    let endDate: Date;
 
     switch (key) {
         case 'last_7_days':
-            start = subDays(today, 6);
+            startDate = new Date(yesterday);
+            startDate.setDate(yesterday.getDate() - 6);
+            endDate = yesterday;
             break;
         case 'last_30_days':
-            start = subDays(today, 29);
+            startDate = new Date(yesterday);
+            startDate.setDate(yesterday.getDate() - 29);
+            endDate = yesterday;
             break;
         case 'last_90_days':
-            start = subDays(today, 89);
+            startDate = new Date(yesterday);
+            startDate.setDate(yesterday.getDate() - 89);
+            endDate = yesterday;
             break;
         case 'this_month':
-            start = startOfMonth(today);
+            startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+            endDate = now;
             break;
         case 'last_month':
-            const startOfThisMonth = startOfMonth(today);
-            start = startOfMonth(subMonths(startOfThisMonth, 1));
-            const endOfLastMonth = endOfMonth(start);
-            return {
-                startDate: format(start, 'yyyyMMdd'),
-                endDate: format(endOfLastMonth, 'yyyyMMdd'),
-            };
-        default:
-            // Default to last 30 days
-            start = subDays(today, 29);
+            startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+            endDate = new Date(now.getFullYear(), now.getMonth(), 0);
+            break;
+        default: // Should not happen with TypeScript, but as a fallback
+            startDate = new Date(yesterday);
+            startDate.setDate(yesterday.getDate() - 29);
+            endDate = yesterday;
+            break;
     }
-    return {
-        startDate: format(start, 'yyyyMMdd'),
-        endDate: format(end, 'yyyyMMdd'),
+
+    const result = {
+        startDate: toYYYYMMDD(startDate),
+        endDate: toYYYYMMDD(endDate),
     };
+    console.log(`[DEBUG] calculateDateRange produced:`, result);
+    return result;
 }
 
 function useAdjustCohortData(startDate?: string, endDate?: string) {
@@ -488,7 +512,22 @@ export default function ReportsPage() {
     const startDate = date?.from ? format(date.from, 'yyyyMMdd') : undefined;
     const endDate = date?.to ? format(date.to, 'yyyyMMdd') : undefined;
 
-    const { roasData, cpiData, rawData, loading, error } = useAdjustCohortData(startDate, endDate);
+    const [dateRangeKey, setDateRangeKey] = useState<DateRangeKey>('last_30_days');
+    const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>(undefined);
+
+    const { startDate: adjustedStartDate, endDate: adjustedEndDate } = useMemo(() => {
+        if (customDateRange?.from && customDateRange?.to) {
+            const toYYYYMMDD = (date: Date) => date.toISOString().split('T')[0];
+            return {
+                startDate: toYYYYMMDD(customDateRange.from),
+                endDate: toYYYYMMDD(customDateRange.to)
+            };
+        }
+        return calculateDateRange(dateRangeKey);
+    }, [dateRangeKey, customDateRange]);
+
+    console.log(`[DEBUG] Dates passed to API hook: startDate=${adjustedStartDate}, endDate=${adjustedEndDate}`);
+    const { roasData, cpiData, rawData, loading, error } = useAdjustCohortData(adjustedStartDate, adjustedEndDate);
     const filters = useAdjustCohortFilters(rawData || []);
 
     const [selectedFilters, setSelectedFilters] = useState<Record<string, string[]>>({
@@ -640,6 +679,358 @@ export default function ReportsPage() {
         return maxVal * 1.2;
     }, [filteredChartData.cpiData]);
 
+    // State cho expand/collapse các channel
+    const [expandedChannels, setExpandedChannels] = useState<Set<string>>(new Set());
+
+    // Calculate post-install metrics for table
+    const postInstallMetrics = useMemo(() => {
+        if (!filteredRows || filteredRows.length === 0) return [];
+        // Group by channel
+        const channelGroups = filteredRows.reduce((acc, item) => {
+            const channel = item.channel || 'Unknown';
+            if (!acc[channel]) {
+                acc[channel] = [];
+            }
+            acc[channel].push(item);
+            return acc;
+        }, {} as Record<string, RawDataRow[]>);
+
+        return Object.entries(channelGroups).map(([channel, items]) => {
+            const totalCost = items.reduce((sum, item) => sum + item.cost, 0);
+            const totalInstalls = items.reduce((sum, item) => sum + item.install, 0);
+            const totalRevenue = items.reduce((sum, item) => sum + item.REV_D0, 0);
+            const totalRevenueD3 = items.reduce((sum, item) => sum + item.REV_D3, 0);
+            const totalRevenueD7 = items.reduce((sum, item) => sum + item.REV_D7, 0);
+            const totalRevenueD30 = items.reduce((sum, item) => sum + item.REV_D30, 0);
+            const totalRevenueD60 = items.reduce((sum, item) => sum + item.REV_D60, 0);
+            const totalERevenueD30 = items.reduce((sum, item) => sum + item.RATIO_REVD30_REVD3, 0);
+            const totalRetD1 = items.reduce((sum, item) => sum + item.retained_users_D1, 0);
+            const totalRetD3 = items.reduce((sum, item) => sum + item.retained_users_D3, 0);
+            const totalRetD7 = items.reduce((sum, item) => sum + item.retained_users_D7, 0);
+
+            // Calculate metrics
+            const cpi = totalInstalls > 0 ? totalCost / totalInstalls : null;
+            const roas_d0 = totalCost > 0 ? totalRevenue / totalCost : null;
+            const roas_d3 = totalCost > 0 ? totalRevenueD3 / totalCost : null;
+            const roas_d7 = totalCost > 0 ? totalRevenueD7 / totalCost : null;
+            const roas_d30 = totalCost > 0 ? totalRevenueD30 / totalCost : null;
+            const roas_d60 = totalCost > 0 ? totalRevenueD60 / totalCost : null;
+            const eroas_d30 = totalCost > 0 ? totalERevenueD30 / totalCost : null;
+            const ret_d1 = totalInstalls > 0 ? totalRetD1 / totalInstalls : null;
+            const ret_d3 = totalInstalls > 0 ? totalRetD3 / totalInstalls : null;
+            const ret_d7 = totalInstalls > 0 ? totalRetD7 / totalInstalls : null;
+
+            // Get top 10 countries by cost for this channel
+            const countryGroups = items.reduce((acc, item) => {
+                const countryCode = item.country_code || 'Unknown';
+                if (!acc[countryCode]) {
+                    acc[countryCode] = [];
+                }
+                acc[countryCode].push(item);
+                return acc;
+            }, {} as Record<string, RawDataRow[]>);
+
+            const countries = Object.entries(countryGroups)
+                .map(([country, countryItems]) => {
+                    const countryCost = countryItems.reduce((sum, item) => sum + item.cost, 0);
+                    const countryInstalls = countryItems.reduce((sum, item) => sum + item.install, 0);
+                    const countryRevenue = countryItems.reduce((sum, item) => sum + item.REV_D0, 0);
+                    const countryRevenueD3 = countryItems.reduce((sum, item) => sum + item.REV_D3, 0);
+                    const countryRevenueD7 = countryItems.reduce((sum, item) => sum + item.REV_D7, 0);
+                    const countryRevenueD30 = countryItems.reduce((sum, item) => sum + item.REV_D30, 0);
+                    const countryRevenueD60 = countryItems.reduce((sum, item) => sum + item.REV_D60, 0);
+                    const countryERevenueD30 = countryItems.reduce((sum, item) => sum + item.RATIO_REVD30_REVD3, 0);
+                    const countryRetD1 = countryItems.reduce((sum, item) => sum + item.retained_users_D1, 0);
+                    const countryRetD3 = countryItems.reduce((sum, item) => sum + item.retained_users_D3, 0);
+                    const countryRetD7 = countryItems.reduce((sum, item) => sum + item.retained_users_D7, 0);
+
+                    return {
+                        country,
+                        cost: countryCost,
+                        cpi: countryInstalls > 0 ? countryCost / countryInstalls : null,
+                        roas_d0: countryCost > 0 ? countryRevenue / countryCost : null,
+                        roas_d3: countryCost > 0 ? countryRevenueD3 / countryCost : null,
+                        roas_d7: countryCost > 0 ? countryRevenueD7 / countryCost : null,
+                        roas_d30: countryCost > 0 ? countryRevenueD30 / countryCost : null,
+                        roas_d60: countryCost > 0 ? countryRevenueD60 / countryCost : null,
+                        eroas_d30: countryCost > 0 ? countryERevenueD30 / countryCost : null,
+                        ret_d1: countryInstalls > 0 ? countryRetD1 / countryInstalls : null,
+                        ret_d3: countryInstalls > 0 ? countryRetD3 / countryInstalls : null,
+                        ret_d7: countryInstalls > 0 ? countryRetD7 / countryInstalls : null,
+                    };
+                })
+                .sort((a, b) => b.cost - a.cost)
+                .slice(0, 10);
+
+            return {
+                channel,
+                cost: totalCost,
+                cpi,
+                roas_d0,
+                roas_d3,
+                roas_d7,
+                roas_d30,
+                roas_d60,
+                eroas_d30,
+                ret_d1,
+                ret_d3,
+                ret_d7,
+                countries
+            };
+        }).sort((a, b) => b.cost - a.cost);
+    }, [filteredRows]);
+
+    const [dailyMetricsCampaignFilter, setDailyMetricsCampaignFilter] = useState('All Campaigns');
+
+    const dailyMetricsCampaignOptions = useMemo(() => {
+        if (!filteredRows) return ['All Campaigns'];
+
+        const campaignCosts = filteredRows.reduce((acc, row) => {
+            if (row.campaign_name) {
+                acc[row.campaign_name] = (acc[row.campaign_name] || 0) + row.cost;
+            }
+            return acc;
+        }, {} as Record<string, number>);
+
+        const sortedCampaigns = Object.entries(campaignCosts)
+            .filter(([, cost]) => cost > 0) 
+            .sort(([, costA], [, costB]) => costB - costA)
+            .map(([campaignName]) => campaignName);
+
+        return ['All Campaigns', ...sortedCampaigns];
+    }, [filteredRows]);
+    
+    const dailyMetricsFilteredRows = useMemo(() => {
+        if (dailyMetricsCampaignFilter === 'All Campaigns') {
+            return filteredRows;
+        }
+        return filteredRows.filter(row => row.campaign_name === dailyMetricsCampaignFilter);
+    }, [filteredRows, dailyMetricsCampaignFilter]);
+
+    // Calculate daily metrics for table
+    const dailyMetrics = useMemo(() => {
+        if (!dailyMetricsFilteredRows || dailyMetricsFilteredRows.length === 0) return [];
+        // Group by date
+        const dateGroups = dailyMetricsFilteredRows.reduce((acc, item) => {
+            const date = item.date;
+            if (!acc[date]) {
+                acc[date] = [];
+            }
+            acc[date].push(item);
+            return acc;
+        }, {} as Record<string, RawDataRow[]>);
+
+        return Object.entries(dateGroups)
+            .map(([date, items]) => {
+                const totalCost = items.reduce((sum, item) => sum + item.cost, 0);
+                const totalInstalls = items.reduce((sum, item) => sum + item.install, 0);
+                const totalRevenue = items.reduce((sum, item) => sum + item.REV_D0, 0);
+                const totalRevenueD3 = items.reduce((sum, item) => sum + item.REV_D3, 0);
+                const totalRevenueD7 = items.reduce((sum, item) => sum + item.REV_D7, 0);
+                const totalRevenueD30 = items.reduce((sum, item) => sum + item.REV_D30, 0);
+                const totalRevenueD60 = items.reduce((sum, item) => sum + item.REV_D60, 0);
+                const totalERevenueD30 = items.reduce((sum, item) => sum + item.RATIO_REVD30_REVD3, 0);
+                const totalRetD1 = items.reduce((sum, item) => sum + item.retained_users_D1, 0);
+                const totalRetD3 = items.reduce((sum, item) => sum + item.retained_users_D3, 0);
+                const totalRetD7 = items.reduce((sum, item) => sum + item.retained_users_D7, 0);
+
+                return {
+                    date,
+                    cost: totalCost,
+                    cpi: totalInstalls > 0 ? totalCost / totalInstalls : null,
+                    roas_d0: totalCost > 0 ? totalRevenue / totalCost : null,
+                    roas_d3: totalCost > 0 ? totalRevenueD3 / totalCost : null,
+                    roas_d7: totalCost > 0 ? totalRevenueD7 / totalCost : null,
+                    roas_d30: totalCost > 0 ? totalRevenueD30 / totalCost : null,
+                    roas_d60: totalCost > 0 ? totalRevenueD60 / totalCost : null,
+                    eroas_d30: totalCost > 0 ? totalERevenueD30 / totalCost : null,
+                    ret_d1: totalInstalls > 0 ? totalRetD1 / totalInstalls : null,
+                    ret_d3: totalInstalls > 0 ? totalRetD3 / totalInstalls : null,
+                    ret_d7: totalInstalls > 0 ? totalRetD7 / totalInstalls : null,
+                };
+            })
+            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    }, [dailyMetricsFilteredRows]);
+
+    // Calculate ranges for heatmap for DAILY metrics table
+    const dailyMetricsRanges = useMemo(() => {
+        if (!dailyMetrics.length) {
+            return {
+                cpi: { min: 0, max: 1 },
+                roas: { min: 0, max: 1 },
+                eroas: { min: 0, max: 1 },
+            };
+        }
+
+        const cpiValues = dailyMetrics.map(d => d.cpi).filter(v => v !== null) as number[];
+        const roasValues = dailyMetrics.map(d => d.roas_d0).filter(v => v !== null) as number[];
+        const eroasValues = dailyMetrics.map(d => d.eroas_d30).filter(v => v !== null) as number[];
+
+        const cpiMin = cpiValues.length ? Math.min(...cpiValues) : 0;
+        const cpiMax = cpiValues.length ? Math.max(...cpiValues) : 1;
+        const roasMin = roasValues.length ? Math.min(...roasValues) : 0;
+        const roasMax = roasValues.length ? Math.max(...roasValues) : 1;
+        const eroasMin = eroasValues.length ? Math.min(...eroasValues) : 0;
+        const eroasMax = eroasValues.length ? Math.max(...eroasValues) : 1;
+
+        return {
+            cpi: { min: cpiMin, max: cpiMax },
+            roas: { min: roasMin, max: roasMax },
+            eroas: { min: eroasMin, max: eroasMax },
+        };
+    }, [dailyMetrics]);
+    
+    // Calculate ranges for heatmap for POST-INSTALL metrics table
+    const postInstallMetricsRanges = useMemo(() => {
+        if (!postInstallMetrics.length) {
+            return {
+                cpi: { min: 0, max: 1 },
+                roas: { min: 0, max: 1 },
+                eroas: { min: 0, max: 1 },
+            };
+        }
+
+        const allRows = postInstallMetrics.flatMap(channel => [channel, ...channel.countries]);
+        const cpiValues = allRows.map(d => d.cpi).filter(v => v !== null) as number[];
+        const roasValues = allRows.map(d => d.roas_d0).filter(v => v !== null) as number[];
+        const eroasValues = allRows.map(d => d.eroas_d30).filter(v => v !== null) as number[];
+
+        const cpiMin = cpiValues.length ? Math.min(...cpiValues) : 0;
+        const cpiMax = cpiValues.length ? Math.max(...cpiValues) : 1;
+        const roasMin = roasValues.length ? Math.min(...roasValues) : 0;
+        const roasMax = roasValues.length ? Math.max(...roasValues) : 1;
+        const eroasMin = eroasValues.length ? Math.min(...eroasValues) : 0;
+        const eroasMax = eroasValues.length ? Math.max(...eroasValues) : 1;
+
+        return {
+            cpi: { min: cpiMin, max: cpiMax },
+            roas: { min: roasMin, max: roasMax },
+            eroas: { min: eroasMin, max: eroasMax },
+        };
+    }, [postInstallMetrics]);
+
+    // Generic Heatmap style function
+    const getHeatmapStyle = (value: number | null, type: 'cpi' | 'roas' | 'eroas', ranges: typeof dailyMetricsRanges): React.CSSProperties => {
+        if (value === null || value === undefined) return { textAlign: 'center' };
+
+        const range = type === 'cpi' ? ranges.cpi : (type === 'roas' ? ranges.roas : ranges.eroas);
+        
+        if (range.min === range.max) {
+            let color = 'rgba(128, 128, 128, 0.4)'; // a neutral grey
+            if (type === 'cpi') color = 'rgba(239, 68, 68, 0.4)'; // red-500
+            if (type === 'roas') color = 'rgba(34, 197, 94, 0.4)'; // green-500
+            if (type === 'eroas') color = 'rgba(168, 85, 247, 0.4)'; // purple-500
+            return { backgroundColor: color, color: 'white' };
+        }
+
+        const normalized = (value - range.min) / (range.max - range.min);
+        const opacity = 0.15 + Math.max(0, Math.min(normalized, 1)) * 0.75;
+
+        let colorRgb = '239, 68, 68'; // CPI default red
+        if (type === 'roas') colorRgb = '34, 197, 94'; // green
+        if (type === 'eroas') colorRgb = '168, 85, 247'; // purple
+
+        return {
+            backgroundColor: `rgba(${colorRgb}, ${opacity})`,
+            color: opacity > 0.55 ? 'white' : 'black',
+        };
+    };
+
+    const allCampaignMetrics = useMemo(() => {
+        if (!filteredRows || filteredRows.length === 0) return [];
+        return Object.values(
+            filteredRows.reduce((acc, row) => {
+                if (!row.campaign_name) return acc;
+                if (!acc[row.campaign_name]) {
+                    acc[row.campaign_name] = { campaign_name: row.campaign_name, cost: 0, revenue_d0: 0, quadrant: '' };
+                }
+                acc[row.campaign_name].cost += row.cost;
+                acc[row.campaign_name].revenue_d0 += row.REV_D0;
+                return acc;
+            }, {} as Record<string, { campaign_name: string, cost: number, revenue_d0: number, quadrant: string }>)
+        ).map(c => ({
+            ...c,
+            roas_d0: c.cost > 0 ? c.revenue_d0 / c.cost : 0,
+        })).filter(c => c.cost > 0);
+    }, [filteredRows]);
+
+    const maxCost = useMemo(() => {
+        if (!allCampaignMetrics.length) return 0;
+        return Math.ceil(Math.max(...allCampaignMetrics.map(c => c.cost)) / 100) * 100;
+    }, [allCampaignMetrics]);
+    
+    const [committedCostRange, setCommittedCostRange] = useState<[number, number]>([0, 0]);
+    const [localCostRange, setLocalCostRange] = useState<[number, number]>([0, 0]);
+
+    useEffect(() => {
+        if (maxCost > 0) {
+            const newRange: [number, number] = [0, maxCost];
+            setCommittedCostRange(newRange);
+            setLocalCostRange(newRange);
+        }
+    }, [maxCost]);
+
+    const campaignAnalysisData = useMemo(() => {
+        if (!allCampaignMetrics.length) return { data: [], avgCost: 0, avgRoasD0: 0 };
+
+        const filteredByCost = allCampaignMetrics.filter(
+            d => d.cost >= committedCostRange[0] && d.cost <= committedCostRange[1]
+        );
+        
+        if (filteredByCost.length === 0) return { data: [], avgCost: 0, avgRoasD0: 0 };
+
+        const totalCost = filteredByCost.reduce((sum, c) => sum + c.cost, 0);
+        const totalRoasD0 = filteredByCost.reduce((sum, c) => sum + c.roas_d0, 0);
+        const avgCost = totalCost / filteredByCost.length;
+        const avgRoasD0 = totalRoasD0 / filteredByCost.length;
+
+        const quadrantData = filteredByCost.map(campaign => {
+            let quadrant: string;
+            if (campaign.cost > avgCost && campaign.roas_d0 < avgRoasD0) {
+                quadrant = 'Bad'; // Top-left -> Orange
+            } else if (campaign.cost > avgCost && campaign.roas_d0 >= avgRoasD0) {
+                quadrant = 'Best'; // Top-right -> Purple
+            } else if (campaign.cost <= avgCost && campaign.roas_d0 >= avgRoasD0) {
+                quadrant = 'Good'; // Bottom-right -> Green
+            } else { 
+                quadrant = 'Worst'; // Bottom-left -> Red
+            }
+            return { ...campaign, quadrant };
+        });
+
+        return { data: quadrantData, avgCost, avgRoasD0 };
+    }, [allCampaignMetrics, committedCostRange]);
+
+    const CustomScatterTooltip = ({ active, payload }: any) => {
+        if (active && payload && payload.length) {
+            const data = payload[0].payload;
+            return (
+                <div className="p-2 text-sm bg-white rounded-md shadow-lg border">
+                    <p className="font-bold">{data.campaign_name}</p>
+                    <p>Cost: <span className="font-mono">{fmtDecimal(data.cost)}</span></p>
+                    <p>ROAS D0: <span className="font-mono">{fmtPercent(data.roas_d0)}</span></p>
+                </div>
+            );
+        }
+        return null;
+    };
+
+    // Hàm format số
+    function fmtCurrency(val: number) { return val.toLocaleString('en-US', { maximumFractionDigits: 0 }) + ' đ'; }
+    function fmtPercent(val: number) { return (val * 100).toFixed(2) + '%'; }
+    function fmtPercent0(val: number) { return (val * 100).toFixed(0) + '%'; }
+    function fmtNumber(val: number) { return val.toLocaleString('en-US', { maximumFractionDigits: 0 }); }
+    function fmtDecimal(val: number) { return val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+
+    // Toggle expand/collapse
+    function toggleChannel(channel: string) {
+        setExpandedChannels(prev => {
+            const next = new Set(prev);
+            if (next.has(channel)) next.delete(channel); else next.add(channel);
+            return next;
+        });
+    }
+
     // Sau khi đã gọi hết các hook, mới return sớm nếu cần
     const isInitialLoad = !rawData || rawData.length === 0;
     if (loading && isInitialLoad) {
@@ -670,6 +1061,32 @@ export default function ReportsPage() {
         {name: 'campaign_name', label: 'Campaigns'},
         {name: 'mmp', label: 'MMPs'},
     ]
+
+    const CustomLegend = () => (
+      <div className="flex justify-center items-center space-x-4 pt-4 pb-2">
+          <div className="flex items-center space-x-1.5">
+              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#a855f7' }} />
+              <span className="text-xs text-muted-foreground">Best</span>
+          </div>
+          <div className="flex items-center space-x-1.5">
+              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#f97316' }} />
+              <span className="text-xs text-muted-foreground">Bad</span>
+          </div>
+          <div className="flex items-center space-x-1.5">
+              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#22c55e' }} />
+              <span className="text-xs text-muted-foreground">Good</span>
+          </div>
+          <div className="flex items-center space-x-1.5">
+              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#ef4444' }} />
+              <span className="text-xs text-muted-foreground">Worst</span>
+          </div>
+      </div>
+    );
+
+    const handleDateRangeChange = (key: DateRangeKey) => {
+        setDateRangeKey(key);
+        setCustomDateRange(undefined);
+    };
 
     return (
         <div className="p-6 space-y-8 bg-gray-50 min-h-screen">
@@ -998,6 +1415,239 @@ export default function ReportsPage() {
 
                 
             </div>
+            {/* Post-install Metrics Table */}
+            <Card className="mt-10">
+              <CardHeader>
+                <CardTitle>Post-install Metrics by Channel</CardTitle>
+                <CardDescription>Tree-table: Channel & Top 10 Country by cost, with post-install metrics</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="relative max-h-[750px] overflow-auto rounded-md border">
+                  <Table>
+                    <TableHeader className="sticky top-0 z-10 bg-card">
+                      <TableRow>
+                        <TableHead className="w-12"></TableHead>
+                        <TableHead>Channel</TableHead>
+                        <TableHead>Cost</TableHead>
+                        <TableHead className="w-32">CPI</TableHead>
+                        <TableHead className="w-32">ROAS D0</TableHead>
+                        <TableHead>ROAS D3</TableHead>
+                        <TableHead>ROAS D7</TableHead>
+                        <TableHead className="w-32">eROAS D30</TableHead>
+                        <TableHead>ROAS D30</TableHead>
+                        <TableHead>ROAS D60</TableHead>
+                        <TableHead>Ret D1</TableHead>
+                        <TableHead>Ret D3</TableHead>
+                        <TableHead>Ret D7</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {postInstallMetrics.map(row => (
+                        <React.Fragment key={row.channel}>
+                          <TableRow className="bg-white hover:bg-gray-50 group">
+                            <TableCell className="w-12">
+                              <button onClick={() => toggleChannel(row.channel)} className="focus:outline-none">
+                                {expandedChannels.has(row.channel) ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                              </button>
+                            </TableCell>
+                            <TableCell className="font-semibold text-base group-hover:text-blue-600 transition-colors duration-100">{row.channel}</TableCell>
+                            <TableCell>{fmtDecimal(row.cost)}</TableCell>
+                            <TableCell style={getHeatmapStyle(row.cpi, 'cpi', postInstallMetricsRanges)}>
+                              {row.cpi ? fmtDecimal(row.cpi) : '-'}
+                            </TableCell>
+                            <TableCell style={getHeatmapStyle(row.roas_d0, 'roas', postInstallMetricsRanges)}>
+                              {row.roas_d0 ? fmtPercent(row.roas_d0) : '-'}
+                            </TableCell>
+                            <TableCell>{row.roas_d3 ? fmtPercent(row.roas_d3) : '-'}</TableCell>
+                            <TableCell>{row.roas_d7 ? fmtPercent(row.roas_d7) : '-'}</TableCell>
+                            <TableCell style={getHeatmapStyle(row.eroas_d30, 'eroas', postInstallMetricsRanges)}>
+                              {row.eroas_d30 ? fmtPercent(row.eroas_d30) : '-'}
+                            </TableCell>
+                            <TableCell>{row.roas_d30 ? fmtPercent(row.roas_d30) : '-'}</TableCell>
+                            <TableCell>{row.roas_d60 ? fmtPercent(row.roas_d60) : '-'}</TableCell>
+                            <TableCell>{row.ret_d1 ? fmtPercent(row.ret_d1) : '-'}</TableCell>
+                            <TableCell>{row.ret_d3 ? fmtPercent(row.ret_d3) : '-'}</TableCell>
+                            <TableCell>{row.ret_d7 ? fmtPercent(row.ret_d7) : '-'}</TableCell>
+                          </TableRow>
+                          {expandedChannels.has(row.channel) && row.countries.map(country => (
+                            <TableRow key={country.country} className="bg-gray-50 hover:bg-gray-100">
+                              <TableCell></TableCell>
+                              <TableCell className="pl-8 text-sm text-gray-700">{country.country}</TableCell>
+                              <TableCell>{fmtDecimal(country.cost)}</TableCell>
+                              <TableCell style={getHeatmapStyle(country.cpi, 'cpi', postInstallMetricsRanges)}>
+                                {country.cpi ? fmtDecimal(country.cpi) : '-'}
+                              </TableCell>
+                              <TableCell style={getHeatmapStyle(country.roas_d0, 'roas', postInstallMetricsRanges)}>
+                                {country.roas_d0 ? fmtPercent(country.roas_d0) : '-'}
+                              </TableCell>
+                              <TableCell>{country.roas_d3 ? fmtPercent(country.roas_d3) : '-'}</TableCell>
+                              <TableCell>{country.roas_d7 ? fmtPercent(country.roas_d7) : '-'}</TableCell>
+                              <TableCell style={getHeatmapStyle(country.eroas_d30, 'eroas', postInstallMetricsRanges)}>
+                                {country.eroas_d30 ? fmtPercent(country.eroas_d30) : '-'}
+                              </TableCell>
+                              <TableCell>{country.roas_d30 ? fmtPercent(country.roas_d30) : '-'}</TableCell>
+                              <TableCell>{country.roas_d60 ? fmtPercent(country.roas_d60) : '-'}</TableCell>
+                              <TableCell>{country.ret_d1 ? fmtPercent(country.ret_d1) : '-'}</TableCell>
+                              <TableCell>{country.ret_d3 ? fmtPercent(country.ret_d3) : '-'}</TableCell>
+                              <TableCell>{country.ret_d7 ? fmtPercent(country.ret_d7) : '-'}</TableCell>
+                            </TableRow>
+                          ))}
+                        </React.Fragment>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Campaign Analysis Scatter Chart */}
+            <Card className="mt-6">
+              <CardHeader className="flex flex-row items-start justify-between pb-4">
+                <div className="flex-grow">
+                  <CardTitle>Campaign Analysis</CardTitle>
+                  <CardDescription>ROAS D0 vs. Cost per campaign, divided into four performance quadrants.</CardDescription>
+                </div>
+                <div className="w-1/3 min-w-[300px] pl-4">
+                  <label className="text-sm font-medium">Cost Range</label>
+                  <Slider
+                    min={0}
+                    max={maxCost}
+                    step={100}
+                    value={localCostRange}
+                    onValueChange={(value) => setLocalCostRange(value as [number, number])}
+                    onValueCommit={(value) => setCommittedCostRange(value as [number, number])}
+                    className="my-2"
+                    disabled={maxCost === 0}
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>{fmtDecimal(localCostRange[0])}</span>
+                    <span>{fmtDecimal(localCostRange[1])}</span>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div style={{ width: '100%', height: 450 }}>
+                  <ResponsiveContainer>
+                    <ScatterChart
+                      margin={{
+                        top: 20,
+                        right: 30,
+                        bottom: 20,
+                        left: 30,
+                      }}
+                    >
+                      {/* <CartesianGrid strokeDasharray="3 3" /> */}
+                      <XAxis
+                        type="number"
+                        dataKey="roas_d0"
+                        name="ROAS D0"
+                        tickFormatter={(value) => `${(value * 100).toFixed(0)}%`}
+                        label={{ value: "ROAS D0", position: 'insideBottom', offset: -10 }}
+                        domain={[0, 'auto']}
+                      />
+                      <YAxis
+                        type="number"
+                        dataKey="cost"
+                        name="Cost"
+                        tickFormatter={(value) => formatLargeNumber(value, 0)}
+                        label={{ value: "Cost", angle: -90, position: 'insideLeft', offset: -20 }}
+                        domain={[0, 'auto']}
+                      />
+                      <Tooltip cursor={{ strokeDasharray: '3 3' }} content={<CustomScatterTooltip />} />
+                      
+                      <ReferenceLine y={campaignAnalysisData.avgCost} stroke="#6b7280" strokeDasharray="4 4" />
+                      <ReferenceLine x={campaignAnalysisData.avgRoasD0} stroke="#6b7280" strokeDasharray="4 4" />
+
+                      <Scatter data={campaignAnalysisData.data} isAnimationActive={false}>
+                          {campaignAnalysisData.data.map((entry, index) => {
+                              let fill;
+                              switch (entry.quadrant) {
+                                  case 'Best': fill = '#a855f7'; break; // purple
+                                  case 'Bad': fill = '#f97316'; break; // orange
+                                  case 'Good': fill = '#22c55e'; break; // green
+                                  case 'Worst': fill = '#ef4444'; break; // red
+                                  default: fill = '#ccc';
+                              }
+                              return <Cell key={`cell-${index}`} fill={fill} />;
+                          })}
+                      </Scatter>
+                    </ScatterChart>
+                  </ResponsiveContainer>
+                  
+                </div>
+                <div className="mt-4"><CustomLegend /></div>
+              </CardContent>
+            </Card>
+
+            {/* Daily Metrics Table */}
+            <Card className="mt-6">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Daily Metrics</CardTitle>
+                  <CardDescription>Performance metrics by date with heatmap visualization</CardDescription>
+                </div>
+                <div className="w-64">
+                  <Select value={dailyMetricsCampaignFilter} onValueChange={setDailyMetricsCampaignFilter}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Filter by campaign..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {dailyMetricsCampaignOptions.map(campaign => (
+                        <SelectItem key={campaign} value={campaign!}>
+                          {campaign}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="relative max-h-[750px] overflow-auto rounded-md border">
+                  <Table>
+                    <TableHeader className="sticky top-0 z-10 bg-card">
+                      <TableRow>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Cost</TableHead>
+                        <TableHead className="w-32">CPI</TableHead>
+                        <TableHead className="w-32">ROAS D0</TableHead>
+                        <TableHead>ROAS D3</TableHead>
+                        <TableHead>ROAS D7</TableHead>
+                        <TableHead className="w-32">eROAS D30</TableHead>
+                        <TableHead>ROAS D30</TableHead>
+                        <TableHead>ROAS D60</TableHead>
+                        <TableHead>Ret D1</TableHead>
+                        <TableHead>Ret D3</TableHead>
+                        <TableHead>Ret D7</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {dailyMetrics.map(row => (
+                        <TableRow key={row.date} className="hover:bg-gray-50">
+                          <TableCell className="font-medium">{row.date}</TableCell>
+                          <TableCell>{fmtDecimal(row.cost)}</TableCell>
+                          <TableCell style={getHeatmapStyle(row.cpi, 'cpi', dailyMetricsRanges)}>
+                            {row.cpi ? fmtDecimal(row.cpi) : '-'}
+                          </TableCell>
+                          <TableCell style={getHeatmapStyle(row.roas_d0, 'roas', dailyMetricsRanges)}>
+                            {row.roas_d0 ? fmtPercent(row.roas_d0) : '-'}
+                          </TableCell>
+                          <TableCell>{row.roas_d3 ? fmtPercent(row.roas_d3) : '-'}</TableCell>
+                          <TableCell>{row.roas_d7 ? fmtPercent(row.roas_d7) : '-'}</TableCell>
+                          <TableCell style={getHeatmapStyle(row.eroas_d30, 'eroas', dailyMetricsRanges)}>
+                            {row.eroas_d30 ? fmtPercent(row.eroas_d30) : '-'}
+                          </TableCell>
+                          <TableCell>{row.roas_d30 ? fmtPercent(row.roas_d30) : '-'}</TableCell>
+                          <TableCell>{row.roas_d60 ? fmtPercent(row.roas_d60) : '-'}</TableCell>
+                          <TableCell>{row.ret_d1 ? fmtPercent(row.ret_d1) : '-'}</TableCell>
+                          <TableCell>{row.ret_d3 ? fmtPercent(row.ret_d3) : '-'}</TableCell>
+                          <TableCell>{row.ret_d7 ? fmtPercent(row.ret_d7) : '-'}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
         
 
         </div>
