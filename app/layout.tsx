@@ -1,5 +1,5 @@
 import type React from "react"
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
@@ -12,10 +12,13 @@ export const metadata: Metadata = {
   description: "SmartMove",
   generator: "v0.dev",
   manifest: "/manifest.json",
-  themeColor: "#ffffff",
   icons: {
     apple: "/icons/icon-192.png",
   },
+}
+
+export const viewport: Viewport = {
+  themeColor: "#ffffff",
 }
 
 export default function RootLayout({

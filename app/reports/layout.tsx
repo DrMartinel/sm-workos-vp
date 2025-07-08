@@ -24,8 +24,7 @@ import {
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { LogoutButton } from "@/components/auth/logout-button"
-import { PWAInstallButton } from "@/components/auth/pwa-install-button"
+import { UserProfileDropdown } from "@/components/auth/user-profile-dropdown"
 
 export default function ReportsLayout({
   children,
@@ -43,7 +42,7 @@ export default function ReportsLayout({
 
   const primaryIcons = [
     { id: "home", icon: Home, label: "Home", href: "/" },
-    { id: "reports", icon: BarChart3, label: "Reports", href: "/reports" },
+    { id: "reports", icon: BarChart3, label: "Reports", href: "/reports/overview" },
     { id: "tasks", icon: CheckSquare, label: "Tasks", href: "/tasks" },
     { id: "requests", icon: FileText, label: "Requests", href: "#" },
     { id: "goals", icon: Target, label: "Goals", href: "#" },
@@ -115,11 +114,7 @@ export default function ReportsLayout({
             </TooltipProvider>
           </div>
           <div className="flex flex-col items-center space-y-4">
-            <PWAInstallButton />
-            <LogoutButton />
-            <div className="h-10 w-10 overflow-hidden rounded-full bg-gray-200">
-              <User className="h-full w-full p-2 text-gray-500" />
-            </div>
+            <UserProfileDropdown />
           </div>
         </div>
 

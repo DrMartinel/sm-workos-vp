@@ -132,7 +132,7 @@ export default function WorkspaceDashboard() {
                             item.id === "tasks"
                               ? "/tasks"
                               : item.id === "reports"
-                                ? "/reports"
+                                ? "/reports/overview"
                                 : item.id === "workflow"
                                   ? "/workflow-editor"
                                   : "#"
@@ -223,7 +223,7 @@ export default function WorkspaceDashboard() {
                       <span>Tasks</span>
                     </Button>
                   </Link>
-                  <Link href="/reports">
+                  <Link href="/reports/overview">
                     <Button variant="outline" className="h-20 flex-col justify-center gap-1 w-full bg-transparent">
                       <BarChart3 className="h-5 w-5" />
                       <span>Reports</span>
