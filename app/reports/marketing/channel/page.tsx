@@ -104,7 +104,6 @@ const dateRanges = {
 type DateRangeKey = keyof typeof dateRanges;
 
 function calculateDateRange(key: DateRangeKey): { startDate: string, endDate: string } {
-    console.log(`[DEBUG] calculateDateRange called with key: ${key}`);
     const toYYYYMMDD = (date: Date) => {
         const y = date.getFullYear();
         const m = String(date.getMonth() + 1).padStart(2, '0');
@@ -115,8 +114,6 @@ function calculateDateRange(key: DateRangeKey): { startDate: string, endDate: st
     const now = new Date();
     const yesterday = new Date();
     yesterday.setDate(now.getDate() - 1);
-    
-    console.log(`[DEBUG] Today is: ${toYYYYMMDD(now)}, Yesterday is: ${toYYYYMMDD(yesterday)}`);
 
     let startDate: Date;
     let endDate: Date;
@@ -152,12 +149,10 @@ function calculateDateRange(key: DateRangeKey): { startDate: string, endDate: st
             break;
     }
 
-    const result = {
+    return {
         startDate: toYYYYMMDD(startDate),
         endDate: toYYYYMMDD(endDate),
     };
-    console.log(`[DEBUG] calculateDateRange produced:`, result);
-    return result;
 }
 
 function useAdjustCohortData(startDate?: string, endDate?: string) {
@@ -512,22 +507,7 @@ export default function ReportsPage() {
     const startDate = date?.from ? format(date.from, 'yyyyMMdd') : undefined;
     const endDate = date?.to ? format(date.to, 'yyyyMMdd') : undefined;
 
-    const [dateRangeKey, setDateRangeKey] = useState<DateRangeKey>('last_30_days');
-    const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>(undefined);
-
-    const { startDate: adjustedStartDate, endDate: adjustedEndDate } = useMemo(() => {
-        if (customDateRange?.from && customDateRange?.to) {
-            const toYYYYMMDD = (date: Date) => date.toISOString().split('T')[0];
-            return {
-                startDate: toYYYYMMDD(customDateRange.from),
-                endDate: toYYYYMMDD(customDateRange.to)
-            };
-        }
-        return calculateDateRange(dateRangeKey);
-    }, [dateRangeKey, customDateRange]);
-
-    console.log(`[DEBUG] Dates passed to API hook: startDate=${adjustedStartDate}, endDate=${adjustedEndDate}`);
-    const { roasData, cpiData, rawData, loading, error } = useAdjustCohortData(adjustedStartDate, adjustedEndDate);
+    const { roasData, cpiData, rawData, loading, error } = useAdjustCohortData(startDate, endDate);
     const filters = useAdjustCohortFilters(rawData || []);
 
     const [selectedFilters, setSelectedFilters] = useState<Record<string, string[]>>({
@@ -1043,10 +1023,10 @@ export default function ReportsPage() {
                 </div>
             </div>
         );
-    }
-    if (error) {
-        return <div className="p-8 text-center text-red-500">Error loading data: {error}</div>;
-    }
+  }
+  if (error) {
+    return <div className="p-8 text-center text-red-500">Error loading data: {error}</div>;
+  }
 
     const LoadingOverlay = () => (
         <div className="absolute inset-0 bg-white bg-opacity-60 flex items-center justify-center z-10">
@@ -1083,24 +1063,19 @@ export default function ReportsPage() {
       </div>
     );
 
-    const handleDateRangeChange = (key: DateRangeKey) => {
-        setDateRangeKey(key);
-        setCustomDateRange(undefined);
-    };
+  return (
+    <div className="p-6 space-y-8 bg-gray-50 min-h-screen">
+      {/* Header */}
+      <div className="space-y-6">
+        {/* Title Section */}
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Reports</h1>
+          <p className="text-gray-500 mt-1">Comprehensive analytics and insights for your business.</p>
+        </div>
 
-    return (
-        <div className="p-6 space-y-8 bg-gray-50 min-h-screen">
-            {/* Header */}
-            <div className="space-y-6">
-                {/* Title Section */}
-                <div>
-                    <h1 className="text-3xl font-bold text-gray-900">Reports</h1>
-                    <p className="text-gray-500 mt-1">Comprehensive analytics and insights for your business.</p>
-                </div>
-
-                {/* Filters and Actions */}
-                <div className="flex items-center justify-between">
-                    {/* Left side - Filters */}
+        {/* Filters and Actions */}
+        <div className="flex items-center justify-between">
+          {/* Left side - Filters */}
                     <div className="flex items-center gap-4 flex-wrap">
                         {filterConfigs.map(f => (
                             <MultiSelectFilter
@@ -1111,10 +1086,10 @@ export default function ReportsPage() {
                                 onSelectionChange={(values) => handleFilterChange(f.name, values)}
                             />
                         ))}
-                    </div>
+          </div>
 
-                    {/* Right side - Actions */}
-                    <div className="flex items-center gap-3">
+          {/* Right side - Actions */}
+          <div className="flex items-center gap-3">
                         <Popover>
                             <PopoverTrigger asChild>
                                 <Button
@@ -1138,7 +1113,7 @@ export default function ReportsPage() {
                                     ) : (
                                         <span>Pick a date</span>
                                     )}
-                                </Button>
+            </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-auto p-0" align="start">
                                 <div className="flex">
@@ -1164,196 +1139,196 @@ export default function ReportsPage() {
                                 </div>
                             </PopoverContent>
                         </Popover>
-                        <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm">
                             <RefreshCw className="h-4 w-4" />
-                        </Button>
+            </Button>
                         <Button variant="outline" size="icon" className="h-9 w-9">
                             <MoreHorizontal className="h-4 w-4" />
                             <span className="sr-only">More</span>
-                        </Button>
-                    </div>
-                </div>
-            </div>
+            </Button>
+          </div>
+        </div>
+      </div>
 
-            {/* Section 2.5: Combined Scorecard and Dual-Axis Charts */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Section 2.5: Combined Scorecard and Dual-Axis Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <Card className="relative">
                     {loading && !isInitialLoad && <LoadingOverlay />}
-                    <CardHeader className="pb-4">
-                        <CardTitle>ROAS Performance</CardTitle>
-                        <CardDescription>Return on Ad Spend metrics with cost analysis</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        {/* Scorecard Section */}
-                        <div className="grid grid-cols-3 gap-4 mb-6">
-                            <div className="text-center">
-                                <div className="text-xs font-medium text-blue-600 mb-1">ROAS D0</div>
+          <CardHeader className="pb-4">
+            <CardTitle>ROAS Performance</CardTitle>
+            <CardDescription>Return on Ad Spend metrics with cost analysis</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {/* Scorecard Section */}
+            <div className="grid grid-cols-3 gap-4 mb-6">
+              <div className="text-center">
+                <div className="text-xs font-medium text-blue-600 mb-1">ROAS D0</div>
                                 <div className="text-2xl font-bold text-gray-900">{(filteredChartData.stats?.averageRoasD0 ?? 0).toFixed(2)}%</div>
-                                <div className="flex items-center justify-center gap-1 text-xs">
-                                    <TrendingDown className="h-3 w-3 text-red-500" />
-                                    <span className="text-red-500">-15.4%</span>
-                                </div>
-                            </div>
-                            <div className="text-center">
-                                <div className="text-xs font-medium text-pink-600 mb-1">eROAS D30</div>
+                <div className="flex items-center justify-center gap-1 text-xs">
+                  <TrendingDown className="h-3 w-3 text-red-500" />
+                  <span className="text-red-500">-15.4%</span>
+                </div>
+              </div>
+              <div className="text-center">
+                <div className="text-xs font-medium text-pink-600 mb-1">eROAS D30</div>
                                 <div className="text-2xl font-bold text-gray-900">{(filteredChartData.stats?.averageERoasD30 ?? 0).toFixed(2)}%</div>
-                                <div className="flex items-center justify-center gap-1 text-xs">
-                                    <TrendingDown className="h-3 w-3 text-red-500" />
-                                    <span className="text-red-500">-7.3%</span>
-                                </div>
-                            </div>
-                            <div className="text-center">
-                                <div className="text-xs font-medium text-cyan-600 mb-1">ROAS D30</div>
-                                <div className="text-2xl font-bold text-gray-400">No data</div>
-                                <div className="text-xs text-gray-400">No data</div>
-                            </div>
-                        </div>
+                <div className="flex items-center justify-center gap-1 text-xs">
+                  <TrendingDown className="h-3 w-3 text-red-500" />
+                  <span className="text-red-500">-7.3%</span>
+                </div>
+              </div>
+              <div className="text-center">
+                <div className="text-xs font-medium text-cyan-600 mb-1">ROAS D30</div>
+                <div className="text-2xl font-bold text-gray-400">No data</div>
+                <div className="text-xs text-gray-400">No data</div>
+              </div>
+            </div>
 
-                        {/* Dual-Axis Chart */}
-                        <ResponsiveContainer width="100%" height={300}>
+            {/* Dual-Axis Chart */}
+            <ResponsiveContainer width="100%" height={300}>
                             <ComposedChart data={filteredChartData.roasData}>
-                                <XAxis dataKey="date" />
+                <XAxis dataKey="date" />
                                 <YAxis yAxisId="left" orientation="left" domain={[0, roasChartMax]} tickFormatter={(value) => `${value.toFixed(0)}%`} />
-                                <YAxis
-                                    yAxisId="right"
-                                    orientation="right"
+                <YAxis
+                  yAxisId="right"
+                  orientation="right"
                                     tickFormatter={(value) => formatLargeNumber(value as number, 0)}
-                                />
-                                <Tooltip
-                                    formatter={(value, name) => {
+                />
+                <Tooltip
+                  formatter={(value, name) => {
                                         const numValue = value as number;
                                         if (name === "cost") return [formatLargeNumber(numValue, 2), "Cost"];
                                         return [`${numValue.toFixed(2)}%`, name as string];
-                                    }}
-                                />
-                                <Legend />
-                                <Bar yAxisId="right" dataKey="cost" fill="#7dd3fc" name="Cost" opacity={0.7} />
-                                <Line
-                                    yAxisId="left"
-                                    type="monotone"
-                                    dataKey="roasD0"
-                                    stroke="#3b82f6"
-                                    strokeWidth={2}
-                                    name="ROAS D0"
-                                    dot={false}
-                                />
-                                <Line
-                                    yAxisId="left"
-                                    type="monotone"
-                                    dataKey="roasD30"
-                                    stroke="#06b6d4"
-                                    strokeWidth={2}
-                                    name="ROAS D30"
-                                    dot={false}
-                                />
-                                <Line
-                                    yAxisId="left"
-                                    type="monotone"
-                                    dataKey="eRoasD30"
-                                    stroke="#ec4899"
-                                    strokeWidth={2}
-                                    strokeDasharray="5 5"
-                                    name="eROAS D30"
-                                    dot={false}
-                                />
-                                <ReferenceLine
-                                    yAxisId="left"
-                                    y={100}
-                                    stroke="#374151"
-                                    strokeWidth={2}
-                                    strokeDasharray="8 8"
-                                    label={{
-                                        value: "Break-even",
-                                        position: "insideTopLeft",
-                                        offset: 10,
-                                        style: {
-                                            textAnchor: "start",
-                                            fontSize: "12px",
-                                            fill: "#374151",
-                                            fontWeight: "500",
-                                            backgroundColor: "white",
-                                            padding: "2px 6px",
-                                            borderRadius: "4px",
-                                            border: "1px solid #e5e7eb",
-                                        },
-                                    }}
-                                />
-                            </ComposedChart>
-                        </ResponsiveContainer>
-                    </CardContent>
-                </Card>
+                  }}
+                />
+                <Legend />
+                <Bar yAxisId="right" dataKey="cost" fill="#7dd3fc" name="Cost" opacity={0.7} />
+                <Line
+                  yAxisId="left"
+                  type="monotone"
+                  dataKey="roasD0"
+                  stroke="#3b82f6"
+                  strokeWidth={2}
+                  name="ROAS D0"
+                  dot={false}
+                />
+                <Line
+                  yAxisId="left"
+                  type="monotone"
+                  dataKey="roasD30"
+                  stroke="#06b6d4"
+                  strokeWidth={2}
+                  name="ROAS D30"
+                  dot={false}
+                />
+                <Line
+                  yAxisId="left"
+                  type="monotone"
+                  dataKey="eRoasD30"
+                  stroke="#ec4899"
+                  strokeWidth={2}
+                  strokeDasharray="5 5"
+                  name="eROAS D30"
+                  dot={false}
+                />
+                <ReferenceLine
+                  yAxisId="left"
+                  y={100}
+                  stroke="#374151"
+                  strokeWidth={2}
+                  strokeDasharray="8 8"
+                  label={{
+                    value: "Break-even",
+                    position: "insideTopLeft",
+                    offset: 10,
+                    style: {
+                      textAnchor: "start",
+                      fontSize: "12px",
+                      fill: "#374151",
+                      fontWeight: "500",
+                      backgroundColor: "white",
+                      padding: "2px 6px",
+                      borderRadius: "4px",
+                      border: "1px solid #e5e7eb",
+                    },
+                  }}
+                />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
 
                 <Card className="relative">
                     {loading && !isInitialLoad && <LoadingOverlay />}
-                    <CardHeader className="pb-4">
-                        <CardTitle>CPI & Cost Analysis</CardTitle>
-                        <CardDescription>Cost per install trends with total spend</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        {/* Scorecard Section */}
-                        <div className="grid grid-cols-2 gap-6 mb-6">
-                            <div className="text-center">
+          <CardHeader className="pb-4">
+            <CardTitle>CPI & Cost Analysis</CardTitle>
+            <CardDescription>Cost per install trends with total spend</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {/* Scorecard Section */}
+            <div className="grid grid-cols-2 gap-6 mb-6">
+              <div className="text-center">
                                 <div className="text-xs font-medium text-blue-600 mb-1">AVG. CPI</div>
                                 <div className="text-2xl font-bold text-gray-900">{(filteredChartData.stats?.averageCpi ?? 0).toFixed(2)} đ</div>
-                                <div className="flex items-center justify-center gap-1 text-xs">
-                                    <TrendingDown className="h-3 w-3 text-red-500" />
-                                    <span className="text-red-500">-8.9%</span>
-                                </div>
-                            </div>
-                            <div className="text-center">
+                <div className="flex items-center justify-center gap-1 text-xs">
+                  <TrendingDown className="h-3 w-3 text-red-500" />
+                  <span className="text-red-500">-8.9%</span>
+                </div>
+              </div>
+              <div className="text-center">
                                 <div className="text-xs font-medium text-cyan-600 mb-1">TOTAL COST</div>
                                 <div className="text-xl font-bold text-gray-900">{formatLargeNumber(filteredChartData.stats?.totalCost ?? 0)} đ</div>
-                                <div className="flex items-center justify-center gap-1 text-xs">
-                                    <TrendingUp className="h-3 w-3 text-green-500" />
-                                    <span className="text-green-500">+6.7%</span>
-                                </div>
-                            </div>
-                        </div>
+                <div className="flex items-center justify-center gap-1 text-xs">
+                  <TrendingUp className="h-3 w-3 text-green-500" />
+                  <span className="text-green-500">+6.7%</span>
+                </div>
+              </div>
+            </div>
 
-                        {/* Dual-Axis Chart */}
-                        <ResponsiveContainer width="100%" height={300}>
+            {/* Dual-Axis Chart */}
+            <ResponsiveContainer width="100%" height={300}>
                             <ComposedChart data={filteredChartData.cpiData}>
-                                <XAxis dataKey="date" />
+                <XAxis dataKey="date" />
                                 <YAxis yAxisId="left" orientation="left" domain={[0, cpiChartMax]} tickFormatter={(value) => `${value.toFixed(2)}`} />
-                                <YAxis
-                                    yAxisId="right"
-                                    orientation="right"
+                <YAxis
+                  yAxisId="right"
+                  orientation="right"
                                     tickFormatter={(value) => formatLargeNumber(value as number, 0)}
-                                />
-                                <Tooltip
-                                    formatter={(value, name) => {
+                />
+                <Tooltip
+                  formatter={(value, name) => {
                                         const numValue = value as number;
                                         if (name === "cost") return [`${formatLargeNumber(numValue, 2)} đ`, "Cost"]
                                         if (name === "cpi") return [`${numValue.toFixed(2)} đ`, "CPI"]
                                         if (name === "eLtvD30") return [`${numValue.toFixed(2)}`, "eLTV D30"]
                                         return [`${numValue.toFixed(2)}`, name as string]
-                                    }}
-                                />
-                                <Legend />
-                                <Bar yAxisId="right" dataKey="cost" fill="#7dd3fc" name="Cost" opacity={0.7} />
-                                <Line
-                                    yAxisId="left"
-                                    type="monotone"
-                                    dataKey="cpi"
-                                    stroke="#3b82f6"
-                                    strokeWidth={2}
-                                    name="CPI"
-                                    dot={false}
-                                />
-                                <Line
-                                    yAxisId="left"
-                                    type="monotone"
-                                    dataKey="eLtvD30"
-                                    stroke="#ec4899"
-                                    strokeWidth={2}
-                                    name="eLTV D30"
-                                    dot={false}
-                                />
-                            </ComposedChart>
-                        </ResponsiveContainer>
-                    </CardContent>
-                </Card>
-            </div>
+                  }}
+                />
+                <Legend />
+                <Bar yAxisId="right" dataKey="cost" fill="#7dd3fc" name="Cost" opacity={0.7} />
+                <Line
+                  yAxisId="left"
+                  type="monotone"
+                  dataKey="cpi"
+                  stroke="#3b82f6"
+                  strokeWidth={2}
+                  name="CPI"
+                  dot={false}
+                />
+                <Line
+                  yAxisId="left"
+                  type="monotone"
+                  dataKey="eLtvD30"
+                  stroke="#ec4899"
+                  strokeWidth={2}
+                  name="eLTV D30"
+                  dot={false}
+                />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
             {/* Section 2: Time Series Analysis */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <Card>
@@ -1650,6 +1625,6 @@ export default function ReportsPage() {
             </Card>
         
 
-        </div>
-    )
+    </div>
+  )
 }

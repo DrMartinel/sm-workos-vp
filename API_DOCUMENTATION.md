@@ -58,6 +58,165 @@ const response = await fetch('/api/data-source/AdjustCohortData?startDate=202401
 const data = await response.json();
 ```
 
+## Data Source Architecture
+
+The data source system is designed for maximum flexibility and extensibility, allowing developers to easily add new data sources like MySQL or Google Sheets without altering the core API logic. This is achieved through a "convention over configuration" approach.
+
+### Core Components
+
+1.  **Dynamic API Endpoint (`/api/data-source/[name]/route.ts`)**: This single endpoint acts as a gateway for all data source requests. The `[name]` parameter in the URL corresponds to the specific data source to be queried (e.g., `AdjustCohortData`).
+
+2.  **Data Source Directory (`/data-sources/[name]`)**: Each data source has its own dedicated directory. The directory name must exactly match the `[name]` parameter used in the API call.
+
+3.  **Definition File (`definition.ts`)**: Inside each data source directory, a `definition.ts` file must exist. This file exports a default object that defines the data source's metadata, primarily:
+    - `source`: The type of the data source (e.g., `'bigquery'`, `'mysql'`).
+    - `queryFile`: The name of the file containing the SQL query.
+
+4.  **Query File (`query.sql`)**: This file contains the raw SQL query. It uses placeholders like `@DS_START_DATE` and `@DS_END_DATE`, which are safely replaced with parameterized values by the API.
+
+### Execution Flow Example
+
+When a request is made to `/api/data-source/AdjustCohortData?startDate=20240101&endDate=20240131`:
+
+1.  **Cache Check**: The API first checks an in-memory cache for a matching request. If valid cached data exists, it's returned immediately.
+2.  **Load Definition**: If no cache is found, the API dynamically imports `/data-sources/AdjustCohortData/definition.ts`.
+3.  **Read Query**: It reads the query from the file specified in `queryFile` (e.g., `query.sql`).
+4.  **Execute Query**: The `runQueryBySource` function is called. Based on the `source` property (`'bigquery'`), it initializes the appropriate client, replaces placeholders with secure parameters, and executes the query.
+5.  **Cache and Respond**: The results are cleaned, stored in the cache for future requests, and returned to the client as JSON.
+
+### How to Add a New Data Source (e.g., MySQL)
+
+1.  **Update the API**: In `/api/data-source/[name]/route.ts`, add a new `case` to the `runQueryBySource` function to handle the `'mysql'` source type. This involves adding logic to connect to MySQL and execute the query.
+
+    ```typescript
+    // Inside runQueryBySource function in route.ts
+    switch (sourceType) {
+        case 'bigquery':
+            // ... existing BigQuery logic
+            break;
+        case 'mysql':
+            // Add new logic to connect to MySQL and run the query
+            // const mysql = initializeMySqlClient();
+            // const [rows] = await mysql.query(query, params);
+            // return rows;
+        // ...
+    }
+    ```
+
+2.  **Create New Directory**: Create a new folder, e.g., `/data-sources/MySqlSalesReport/`.
+
+3.  **Add Definition and Query Files**:
+    - Inside the new directory, create a `definition.ts` file:
+      ```typescript
+      export default {
+        source: 'mysql', // Specify the new source type
+        queryFile: 'sales_query.sql'
+      };
+      ```
+    - Create the corresponding `sales_query.sql` file with the MySQL query.
+
+That's it! The API will now be able to serve data from your new MySQL source.
+
+## Data Aggregation and Calculation Principles
+
+To ensure data accuracy and consistency, especially in analytics and reporting, it is crucial to follow a strict principle when handling aggregated data.
+
+### The Golden Rule: Aggregate First, Calculate Second
+
+You **must not** average pre-calculated metrics (like taking the average of a list of ROAS percentages). The correct method is to **aggregate the raw, additive components first**, and then perform the calculation on the aggregated totals.
+
+### Additive vs. Calculated Metrics
+
+It's important to distinguish between two types of metrics:
+
+-   **Additive Metrics**: These are raw values that can be summed up across different dimensions without losing their meaning.
+    -   **Examples**: `cost`, `installs`, `REV_D0`, `REV_D3`, `retained_users_D1`.
+
+-   **Calculated Metrics**: These are metrics derived from other metrics, often as ratios or percentages. They **cannot** be directly summed or averaged.
+    -   **Examples**: `CPI` (Cost Per Install), `ROAS` (Return On Ad Spend), `Retention Rate`, `CTR` (Click-Through Rate).
+
+### Why Averaging Calculated Metrics is Wrong
+
+Consider two campaigns:
+-   **Campaign A**: Cost $10, ROAS 150%
+-   **Campaign B**: Cost $1,000, ROAS 50%
+
+**Incorrect Method (Averaging ROAS):**
+`(150% + 50%) / 2 = 100%`
+This result is misleading because it ignores the vastly different scales (costs) of the campaigns.
+
+### The Correct Approach: Aggregating Raw Components
+
+1.  **Aggregate (SUM) the raw components:**
+    -   First, find out the revenue for each campaign:
+        -   Campaign A Revenue = $10 * 150% = $15
+        -   Campaign B Revenue = $1,000 * 50% = $500
+    -   Sum the costs and revenues:
+        -   `Total Cost` = $10 + $1,000 = $1,010
+        -   `Total Revenue` = $15 + $500 = $515
+
+2.  **Calculate the final metric from the aggregated totals:**
+    -   `Aggregated ROAS` = (`Total Revenue` / `Total Cost`) * 100 = (`$515 / $1,010`) * 100 ≈ **51%**
+
+This 51% figure accurately reflects the overall performance, properly weighted by cost.
+
+### Handling Complex Weighted Averages
+
+For metrics that are themselves ratios (e.g., `RATIO_REVD30_REVD3`), you must calculate a weighted average. The weight should be the denominator of the original ratio.
+
+-   `aggregated_ratio` = SUM(`denominator` * `ratio`) / SUM(`denominator`)
+
+For `RATIO_REVD30_REVD3`, the denominator is `REV_D3`. So the formula is:
+-   `aggregated_ratio_revd30_revd3` = SUM(`REV_D3` * `RATIO_REVD30_REVD3`) / SUM(`REV_D3`)
+
+The final `eROAS D30` is then calculated using this aggregated ratio and other aggregated components.
+
+### Implementation Examples
+
+#### SQL (Recommended)
+
+Performing aggregation directly in the database is the most efficient method.
+
+```sql
+SELECT
+    channel,
+    SUM(cost) AS total_cost,
+    SUM(installs) AS total_installs,
+    SUM(rev_d3) AS total_rev_d3,
+    -- Calculate the numerator for the weighted average
+    SUM(rev_d3 * ratio_revd30_revd3) AS weighted_ratio_numerator
+FROM
+    your_table
+GROUP BY
+    channel;
+```
+You can then use these aggregated values in the backend or frontend to calculate the final metrics.
+
+#### JavaScript (Client-side)
+
+If you have raw, un-aggregated data on the client, use `Array.prototype.reduce()` to aggregate before calculating.
+
+```javascript
+const rawData = [/* ... array of campaign data ... */];
+
+const aggregated = rawData.reduce((acc, row) => {
+    acc.total_cost += row.cost || 0;
+    acc.total_rev_d3 += row.REV_D3 || 0;
+    acc.weighted_ratio_numerator += (row.REV_D3 || 0) * (row.RATIO_REVD30_REVD3 || 0);
+    // ... sum other additive metrics ...
+    return acc;
+}, {
+    total_cost: 0,
+    total_rev_d3: 0,
+    weighted_ratio_numerator: 0,
+    // ... initialize other metrics ...
+});
+
+// Now, calculate the final metrics from the aggregated object
+const aggregated_ratio = aggregated.weighted_ratio_numerator / aggregated.total_rev_d3;
+const aggregated_eRoas_d30 = (aggregated.total_rev_d3 * aggregated_ratio) / aggregated.total_cost * 100;
+```
+
 ## UI Components
 
 ### Core Components
