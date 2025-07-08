@@ -869,4 +869,30 @@ const handleError = (error: Error) => {
 - Component testing with React Testing Library
 - E2E tests for critical user flows
 
+## Authentication
+The application uses Supabase Auth for authentication, employing an email and password-based flow. User accounts must be pre-created by an administrator in the Supabase dashboard; public sign-ups are disabled.
+
+### Authentication Flow
+1.  **Login Request**: The user enters their registered email and password on the `/login` page.
+2.  **Verification**: The application sends the credentials to Supabase using the `signInWithPassword` method.
+3.  **Session Creation**: If the credentials are valid, Supabase returns a session object. The `@supabase/ssr` helper library securely stores this session in browser cookies.
+4.  **Redirection**: After a successful login, the user is redirected to the main application dashboard at `/reports/overview`. If the credentials are invalid, an error message is displayed on the login form.
+
+### Session Management
+-   **Supabase SSR Package**: The `@supabase/ssr` package is used to manage user sessions across Server Components, Client Components, Middleware, and Route Handlers.
+-   **Secure Cookies**: User sessions are stored in secure, HTTP-only cookies, which are automatically refreshed and managed by the middleware.
+
+### Route Protection
+-   **Middleware (`middleware.ts`)**: A middleware is implemented to protect all application routes. It inspects incoming requests to verify a valid user session.
+-   **Redirection Logic**:
+    -   If a user is **not logged in** and tries to access any protected page, they are automatically redirected to `/login`.
+    -   If a user **is logged in** and tries to access the `/login` page, they are automatically redirected to `/reports/overview`.
+-   **Protected Routes**: All routes are protected by default, except for public assets (`_next/static`, `_next/image`, `favicon.ico`) and the login page itself.
+
+### Key Components & Files
+-   **Environment Variables (`.env.local`)**: Stores `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
+-   **Supabase Clients (`lib/utils/supabase/`)**: Separate client initializations for browser (`client.ts`) and server-side (`server.ts`) environments.
+-   **Login Page (`/app/login/page.tsx`)**: A Client Component containing the email/password submission form.
+-   **Logout Button (`/components/auth/logout-button.tsx`)**: A Client Component that handles the sign-out process.
+
 This documentation provides comprehensive coverage of all public APIs, functions, and components in the workspace. Each section includes usage examples, type definitions, and best practices for implementation.

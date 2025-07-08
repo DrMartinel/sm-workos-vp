@@ -24,6 +24,7 @@ import {
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { LogoutButton } from "@/components/auth/logout-button"
 
 export default function ReportsLayout({
   children,
@@ -112,7 +113,8 @@ export default function ReportsLayout({
               </div>
             </TooltipProvider>
           </div>
-          <div className="flex flex-col items-center space-y-6">
+          <div className="flex flex-col items-center space-y-4">
+            <LogoutButton />
             <div className="h-10 w-10 overflow-hidden rounded-full bg-gray-200">
               <User className="h-full w-full p-2 text-gray-500" />
             </div>
