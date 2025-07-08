@@ -6,7 +6,7 @@ import { format, startOfWeek, startOfMonth, parseISO, eachDayOfInterval, eachWee
 import { useMemo } from 'react';
 
 // --- TYPE DEFINITIONS ---
-export type Metric = 'downloads' | 'revenue' | 'cost' | 'custom_costs' | 'margin';
+export type Metric = 'downloads' | 'revenue' | 'cost' | 'custom_costs' | 'margin' | 'profit';
 export type Breakdown = 'none' | 'app_name' | 'platform';
 export type TimeAggregation = 'daily' | 'weekly' | 'monthly';
 
@@ -61,7 +61,8 @@ export const useChartData = (
             )
             .map(row => ({
                 ...row,
-                margin: (row.revenue || 0) - (row.cost || 0) - (row.custom_costs || 0)
+                margin: (row.revenue || 0) - (row.cost || 0),
+                profit: (row.revenue || 0) - (row.cost || 0) - (row.custom_costs || 0)
             }));
             
         // 2. Aggregate by time period
@@ -77,7 +78,7 @@ export const useChartData = (
             if (!acc[key]) acc[key] = {};
             if (!acc[key][breakdownKey]) {
                 acc[key][breakdownKey] = {
-                    downloads: 0, revenue: 0, cost: 0, custom_costs: 0, margin: 0,
+                    downloads: 0, revenue: 0, cost: 0, custom_costs: 0, margin: 0, profit: 0,
                 };
             }
             
@@ -110,7 +111,7 @@ export const useChartData = (
                 
                 Object.keys(timeAggregatedData).forEach(date => {
                     timeAggregatedData[date]['Others'] = {
-                        downloads: 0, revenue: 0, cost: 0, custom_costs: 0, margin: 0,
+                        downloads: 0, revenue: 0, cost: 0, custom_costs: 0, margin: 0, profit: 0,
                     };
                     otherKeys.forEach(key => {
                         if (timeAggregatedData[date][key]) {

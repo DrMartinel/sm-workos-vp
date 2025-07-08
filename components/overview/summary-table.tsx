@@ -17,7 +17,7 @@ type AggregatedData = {
   adSpent: number;
   customCost: number;
   totalCost: number;
-  grossMargin: number;
+  profit: number;
 };
 
 interface SummaryTableProps {
@@ -76,7 +76,7 @@ export const OverviewSummaryTable = ({ data, isLoading }: SummaryTableProps) => 
     { label: 'Cost', dataKey: 'totalCost', isBold: true },
     { label: 'Ad Spent', dataKey: 'adSpent', isIndented: true },
     { label: 'Custom Cost', dataKey: 'customCost', isIndented: true },
-    { label: 'Gross Margin', dataKey: 'grossMargin' },
+    { label: 'Profit', dataKey: 'profit' },
   ];
   
   const periods = ['thisPeriod', 'last30Days', 'thisMonth', 'lastMonth'] as const;

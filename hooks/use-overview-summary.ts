@@ -21,7 +21,7 @@ type AggregatedData = {
   adSpent: number;
   customCost: number;
   totalCost: number;
-  grossMargin: number;
+  profit: number;
 };
 
 const fetchData = async (startDate?: Date, endDate?: Date): Promise<OverviewDataRow[]> => {
@@ -43,7 +43,7 @@ const aggregateData = (
     selectedPlatforms: string[]
 ): AggregatedData => {
     if (!data) {
-        return { downloads: 0, revenue: 0, adSpent: 0, customCost: 0, totalCost: 0, grossMargin: 0 };
+        return { downloads: 0, revenue: 0, adSpent: 0, customCost: 0, totalCost: 0, profit: 0 };
     }
 
     const filteredData = data.filter(row => 
@@ -71,9 +71,9 @@ const aggregateData = (
     totals.customCost = Array.from(uniqueCustomCosts.values()).reduce((sum, cost) => sum + cost, 0);
 
     const totalCost = totals.adSpent + totals.customCost;
-    const grossMargin = totals.revenue - totalCost;
+    const profit = totals.revenue - totalCost;
 
-    return { ...totals, totalCost, grossMargin };
+    return { ...totals, totalCost, profit };
 };
 
 

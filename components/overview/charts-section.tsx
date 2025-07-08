@@ -12,6 +12,7 @@ import { OverviewSummaryTable } from './summary-table';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import React from 'react';
 
 type AggregatedData = {
     downloads: number;
@@ -19,7 +20,7 @@ type AggregatedData = {
     adSpent: number;
     customCost: number;
     totalCost: number;
-    grossMargin: number;
+    profit: number;
   };
   
 interface ChartsSectionProps {
@@ -41,12 +42,20 @@ const METRICS: { value: Metric; label: string; formatter: (val: number) => strin
     { value: 'cost', label: 'Ad Cost', formatter: (val) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val) },
     { value: 'custom_costs', label: 'Custom Costs', formatter: (val) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val) },
     { value: 'margin', label: 'Margin', formatter: (val) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val) },
+    { value: 'profit', label: 'Profit', formatter: (val) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val) },
 ];
 
 export const ChartsSection = ({ dateRange, selectedApps, selectedPlatforms, summaryData, isSummaryLoading }: ChartsSectionProps) => {
     const [activeMetric, setActiveMetric] = useState<Metric>('revenue');
     const [breakdown, setBreakdown] = useState<Breakdown>('none');
     const [timeAggregation, setTimeAggregation] = useState<TimeAggregation>('daily');
+    
+    const handleBreakdownChange = (newBreakdown: Breakdown) => {
+        setBreakdown(newBreakdown);
+        if (newBreakdown !== 'none' && (activeMetric === 'custom_costs' || activeMetric === 'profit')) {
+            setActiveMetric('revenue');
+        }
+    };
     
     const { data, keys, isLoading } = useChartData(
         dateRange,
@@ -67,21 +76,25 @@ export const ChartsSection = ({ dateRange, selectedApps, selectedPlatforms, summ
             <CardContent className="space-y-6">
                 <div className="flex justify-between items-center border-b border-gray-200 pb-4">
                     <div className="flex items-center space-x-2">
-                        {METRICS.map(m => (
-                            <Button
-                                key={m.value}
-                                variant={activeMetric === m.value ? 'secondary' : 'ghost'}
-                                size="sm"
-                                onClick={() => setActiveMetric(m.value)}
-                                className="h-8 px-3"
-                            >
-                                {m.label}
-                            </Button>
-                        ))}
+                        {METRICS.map(m => {
+                            const isDisabled = breakdown !== 'none' && (m.value === 'custom_costs' || m.value === 'profit');
+                            return (
+                                <Button
+                                    key={m.value}
+                                    variant={activeMetric === m.value ? 'secondary' : 'ghost'}
+                                    size="sm"
+                                    onClick={() => setActiveMetric(m.value)}
+                                    disabled={isDisabled}
+                                    className="h-8 px-3"
+                                >
+                                    {m.label}
+                                </Button>
+                            )
+                        })}
                     </div>
 
                     <div className="flex items-center gap-4">
-                        <Select value={breakdown} onValueChange={(value: Breakdown) => setBreakdown(value)}>
+                        <Select value={breakdown} onValueChange={handleBreakdownChange}>
                             <SelectTrigger className="w-[150px]">
                                 <SelectValue placeholder="Breakdown by" />
                             </SelectTrigger>

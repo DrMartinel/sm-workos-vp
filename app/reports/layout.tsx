@@ -135,9 +135,9 @@ export default function ReportsLayout({
           <nav className="flex-1 overflow-y-auto px-2 py-2">
             {/* Overview */}
             <Link
-              href="/reports"
+              href="/reports/overview"
               className={cn("flex items-center w-full px-3 py-2 text-sm rounded-md font-medium mb-4 transition-colors", 
-                pathname === "/reports" 
+                pathname === "/reports/overview" 
                 ? "bg-gray-100" 
                 : "hover:bg-gray-50 text-gray-700"
               )}
