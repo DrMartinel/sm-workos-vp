@@ -52,7 +52,6 @@ import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Checkbox } from "@/components/ui/checkbox"
 import { cn } from "@/lib/utils"
-import { PWAInstallButton } from "@/components/auth/pwa-install-button"
 
 // Mock Data
 const kpiData = [
@@ -331,7 +330,6 @@ export default function ReportsPage() {
 
           {/* Right side - Actions */}
           <div className="flex items-center gap-3">
-            <PWAInstallButton />
             <Button variant="default" size="sm" className="bg-blue-600 hover:bg-blue-700">
               Apply Filters
             </Button>
