@@ -90,7 +90,6 @@ export const ChartsSection = ({ dateRange, selectedApps, selectedPlatforms, summ
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Performance Snapshot</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 border-b pb-4">

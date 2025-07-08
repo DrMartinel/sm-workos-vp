@@ -92,3 +92,20 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+.recharts-wrapper:focus {
+  outline: none !important;
+}
+
+.recharts-tooltip-wrapper:focus,
+.recharts-tooltip-wrapper:active,
+.recharts-tooltip-wrapper:focus-visible {
+  outline: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+svg:focus,
+canvas:focus {
+  outline: none !important;
+}
