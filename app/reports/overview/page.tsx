@@ -289,36 +289,32 @@ export default function OverviewPage() {
   ];
 
   return (
-    <div className="p-6 space-y-8 bg-gray-50/50 min-h-screen">
-      <div className="space-y-6">
-        {/* Title Section */}
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Overview</h1>
-          <p className="text-gray-500 mt-1">Key performance indicators for your business.</p>
-        </div>
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Overview</h1>
+        <p className="text-gray-500 mt-1">Key performance indicators for your business.</p>
+      </div>
 
-        {/* Filters and Actions */}
-        <div className="flex flex-col items-start gap-4 md:flex-row md:items-center md:justify-between">
-          <div className="flex flex-col md:flex-row items-start md:items-center gap-4 w-full md:w-auto">
-            <MultiSelectFilter
-              title="App"
-              options={data?.filters.appOptions || []}
-              selectedValues={selectedApps}
-              setSelectedValues={setSelectedApps}
-              className="w-full md:w-[240px]"
-            />
-            <MultiSelectFilter
-              title="Platform"
-              options={[{ value: 'Android', label: 'Android' }, { value: 'iOS', label: 'iOS' }]}
-              selectedValues={selectedPlatforms}
-              setSelectedValues={setSelectedPlatforms}
-              className="w-full md:w-[180px]"
-            />
-          </div>
-          <div className="flex items-center w-full md:w-auto">
-            <DateRangePicker date={date} setDate={setDate} className="w-full md:w-auto" />
-          </div>
+      {/* Filters */}
+      <div className="flex flex-col lg:flex-row lg:justify-between gap-4">
+        <div className="grid grid-cols-2 lg:flex lg:flex-row gap-4 w-full lg:w-auto">
+          <MultiSelectFilter
+            title="App"
+            options={data?.filters.appOptions || []}
+            selectedValues={selectedApps}
+            setSelectedValues={setSelectedApps}
+            className="w-full lg:w-48"
+          />
+          <MultiSelectFilter
+            title="Platform"
+            options={[{ value: 'Android', label: 'Android' }, { value: 'iOS', label: 'iOS' }]}
+            selectedValues={selectedPlatforms}
+            setSelectedValues={setSelectedPlatforms}
+            className="w-full lg:w-48"
+          />
         </div>
+        <DateRangePicker date={date} setDate={setDate} className="w-full lg:w-auto" />
       </div>
 
       {/* KPI Cards */}

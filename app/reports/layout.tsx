@@ -315,7 +315,7 @@ export default function ReportsLayout({
       {/* Main Content */}
       <main
         className={cn(
-          "flex-1 overflow-auto transition-all duration-300 ease-in-out",
+          "flex-1 overflow-auto transition-all duration-300 ease-in-out pt-16 md:pt-0",
           sidebarCollapsed ? "md:ml-16" : "md:ml-72",
         )}
       >

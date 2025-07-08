@@ -73,10 +73,10 @@ export const OverviewSummaryTable = ({ data, isLoading }: SummaryTableProps) => 
     { label: 'Downloads', dataKey: 'downloads', formatter: formatNumber },
     { label: 'DAU', dataKey: 'dau', isStatic: true },
     { label: 'Revenue', dataKey: 'revenue' },
-    { label: 'Cost', dataKey: 'totalCost', isBold: true },
+    { label: 'Cost', dataKey: 'totalCost' },
     { label: 'Ad Spent', dataKey: 'adSpent', isIndented: true },
     { label: 'Custom Cost', dataKey: 'customCost', isIndented: true },
-    { label: 'Profit', dataKey: 'profit' },
+    { label: 'Profit', dataKey: 'profit', isBold: true },
   ];
   
   const periods = ['thisPeriod', 'last30Days', 'thisMonth', 'lastMonth'] as const;
