@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   description: "SmartMove",
   generator: "v0.dev",
   manifest: "/manifest.json",
-  themeColor: "#0f172a",
+  themeColor: "#ffffff",
   icons: {
     apple: "/icons/icon-192.png",
   },
