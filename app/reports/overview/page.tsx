@@ -298,29 +298,31 @@ export default function OverviewPage() {
         </div>
 
         {/* Filters and Actions */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
+        <div className="flex flex-col items-start gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-col md:flex-row items-start md:items-center gap-4 w-full md:w-auto">
             <MultiSelectFilter
               title="App"
               options={data?.filters.appOptions || []}
               selectedValues={selectedApps}
               setSelectedValues={setSelectedApps}
+              className="w-full md:w-[240px]"
             />
             <MultiSelectFilter
               title="Platform"
               options={[{ value: 'Android', label: 'Android' }, { value: 'iOS', label: 'iOS' }]}
               selectedValues={selectedPlatforms}
               setSelectedValues={setSelectedPlatforms}
+              className="w-full md:w-[180px]"
             />
           </div>
-          <div className="flex items-center">
-            <DateRangePicker date={date} setDate={setDate} />
+          <div className="flex items-center w-full md:w-auto">
+            <DateRangePicker date={date} setDate={setDate} className="w-full md:w-auto" />
           </div>
         </div>
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {isLoading ? (
           Array.from({ length: 4 }).map((_, index) => <Skeleton key={index} className="h-[120px] rounded-lg" />)
         ) : (

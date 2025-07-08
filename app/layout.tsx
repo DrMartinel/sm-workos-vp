@@ -10,7 +10,12 @@ const inter = Inter({ subsets: ["latin"] })
 export const metadata: Metadata = {
   title: "Smartmove WorkOS",
   description: "SmartMove",
-    generator: 'v0.dev'
+  generator: "v0.dev",
+  manifest: "/manifest.json",
+  themeColor: "#0f172a",
+  icons: {
+    apple: "/icons/icon-192.png",
+  },
 }
 
 export default function RootLayout({

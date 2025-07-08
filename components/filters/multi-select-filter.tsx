@@ -19,6 +19,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { ChevronDownIcon } from '@radix-ui/react-icons';
+import { cn } from '@/lib/utils';
 
 interface MultiSelectFilterProps {
   title: string;
@@ -28,6 +29,7 @@ interface MultiSelectFilterProps {
   }[];
   selectedValues: string[];
   setSelectedValues: (values: string[]) => void;
+  className?: string;
 }
 
 export function MultiSelectFilter({
@@ -35,11 +37,12 @@ export function MultiSelectFilter({
   options,
   selectedValues,
   setSelectedValues,
+  className,
 }: MultiSelectFilterProps) {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="outline" className="w-full md:w-auto justify-start">
+        <Button variant="outline" className={cn("justify-start", className)}>
           <span className="font-semibold mr-2">{title}:</span>
           {selectedValues.length > 0 ? (
             selectedValues.length > 2 ? (

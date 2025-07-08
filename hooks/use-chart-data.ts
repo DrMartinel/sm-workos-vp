@@ -51,37 +51,60 @@ export const useChartData = (
     });
 
     const processedData = useMemo(() => {
-        if (!rawData) return { data: [], keys: [] };
+        if (!rawData || !from || !to) return { data: [], keys: [] };
 
-        // 1. Pre-filter and add calculated metrics
+        // Create a map of the unique custom cost for each day from the original data source.
+        const dailyUniqueCustomCosts = (rawData || []).reduce((acc, row) => {
+            const dateKey = format(parseISO(row.date), 'yyyy-MM-dd');
+            acc.set(dateKey, row.custom_costs || 0);
+            return acc;
+        }, new Map<string, number>());
+
+        // This map tracks which days have already had their custom cost assigned.
+        const costAssignedPerDay = new Set<string>();
+
+        // 1. Filter data and correctly distribute the daily custom_cost ONCE per day.
         const baseData = rawData
             .filter(row => 
                 (selectedApps.length === 0 || selectedApps.includes(row.app_name)) &&
                 (selectedPlatforms.length === 0 || selectedPlatforms.includes(row.platform))
             )
-            .map(row => ({
-                ...row,
-                margin: (row.revenue || 0) - (row.cost || 0),
-                profit: (row.revenue || 0) - (row.cost || 0) - (row.custom_costs || 0)
-            }));
+            .map(row => {
+                const dateKey = format(parseISO(row.date), 'yyyy-MM-dd');
+                let customCostForThisRow = 0;
+                
+                // If we haven't added the cost for this day yet, add it to this row and mark the day as processed.
+                if (!costAssignedPerDay.has(dateKey)) {
+                    customCostForThisRow = dailyUniqueCustomCosts.get(dateKey) || 0;
+                    costAssignedPerDay.add(dateKey);
+                }
+                
+                return {
+                    ...row,
+                    // The custom_costs for this specific row is now either the full daily amount or 0.
+                    custom_costs: customCostForThisRow,
+                    margin: (row.revenue || 0) - (row.cost || 0),
+                    // The profit calculation now uses the corrected custom cost for the row.
+                    profit: (row.revenue || 0) - (row.cost || 0) - customCostForThisRow
+                };
+            });
             
-        // 2. Aggregate by time period
+        // 2. Aggregate by time period. The aggregation now correctly sums the custom_costs.
         const timeAggregatedData = baseData.reduce((acc, row) => {
             const date = parseISO(row.date);
             let key = '';
             if (timeAggregation === 'daily') key = format(date, 'yyyy-MM-dd');
-            else if (timeAggregation === 'weekly') key = format(startOfWeek(date), 'yyyy-MM-dd');
+            else if (timeAggregation === 'weekly') key = format(startOfWeek(date, { weekStartsOn: 1 }), 'yyyy-MM-dd');
             else if (timeAggregation === 'monthly') key = format(startOfMonth(date), 'yyyy-MM-dd');
 
             const breakdownKey = breakdown === 'none' ? 'total' : row[breakdown];
 
             if (!acc[key]) acc[key] = {};
             if (!acc[key][breakdownKey]) {
-                acc[key][breakdownKey] = {
-                    downloads: 0, revenue: 0, cost: 0, custom_costs: 0, margin: 0, profit: 0,
-                };
+                acc[key][breakdownKey] = { downloads: 0, revenue: 0, cost: 0, custom_costs: 0, margin: 0, profit: 0 };
             }
             
+            // This += now works correctly because custom_costs is 0 for all but one row per day.
             acc[key][breakdownKey][metric] += row[metric] || 0;
             
             return acc;
@@ -92,7 +115,6 @@ export const useChartData = (
         let dataForChart: ({ date: string; [key: string]: number | string })[] = [];
 
         if (breakdown !== 'none') {
-            // Calculate totals for each breakdown item to find the top 10
             const totals = baseData.reduce((acc, row) => {
                 const key = row[breakdown];
                 if (!acc[key]) acc[key] = 0;
@@ -104,15 +126,14 @@ export const useChartData = (
             const top10Keys = sortedKeys.slice(0, 10);
             finalKeys = [...top10Keys];
 
-            // If there are more than 10, group the rest into "Others"
             if(sortedKeys.length > 10) {
                 finalKeys.push('Others');
                 const otherKeys = sortedKeys.slice(10);
                 
                 Object.keys(timeAggregatedData).forEach(date => {
-                    timeAggregatedData[date]['Others'] = {
-                        downloads: 0, revenue: 0, cost: 0, custom_costs: 0, margin: 0, profit: 0,
-                    };
+                    if (!timeAggregatedData[date]['Others']) {
+                         timeAggregatedData[date]['Others'] = { downloads: 0, revenue: 0, cost: 0, custom_costs: 0, margin: 0, profit: 0 };
+                    }
                     otherKeys.forEach(key => {
                         if (timeAggregatedData[date][key]) {
                             timeAggregatedData[date]['Others'][metric] += timeAggregatedData[date][key][metric]
@@ -131,30 +152,17 @@ export const useChartData = (
 
             let allDatesInRange: Date[] = [];
             if (timeAggregation === 'daily') {
-                allDatesInRange = eachDayOfInterval({
-                    start: from,
-                    end: to
-                });
+                allDatesInRange = eachDayOfInterval({ start: from, end: to });
             } else if (timeAggregation === 'weekly') {
-                allDatesInRange = eachWeekOfInterval({
-                    start: from,
-                    end: to
-                }, {
-                    weekStartsOn: 1
-                });
-            } else { // monthly
-                allDatesInRange = eachMonthOfInterval({
-                    start: from,
-                    end: to
-                });
+                allDatesInRange = eachWeekOfInterval({ start: from, end: to }, { weekStartsOn: 1 });
+            } else {
+                allDatesInRange = eachMonthOfInterval({ start: from, end: to });
             }
             
             dataForChart = allDatesInRange.map(date => {
-                let formattedDate = format(date, 'yyyy-MM-dd');
-                const entry: { date: string; [key: string]: number | string } = {
-                    date: formattedDate
-                };
-                const dataForDate = dateMap.get(formattedDate);
+                const formattedDateKey = format(date, 'yyyy-MM-dd');
+                const entry: { date: string; [key: string]: number | string } = { date: format(date, 'MMM dd') };
+                const dataForDate = dateMap.get(formattedDateKey);
 
                 finalKeys.forEach(key => {
                     entry[key] = dataForDate?.[key]?.[metric] ?? 0;
