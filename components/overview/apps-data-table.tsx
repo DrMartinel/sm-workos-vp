@@ -10,6 +10,7 @@ import { ArrowUp, ArrowDown, ChevronsUpDown, Apple, Smartphone } from 'lucide-re
 import { useAppsTableData, Sorting, AppMetric, ProcessedAppData } from '@/hooks/use-apps-table-data';
 import { cn } from '@/lib/utils';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
+import Image from 'next/image';
 
 
 interface AppsDataTableProps {
@@ -107,9 +108,21 @@ export const AppsDataTable = ({ dateRange, selectedApps, selectedPlatforms }: Ap
                             ) : paginatedData.map((app) => (
                                 <TableRow key={app.app_id}>
                                     <TableCell>
-                                        <div className="flex items-center gap-2">
-                                            {app.platform === 'iOS' ? <Apple className="h-5 w-5 text-gray-700" /> : <Smartphone className="h-5 w-5 text-gray-700" />}
-                                            <div>
+                                        <div className="flex items-center gap-3">
+                                            {app.node_icon ? (
+                                                <Image
+                                                    src={app.node_icon}
+                                                    alt={app.app_name}
+                                                    width={32}
+                                                    height={32}
+                                                    className="rounded-md"
+                                                />
+                                            ) : (
+                                                <div className="h-8 w-8 rounded-md bg-gray-200 flex items-center justify-center">
+                                                    {app.platform === 'iOS' ? <Apple className="h-5 w-5 text-gray-500" /> : <Smartphone className="h-5 w-5 text-gray-500" />}
+                                                </div>
+                                            )}
+                                            <div className="hidden md:block">
                                                 <div className="font-medium">{app.app_name}</div>
                                                 <div className="text-xs text-gray-500">{app.app_id}</div>
                                             </div>

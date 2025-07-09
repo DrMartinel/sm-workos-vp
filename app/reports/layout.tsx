@@ -20,6 +20,7 @@ import {
   User,
   BarChart3,
   TrendingUp,
+  X, // Thêm icon X
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -63,19 +64,22 @@ export default function ReportsLayout({
 
   return (
     <div className="flex h-screen bg-gray-50">
-      {/* Mobile menu button */}
-      <div className="fixed top-4 left-4 z-50 md:hidden">
-        <Button variant="outline" size="icon" onClick={toggleMobileSidebar}>
-          <Menu className="h-4 w-4" />
+      {/* Mobile Header */}
+      <header className="fixed top-0 left-0 right-0 h-16 bg-white shadow-sm z-40 md:hidden flex items-center px-4">
+        <Button variant="ghost" size="icon" onClick={toggleMobileSidebar} className="mr-2">
+          <Menu className="h-6 w-6" />
         </Button>
-      </div>
+        <h1 className="text-xl font-bold text-gray-800">WorkOS</h1>
+      </header>
 
       {/* Unified Sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-40 flex bg-white transition-all duration-300 ease-in-out",
-          sidebarCollapsed ? "w-16" : "w-72",
-          mobileSidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
+          "fixed inset-y-0 left-0 z-50 flex bg-white transition-transform duration-300 ease-in-out",
+          "w-full md:w-auto", // Full width trên mobile, auto trên desktop
+          sidebarCollapsed ? "md:w-16" : "md:w-72", // Width cho desktop
+          mobileSidebarOpen ? "translate-x-0" : "-translate-x-full", // Logic trượt ra/vào
+          "md:translate-x-0" // Luôn hiển thị trên desktop
         )}
       >
         {/* Primary Sidebar Section */}
@@ -128,6 +132,9 @@ export default function ReportsLayout({
           {/* Header */}
           <div className="flex items-center justify-between border-b border-gray-200 px-4 py-4 flex-shrink-0">
             <h2 className="text-lg font-medium">Reports</h2>
+            <Button variant="ghost" size="icon" onClick={toggleMobileSidebar} className="md:hidden">
+              <X className="h-5 w-5" />
+            </Button>
           </div>
 
           {/* Scrollable Navigation */}

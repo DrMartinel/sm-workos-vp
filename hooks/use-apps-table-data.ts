@@ -10,6 +10,7 @@ type OverviewDataRow = {
   date: string;
   app_id: string;
   app_name: string;
+  node_icon: string;
   platform: 'Android' | 'iOS';
   revenue: number;
   cost: number; // ad_cost
@@ -27,6 +28,7 @@ export type Sorting = {
 export interface ProcessedAppData {
     app_id: string;
     app_name: string;
+    node_icon: string;
     platform: 'Android' | 'iOS';
     downloads: number;
     downloads_change: number;
@@ -64,7 +66,7 @@ const processPeriodData = (data: OverviewDataRow[] | undefined) => {
 
     const aggregated = data.reduce((acc, row) => {
         if (!acc[row.app_id]) {
-            acc[row.app_id] = { app_id: row.app_id, downloads: 0, revenue: 0, spent: 0 };
+            acc[row.app_id] = { app_id: row.app_id, downloads: 0, revenue: 0, spent: 0, node_icon: row.node_icon || '' };
         }
         const app = acc[row.app_id];
         app.downloads += row.downloads || 0;
@@ -72,7 +74,7 @@ const processPeriodData = (data: OverviewDataRow[] | undefined) => {
         app.spent += row.cost || 0; // cost is ad_spend
 
         return acc;
-    }, {} as Record<string, { app_id: string; downloads: number; revenue: number; spent: number; }>);
+    }, {} as Record<string, { app_id: string; downloads: number; revenue: number; spent: number; node_icon: string; }>);
 
     const final = new Map<string, Omit<ProcessedAppData, 'platform' | 'app_name'>>();
     Object.values(aggregated).forEach(app => {
@@ -81,6 +83,7 @@ const processPeriodData = (data: OverviewDataRow[] | undefined) => {
 
         final.set(app.app_id, {
             app_id: app.app_id,
+            node_icon: app.node_icon,
             downloads: app.downloads, downloads_change: 0,
             revenue: app.revenue, revenue_change: 0,
             spent: app.spent, spent_change: 0,
@@ -132,10 +135,10 @@ export const useAppsTableData = (
         const combinedData: ProcessedAppData[] = [];
         
         // Find app_name and platform from the latest data
-        const appInfo = new Map<string, { app_name: string; platform: 'Android' | 'iOS' }>();
+        const appInfo = new Map<string, { app_name: string; platform: 'Android' | 'iOS'; node_icon: string }>();
         filteredCurrent?.forEach(row => {
             if (!appInfo.has(row.app_id)) {
-                appInfo.set(row.app_id, { app_name: row.app_name, platform: row.platform });
+                appInfo.set(row.app_id, { app_name: row.app_name, platform: row.platform, node_icon: row.node_icon });
             }
         });
         
@@ -146,6 +149,7 @@ export const useAppsTableData = (
                 ...current,
                 app_name: appInfo.get(appId)?.app_name || '',
                 platform: appInfo.get(appId)?.platform || 'Android',
+                node_icon: appInfo.get(appId)?.node_icon || '',
                 downloads_change: calculateChange(current.downloads, previous.downloads),
                 revenue_change: calculateChange(current.revenue, previous.revenue),
                 spent_change: calculateChange(current.spent, previous.spent),

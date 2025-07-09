@@ -2,6 +2,7 @@ SELECT
   ds.date,
   n.package_name AS app_id,
   n.node_name AS app_name,
+  n.node_icon,
   CASE 
     WHEN n.appstore_id IS NULL THEN 'Android'
     ELSE 'iOS'

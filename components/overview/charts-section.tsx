@@ -58,7 +58,7 @@ const formatCurrencyCompact = (val: number) => {
 const METRICS: { value: Metric; label: string; formatter: (val: number) => string }[] = [
     { value: 'revenue', label: 'Revenue', formatter: formatCurrencyCompact },
     { value: 'downloads', label: 'Downloads', formatter: (val) => new Intl.NumberFormat('en-US').format(val) },
-    { value: 'cost', label: 'Ad Cost', formatter: formatCurrencyCompact },
+    { value: 'cost', label: 'Ad Spend', formatter: formatCurrencyCompact },
     { value: 'custom_costs', label: 'Custom Costs', formatter: formatCurrencyCompact },
     { value: 'margin', label: 'Margin', formatter: formatCurrencyCompact },
     { value: 'profit', label: 'Profit', formatter: formatCurrencyCompact },

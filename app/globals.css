@@ -109,3 +109,22 @@ svg:focus,
 canvas:focus {
   outline: none !important;
 }
+
+:root {
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  html, body {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  .bg-black {
+    background-color: #ffffff !important;
+  }
+
+  .text-white {
+    color: #000000 !important;
+  }
+}
