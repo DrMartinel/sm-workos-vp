@@ -78,7 +78,7 @@ The data source system is designed for maximum flexibility and extensibility, al
 
 When a request is made to `/api/data-source/AdjustCohortData?startDate=20240101&endDate=20240131`:
 
-1.  **Cache Check**: The API first checks an in-memory cache for a matching request. If valid cached data exists, it's returned immediately.
+1.  **Cache Check**: The API first checks an in-memory cache for a matching request. If valid cached data exists, it's returned immediately. 
 2.  **Load Definition**: If no cache is found, the API dynamically imports `/data-sources/AdjustCohortData/definition.ts`.
 3.  **Read Query**: It reads the query from the file specified in `queryFile` (e.g., `query.sql`).
 4.  **Execute Query**: The `runQueryBySource` function is called. Based on the `source` property (`'bigquery'`), it initializes the appropriate client, replaces placeholders with secure parameters, and executes the query.
