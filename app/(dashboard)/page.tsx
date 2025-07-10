@@ -5,10 +5,34 @@ import {
   Target,
   GitBranch,
   BarChart3,
+  Megaphone,
 } from "lucide-react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+
+const announcements = [
+  {
+    title: "New Company-Wide Holiday Policy",
+    content: "We're excited to announce an updated holiday schedule with more flexible time-off options.",
+    date: "2 hours ago",
+  },
+  {
+    title: "Q3 All-Hands Meeting Next Week",
+    content: "Join us for our quarterly all-hands meeting to discuss our progress and future goals.",
+    date: "1 day ago",
+  },
+  {
+    title: "Welcome Our New Head of Engineering!",
+    content: "Please give a warm welcome to Sarah Johnson, who will be leading our engineering team.",
+    date: "2 days ago",
+  },
+  {
+    title: "Server Maintenance This Weekend",
+    content: "Please be aware of scheduled server maintenance this Saturday from 2 AM to 4 AM.",
+    date: "4 days ago",
+  },
+]
 
 export default function WorkspaceDashboard() {
   return (
@@ -54,22 +78,31 @@ export default function WorkspaceDashboard() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Recent Activity</CardTitle>
-              <CardDescription>Your latest updates and notifications</CardDescription>
+              <CardTitle>Announcements</CardTitle>
+              <CardDescription>Latest news and updates from the company.</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {[1, 2, 3].map((i) => (
+                {announcements.slice(0, 3).map((item, i) => (
                   <div key={i} className="flex items-start gap-3">
-                    <div className="h-8 w-8 rounded-full bg-gray-200"></div>
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-blue-600">
+                      <Megaphone className="h-4 w-4" />
+                    </div>
                     <div>
-                      <p className="text-sm font-medium">Task updated by Team Member</p>
-                      <p className="text-xs text-gray-500">2 hours ago</p>
+                      <p className="text-sm font-medium">{item.title}</p>
+                      <p className="text-xs text-gray-500">{item.date}</p>
                     </div>
                   </div>
                 ))}
               </div>
             </CardContent>
+            <CardFooter className="pt-4">
+              <Link href="#" className="w-full">
+                <Button variant="outline" className="w-full">
+                  View all
+                </Button>
+              </Link>
+            </CardFooter>
           </Card>
 
           <Card className="md:col-span-2">

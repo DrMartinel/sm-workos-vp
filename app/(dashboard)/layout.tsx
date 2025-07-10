@@ -32,8 +32,18 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { UserProfileDropdown } from "@/components/auth/user-profile-dropdown"
+import { LucideProps } from "lucide-react"
 
-const secondaryMenus = {
+type L2Item = {
+  id: string;
+  label: string;
+  href: string;
+  icon?: React.ElementType<LucideProps>;
+  isCollapsible?: boolean;
+  subItems?: { id: string; label: string; href: string }[];
+};
+
+const secondaryMenus: Record<string, { title: string; items: L2Item[] }> = {
   reports: {
     title: "Reports",
     items: [
@@ -127,18 +137,16 @@ export default function ReportsLayout({
         
         const menu = secondaryMenus[l1Key as keyof typeof secondaryMenus];
         
-        const checkItems = (items: any[]): boolean => {
+        const checkItems = (items: L2Item[]): void => {
           for (const item of items) {
             if (item.href && item.href !== '/' && pathname.startsWith(item.href) && item.href.length > bestMatchLength) {
               bestMatchLength = item.href.length;
               activeL1Key = l1Key;
             }
-            if (item.subItems && checkItems(item.subItems)) {
-               // This might not be needed if we only match on href, but good for nesting
+            if (item.subItems) {
+               checkItems(item.subItems);
             }
           }
-          // The return value here doesn't really matter as we're setting state outside
-          return false; 
         };
         checkItems(menu.items);
       }
@@ -304,6 +312,7 @@ export default function ReportsLayout({
                             <Link
                               key={subItem.id}
                               href={subItem.href}
+                              onClick={() => setMobileSidebarOpen(false)}
                               className={cn("flex items-center w-full px-3 py-2 text-sm rounded-md transition-colors",
                                 pathname === subItem.href
                                 ? "bg-gray-100 text-gray-900 font-semibold"
@@ -323,6 +332,7 @@ export default function ReportsLayout({
                   <Link
                     key={item.id}
                     href={item.href}
+                    onClick={() => setMobileSidebarOpen(false)}
                     className={cn("flex items-center w-full px-3 py-2 text-sm rounded-md font-medium mb-4 transition-colors", 
                       pathname === item.href 
                       ? "bg-gray-100" 
