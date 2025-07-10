@@ -91,7 +91,7 @@ export const ChartsSection = ({ dateRange, selectedApps, selectedPlatforms, summ
         <Card>
             <CardHeader>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="px-2 sm:px-6 py-6 space-y-6">
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 border-b pb-4">
                     {/* Metrics Pills */}
                     <div className="flex items-center gap-2 flex-wrap">
