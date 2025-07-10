@@ -22,6 +22,8 @@ import {
   X,
   Briefcase, // Thay cho Clock
   LayoutGrid, // Thêm icon Applications
+  Star,
+  Clock,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -68,8 +70,15 @@ const secondaryMenus = {
         ]
       },
     ]
+  },
+  applications: {
+    title: "Applications",
+    items: [
+      { id: "all", label: "All Applications", href: "/applications", icon: LayoutGrid },
+      { id: "favourites", label: "Favourites", href: "/applications/favourites", icon: Star },
+      { id: "recent", label: "Recently Used", href: "/applications/recent", icon: Clock },
+    ]
   }
-  // Thêm các menu level-2 khác ở đây
 };
 
 
@@ -109,7 +118,7 @@ export default function ReportsLayout({
     { id: "requests", icon: FileText, label: "Requests", href: "#" },
     { id: "goals", icon: Target, label: "Goals", href: "#" },
     { id: "hrm", icon: Briefcase, label: "HRM", href: "#" },
-    { id: "applications", icon: LayoutGrid, label: "Applications", href: "#" },
+    { id: "applications", icon: LayoutGrid, label: "Applications", href: "#", secondaryMenuKey: "applications", basePath: "/applications" },
     { id: "notifications", icon: Bell, label: "Notifications", href: "#", mobileOnly: false },
     { id: "profile", icon: User, label: "Profile", href: "#", mobileOnly: false },
   ]
@@ -189,7 +198,7 @@ export default function ReportsLayout({
                     <Tooltip key={item.id}>
                       <TooltipTrigger asChild>
                         <Link
-                          href={item.href}
+                          href={item.href || '#'}
                           onClick={() => handleL1Click(item)}
                           className={cn(
                             "flex h-10 w-10 items-center justify-center rounded-full transition-colors",
