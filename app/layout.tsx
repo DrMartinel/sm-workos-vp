@@ -15,11 +15,14 @@ export const metadata: Metadata = {
   icons: {
     apple: "/icons/icon-192.png",
   },
+  other: {
+    "color-scheme": "light only",
+    "theme-color": "#ffffff",
+  },
 }
 
 export const viewport: Viewport = {
   themeColor: "#ffffff",
-  colorScheme: "light",
 }
 
 export default function RootLayout({
@@ -28,13 +31,9 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en">
       <body className={inter.className}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-        >
+        <ThemeProvider attribute="class" forcedTheme="light">
           <ReactQueryProvider>{children}</ReactQueryProvider>
         </ThemeProvider>
       </body>
