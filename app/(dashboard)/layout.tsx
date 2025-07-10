@@ -24,6 +24,9 @@ import {
   LayoutGrid, // Thêm icon Applications
   Star,
   Clock,
+  Calendar, // Thêm icon Calendar
+  LayoutDashboard, // For Dashboard
+  Megaphone,       // For Announcements
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -78,7 +81,22 @@ const secondaryMenus = {
       { id: "favourites", label: "Favourites", href: "/applications/favourites", icon: Star },
       { id: "recent", label: "Recently Used", href: "/applications/recent", icon: Clock },
     ]
-  }
+  },
+  hrm: {
+    title: "HRM",
+    items: [
+      { id: "timekeeping", label: "Timekeeping", href: "/timekeeping", icon: Clock },
+      { id: "meeting-booking", label: "Meeting Booking", href: "/meeting-booking", icon: Calendar },
+    ]
+  },
+  home: {
+    title: "Home",
+    items: [
+      { id: "dashboard", label: "Dashboard", href: "/", icon: LayoutDashboard },
+      { id: "announcements", label: "Announcements", href: "#", icon: Megaphone },
+      { id: "events", label: "Events", href: "#", icon: Calendar },
+    ]
+  },
 };
 
 
@@ -98,13 +116,37 @@ export default function ReportsLayout({
   });
 
   useEffect(() => {
-    // Xác định menu L1 nào đang hoạt động dựa trên URL
-    const activeL1 = primaryIcons.find(item => item.secondaryMenuKey && pathname.startsWith(item.basePath || ''));
-    if (activeL1) {
-      setOpenSecondaryMenuId(activeL1.id);
+    let activeL1Key: string | null = null;
+    let bestMatchLength = 0;
+
+    if (pathname === '/') {
+      activeL1Key = 'home';
     } else {
-      setOpenSecondaryMenuId(null);
+      for (const l1Key in secondaryMenus) {
+        if (l1Key === 'home') continue;
+        
+        const menu = secondaryMenus[l1Key as keyof typeof secondaryMenus];
+        
+        const checkItems = (items: any[]): boolean => {
+          for (const item of items) {
+            if (item.href && item.href !== '/' && pathname.startsWith(item.href) && item.href.length > bestMatchLength) {
+              bestMatchLength = item.href.length;
+              activeL1Key = l1Key;
+            }
+            if (item.subItems && checkItems(item.subItems)) {
+               // This might not be needed if we only match on href, but good for nesting
+            }
+          }
+          // The return value here doesn't really matter as we're setting state outside
+          return false; 
+        };
+        checkItems(menu.items);
+      }
     }
+    
+    const activeL1 = primaryIcons.find(icon => icon.secondaryMenuKey === activeL1Key);
+    setOpenSecondaryMenuId(activeL1?.id || null);
+
   }, [pathname]);
 
 
@@ -112,18 +154,18 @@ export default function ReportsLayout({
   // ...
 
   const primaryIcons = [
-    { id: "home", icon: Home, label: "Home", href: "/" },
-    { id: "reports", icon: BarChart3, label: "Reports", href: "#", secondaryMenuKey: "reports", basePath: "/reports" },
+    { id: "home", icon: Home, label: "Home", href: "#", secondaryMenuKey: "home" },
+    { id: "reports", icon: BarChart3, label: "Reports", href: "#", secondaryMenuKey: "reports" },
     { id: "tasks", icon: CheckSquare, label: "Tasks", href: "#" },
     { id: "requests", icon: FileText, label: "Requests", href: "#" },
     { id: "goals", icon: Target, label: "Goals", href: "#" },
-    { id: "hrm", icon: Briefcase, label: "HRM", href: "#" },
-    { id: "applications", icon: LayoutGrid, label: "Applications", href: "#", secondaryMenuKey: "applications", basePath: "/applications" },
+    { id: "hrm", icon: Briefcase, label: "HRM", href: "#", secondaryMenuKey: "hrm" },
+    { id: "applications", icon: LayoutGrid, label: "Applications", href: "#", secondaryMenuKey: "applications" },
     { id: "notifications", icon: Bell, label: "Notifications", href: "#", mobileOnly: false },
     { id: "profile", icon: User, label: "Profile", href: "#", mobileOnly: false },
   ]
 
-  const activeIcon = primaryIcons.find(item => item.id === openSecondaryMenuId || (item.id === 'home' && pathname === '/'))?.id || (pathname === "/" ? "home" : null);
+  const activeIcon = openSecondaryMenuId || (pathname === '/' ? 'home' : null);
 
   const toggleSidebar = () => {
     setSidebarCollapsed(!sidebarCollapsed)
