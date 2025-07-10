@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
-import { Download, LogOut, User } from "lucide-react"
+import { Download, LogOut, User, Settings } from "lucide-react"
 import { usePWAInstall } from "@/hooks/use-pwa-install"
 import { createClient } from "@/lib/utils/supabase/client"
 import { useRouter } from "next/navigation"
@@ -35,6 +35,10 @@ export function UserProfileDropdown() {
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuLabel>My Account</DropdownMenuLabel>
         <DropdownMenuSeparator />
+        <DropdownMenuItem>
+          <Settings className="mr-2 h-4 w-4" />
+          <span>Settings</span>
+        </DropdownMenuItem>
         {installState === "available" && (
           <DropdownMenuItem onClick={handleInstall}>
             <Download className="mr-2 h-4 w-4" />

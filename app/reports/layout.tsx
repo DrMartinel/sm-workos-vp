@@ -11,7 +11,6 @@ import {
   FileText,
   Target,
   Bell,
-  GitBranch,
   Settings,
   Menu,
   ChevronLeft,
@@ -20,7 +19,8 @@ import {
   User,
   BarChart3,
   TrendingUp,
-  X, // Thêm icon X
+  X,
+  Clock, // Thêm icon Clock
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -47,9 +47,9 @@ export default function ReportsLayout({
     { id: "tasks", icon: CheckSquare, label: "Tasks", href: "/tasks" },
     { id: "requests", icon: FileText, label: "Requests", href: "#" },
     { id: "goals", icon: Target, label: "Goals", href: "#" },
-    { id: "notifications", icon: Bell, label: "Notifications", href: "#" },
-    { id: "workflow", icon: GitBranch, label: "Workflow", href: "/workflow-editor" },
-    { id: "settings", icon: Settings, label: "Settings", href: "#" },
+    { id: "time-tracking", icon: Clock, label: "Time Tracking", href: "#" },
+    { id: "notifications", icon: Bell, label: "Notifications", href: "#", mobileOnly: false },
+    { id: "profile", icon: User, label: "Profile", href: "#", mobileOnly: false },
   ]
 
   const activeIcon = primaryIcons.find(item => pathname.startsWith(item.href) && item.href !== "/")?.id || (pathname === "/" ? "home" : "reports");
@@ -65,11 +65,19 @@ export default function ReportsLayout({
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Mobile Header */}
-      <header className="fixed top-0 left-0 right-0 h-16 bg-white shadow-sm z-40 md:hidden flex items-center px-4">
-        <Button variant="ghost" size="icon" onClick={toggleMobileSidebar} className="mr-2">
-          <Menu className="h-6 w-6" />
-        </Button>
-        <h1 className="text-xl font-bold text-gray-800">WorkOS</h1>
+      <header className="fixed top-0 left-0 right-0 h-16 bg-white shadow-sm z-40 md:hidden flex items-center justify-between px-4">
+        <div className="flex items-center">
+          <Button variant="ghost" size="icon" onClick={toggleMobileSidebar} className="mr-2">
+            <Menu className="h-6 w-6" />
+          </Button>
+          <h1 className="text-xl font-bold text-gray-800">WorkOS</h1>
+        </div>
+        <div className="flex items-center space-x-2">
+          <Button variant="ghost" size="icon">
+            <Bell className="h-5 w-5" />
+          </Button>
+          <UserProfileDropdown />
+        </div>
       </header>
 
       {/* Unified Sidebar */}
@@ -92,7 +100,12 @@ export default function ReportsLayout({
             <TooltipProvider>
               <div className="flex flex-col items-center space-y-6">
                 {primaryIcons.map((item) => {
+                  // Profile và Notifications sẽ được xử lý ở dưới
+                  if (item.id === 'profile') return null;
+
                   const Icon = item.icon
+                  const isHiddenOnMobile = item.id === 'notifications';
+
                   return (
                     <Tooltip key={item.id}>
                       <TooltipTrigger asChild>
@@ -103,6 +116,7 @@ export default function ReportsLayout({
                             activeIcon === item.id
                               ? "bg-gray-900 text-white"
                               : "text-gray-500 hover:bg-gray-100 hover:text-gray-900",
+                            isHiddenOnMobile && "hidden md:flex" // Ẩn trên mobile
                           )}
                         >
                           <Icon className="h-5 w-5" />
@@ -118,7 +132,10 @@ export default function ReportsLayout({
             </TooltipProvider>
           </div>
           <div className="flex flex-col items-center space-y-4">
-            <UserProfileDropdown />
+            {/* UserProfileDropdown chỉ hiển thị trên desktop */}
+            <div className="hidden md:block">
+              <UserProfileDropdown />
+            </div>
           </div>
         </div>
 
