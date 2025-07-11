@@ -303,14 +303,14 @@ export default function OverviewPage() {
             title="App"
             options={data?.filters.appOptions || []}
             selectedValues={selectedApps}
-            setSelectedValues={setSelectedApps}
+            onSelectionChange={setSelectedApps}
             className="w-full lg:w-48"
           />
           <MultiSelectFilter
             title="Platform"
             options={[{ value: 'Android', label: 'Android' }, { value: 'iOS', label: 'iOS' }]}
             selectedValues={selectedPlatforms}
-            setSelectedValues={setSelectedPlatforms}
+            onSelectionChange={setSelectedPlatforms}
             className="w-full lg:w-48"
           />
         </div>

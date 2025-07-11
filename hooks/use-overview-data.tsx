@@ -7,7 +7,9 @@ import { useMemo } from 'react';
 
 type OverviewDataRow = {
   date: string;
+  app_id: string;
   app_name: string;
+  node_icon: string;
   platform: 'Android' | 'iOS';
   revenue: number;
   cost: number;
@@ -53,9 +55,21 @@ export const useOverviewData = (
     });
 
     const processedData = useMemo(() => {
-        const appOptions = [...new Set(rawCurrentData?.map(d => d.app_name) || [])]
-            .sort()
-            .map(name => ({ value: name, label: name }));
+        const appDataMap = new Map<string, { name: string; icon: string; totalRevenue: number }>();
+        rawCurrentData?.forEach(row => {
+            if (!appDataMap.has(row.app_name)) {
+                appDataMap.set(row.app_name, { 
+                    name: row.app_name, 
+                    icon: row.node_icon,
+                    totalRevenue: 0
+                });
+            }
+            appDataMap.get(row.app_name)!.totalRevenue += row.revenue || 0;
+        });
+
+        const appOptions = Array.from(appDataMap.values())
+            .sort((a, b) => b.totalRevenue - a.totalRevenue)
+            .map(app => ({ value: app.name, label: app.name, icon: app.icon }));
 
         const filterData = (data: OverviewDataRow[] | undefined) => {
             if (!data) return [];

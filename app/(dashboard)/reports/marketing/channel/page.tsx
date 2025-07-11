@@ -62,6 +62,12 @@ import { cn } from "@/lib/utils"
 import { DateRange } from "react-day-picker"
 import React from "react"
 import { Slider } from "@/components/ui/slider"
+import { useIsMobile } from "@/hooks/use-mobile"
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
 
 // --- Helper Functions ---
 function formatLargeNumber(value: number, decimalPlaces: number = 2): string {
@@ -403,6 +409,9 @@ export default function ReportsPage() {
         from: subDays(new Date(), 30),
         to: subDays(new Date(), 1),
     });
+
+    const isMobile = useIsMobile();
+    const [isFiltersOpen, setIsFiltersOpen] = useState(false);
 
     const startDate = date?.from ? format(date.from, 'yyyyMMdd') : undefined;
     const endDate = date?.to ? format(date.to, 'yyyyMMdd') : undefined;
@@ -1021,80 +1030,152 @@ export default function ReportsPage() {
         </div>
 
         {/* Filters and Actions */}
-        <div className="flex items-center justify-between">
-          {/* Left side - Filters */}
-                    <div className="flex items-center gap-4 flex-wrap">
-                        {filterConfigs.map(f => (
-                            <MultiSelectFilter
-                                key={f.name}
-                                title={f.label}
-                                options={filters[f.name as keyof typeof filters].map(v => ({label: v, value: v}))}
-                                selectedValues={selectedFilters[f.name]}
-                                onSelectionChange={(values) => handleFilterChange(f.name, values)}
-                            />
-                        ))}
-          </div>
+        {isMobile ? (
+          <div className="space-y-4">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  id="date"
+                  variant={"outline"}
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !date && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {date?.from ? (
+                    date.to ? (
+                      <>
+                        {format(date.from, "LLL dd, y")} -{" "}
+                        {format(date.to, "LLL dd, y")}
+                      </>
+                    ) : (
+                      format(date.from, "LLL dd, y")
+                    )
+                  ) : (
+                    <span>Pick a date</span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                      initialFocus
+                      mode="range"
+                      defaultMonth={date?.from}
+                      selected={date}
+                      onSelect={setDate}
+                      numberOfMonths={1}
+                  />
+                  <div className="flex flex-col space-y-2 border-t p-4">
+                      <Button variant="ghost" className="justify-start" onClick={() => setDate({from: subDays(new Date(), 7), to: subDays(new Date(), 1)})}>Last 7 days</Button>
+                      <Button variant="ghost" className="justify-start" onClick={() => setDate({from: subDays(new Date(), 30), to: subDays(new Date(), 1)})}>Last 30 days</Button>
+                      <Button variant="ghost" className="justify-start" onClick={() => setDate({from: subDays(new Date(), 90), to: subDays(new Date(), 1)})}>Last 90 days</Button>
+                      <Button variant="ghost" className="justify-start" onClick={() => setDate({from: startOfMonth(new Date()), to: subDays(new Date(), 1)})}>This month</Button>
+                      <Button variant="ghost" className="justify-start" onClick={() => {
+                          const start = startOfMonth(subMonths(new Date(), 1));
+                          const end = endOfMonth(subMonths(new Date(), 1));
+                          setDate({from: start, to: end});
+                      }}>Last month</Button>
+                  </div>
+              </PopoverContent>
+            </Popover>
 
-          {/* Right side - Actions */}
-          <div className="flex items-center gap-3">
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button
-                                    id="date"
-                                    variant={"outline"}
-                                    className={cn(
-                                        "w-[260px] justify-start text-left font-normal",
-                                        !date && "text-muted-foreground"
-                                    )}
-                                >
-                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {date?.from ? (
-                                        date.to ? (
-                                            <>
-                                                {format(date.from, "LLL dd, y")} -{" "}
-                                                {format(date.to, "LLL dd, y")}
-                                            </>
-                                        ) : (
-                                            format(date.from, "LLL dd, y")
-                                        )
-                                    ) : (
-                                        <span>Pick a date</span>
-                                    )}
-            </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                                <div className="flex">
-                                    <div className="flex flex-col space-y-2 border-r p-4">
-                                         <Button variant="ghost" className="justify-start" onClick={() => setDate({from: subDays(new Date(), 7), to: subDays(new Date(), 1)})}>Last 7 days</Button>
-                                         <Button variant="ghost" className="justify-start" onClick={() => setDate({from: subDays(new Date(), 30), to: subDays(new Date(), 1)})}>Last 30 days</Button>
-                                         <Button variant="ghost" className="justify-start" onClick={() => setDate({from: subDays(new Date(), 90), to: subDays(new Date(), 1)})}>Last 90 days</Button>
-                                         <Button variant="ghost" className="justify-start" onClick={() => setDate({from: startOfMonth(new Date()), to: subDays(new Date(), 1)})}>This month</Button>
-                                         <Button variant="ghost" className="justify-start" onClick={() => {
-                                             const start = startOfMonth(subMonths(new Date(), 1));
-                                             const end = endOfMonth(subMonths(new Date(), 1));
-                                             setDate({from: start, to: end});
-                                         }}>Last month</Button>
-                                    </div>
-                                    <Calendar
-                                        initialFocus
-                                        mode="range"
-                                        defaultMonth={date?.from}
-                                        selected={date}
-                                        onSelect={setDate}
-                                        numberOfMonths={2}
-                                    />
-                                </div>
-                            </PopoverContent>
-                        </Popover>
-            <Button variant="outline" size="sm">
-                            <RefreshCw className="h-4 w-4" />
-            </Button>
-                        <Button variant="outline" size="icon" className="h-9 w-9">
-                            <MoreHorizontal className="h-4 w-4" />
-                            <span className="sr-only">More</span>
-            </Button>
+            <Collapsible open={isFiltersOpen} onOpenChange={setIsFiltersOpen}>
+              <CollapsibleTrigger asChild>
+                <Button variant="outline" className="w-full">
+                  <Filter className="mr-2 h-4 w-4" />
+                  <span>{isFiltersOpen ? 'Hide Filters' : 'Show Filters'}</span>
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-4 pt-4">
+                {filterConfigs.map(f => (
+                  <MultiSelectFilter
+                      key={f.name}
+                      title={f.label}
+                      options={filters[f.name as keyof typeof filters].map(v => ({label: v, value: v}))}
+                      selectedValues={selectedFilters[f.name]}
+                      onSelectionChange={(values) => handleFilterChange(f.name, values)}
+                  />
+                ))}
+              </CollapsibleContent>
+            </Collapsible>
           </div>
-        </div>
+        ) : (
+          <div className="flex items-center justify-between">
+            {/* Left side - Filters */}
+            <div className="flex items-center gap-4 flex-wrap">
+              {filterConfigs.map(f => (
+                  <MultiSelectFilter
+                      key={f.name}
+                      title={f.label}
+                      options={filters[f.name as keyof typeof filters].map(v => ({label: v, value: v}))}
+                      selectedValues={selectedFilters[f.name]}
+                      onSelectionChange={(values) => handleFilterChange(f.name, values)}
+                  />
+              ))}
+            </div>
+
+            {/* Right side - Actions */}
+            <div className="flex items-center gap-3">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                      id="date"
+                      variant={"outline"}
+                      className={cn(
+                          "w-[260px] justify-start text-left font-normal",
+                          !date && "text-muted-foreground"
+                      )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {date?.from ? (
+                      date.to ? (
+                        <>
+                          {format(date.from, "LLL dd, y")} -{" "}
+                          {format(date.to, "LLL dd, y")}
+                        </>
+                      ) : (
+                        format(date.from, "LLL dd, y")
+                      )
+                    ) : (
+                      <span>Pick a date</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <div className="flex">
+                    <div className="flex flex-col space-y-2 border-r p-4">
+                        <Button variant="ghost" className="justify-start" onClick={() => setDate({from: subDays(new Date(), 7), to: subDays(new Date(), 1)})}>Last 7 days</Button>
+                        <Button variant="ghost" className="justify-start" onClick={() => setDate({from: subDays(new Date(), 30), to: subDays(new Date(), 1)})}>Last 30 days</Button>
+                        <Button variant="ghost" className="justify-start" onClick={() => setDate({from: subDays(new Date(), 90), to: subDays(new Date(), 1)})}>Last 90 days</Button>
+                        <Button variant="ghost" className="justify-start" onClick={() => setDate({from: startOfMonth(new Date()), to: subDays(new Date(), 1)})}>This month</Button>
+                        <Button variant="ghost" className="justify-start" onClick={() => {
+                            const start = startOfMonth(subMonths(new Date(), 1));
+                            const end = endOfMonth(subMonths(new Date(), 1));
+                            setDate({from: start, to: end});
+                        }}>Last month</Button>
+                    </div>
+                    <Calendar
+                        initialFocus
+                        mode="range"
+                        defaultMonth={date?.from}
+                        selected={date}
+                        onSelect={setDate}
+                        numberOfMonths={2}
+                    />
+                  </div>
+                </PopoverContent>
+              </Popover>
+              <Button variant="outline" size="sm">
+                <RefreshCw className="h-4 w-4" />
+              </Button>
+              <Button variant="outline" size="icon" className="h-9 w-9">
+                <MoreHorizontal className="h-4 w-4" />
+                <span className="sr-only">More</span>
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Section 2.5: Combined Scorecard and Dual-Axis Charts */}
