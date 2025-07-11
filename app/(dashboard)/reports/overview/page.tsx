@@ -274,7 +274,7 @@ export default function OverviewPage() {
 
   const allTags = Array.from(new Set(projectsData.flatMap((project) => project.tags)))
 
-  const [date, setDate] = useState<DateRange | undefined>({ from: subDays(new Date(), 29), to: new Date() });
+  const [date, setDate] = useState<DateRange | undefined>({ from: subDays(new Date(), 30), to: subDays(new Date(), 1) });
   const [selectedApps, setSelectedApps] = useState<string[]>([]);
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
 

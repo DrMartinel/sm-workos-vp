@@ -29,7 +29,7 @@ const fetchData = async (startDate?: Date, endDate?: Date): Promise<OverviewData
     const start = format(startDate, 'yyyy-MM-dd');
     const end = format(endDate, 'yyyy-MM-dd');
     // Ensure the data source name matches exactly.
-    const response = await fetch(`/api/data-source/AppboomOverviewData?startDate=${start}&endDate=${end}`);
+    const response = await fetch(`/api/data-source/MySQL_AppboomOverviewData?startDate=${start}&endDate=${end}`);
     if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.details || 'Failed to fetch overview summary data');

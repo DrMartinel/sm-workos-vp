@@ -31,7 +31,7 @@ import {
   ReferenceLine,
   ReferenceArea,
 } from "recharts"
-import { format, subDays, eachDayOfInterval, parseISO, startOfToday, startOfMonth, subMonths, endOfMonth } from "date-fns"
+import { format, subDays, eachDayOfInterval, parseISO, startOfToday, startOfMonth, subMonths, endOfMonth, parse, differenceInDays } from "date-fns"
 import {
   TrendingUp,
   TrendingDown,
@@ -94,69 +94,9 @@ interface RawDataRow {
     [key: string]: any;
 }
 
-const dateRanges = {
-  'last_7_days': { label: 'Last 7 days' },
-  'last_30_days': { label: 'Last 30 days' },
-  'last_90_days': { label: 'Last 90 days' },
-  'this_month': { label: 'This month' },
-  'last_month': { label: 'Last month' },
-};
-type DateRangeKey = keyof typeof dateRanges;
-
-function calculateDateRange(key: DateRangeKey): { startDate: string, endDate: string } {
-    const toYYYYMMDD = (date: Date) => {
-        const y = date.getFullYear();
-        const m = String(date.getMonth() + 1).padStart(2, '0');
-        const d = String(date.getDate()).padStart(2, '0');
-        return `${y}-${m}-${d}`;
-    };
-
-    const now = new Date();
-    const yesterday = new Date();
-    yesterday.setDate(now.getDate() - 1);
-
-    let startDate: Date;
-    let endDate: Date;
-
-    switch (key) {
-        case 'last_7_days':
-            startDate = new Date(yesterday);
-            startDate.setDate(yesterday.getDate() - 6);
-            endDate = yesterday;
-            break;
-        case 'last_30_days':
-            startDate = new Date(yesterday);
-            startDate.setDate(yesterday.getDate() - 29);
-            endDate = yesterday;
-            break;
-        case 'last_90_days':
-            startDate = new Date(yesterday);
-            startDate.setDate(yesterday.getDate() - 89);
-            endDate = yesterday;
-            break;
-        case 'this_month':
-            startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-            endDate = now;
-            break;
-        case 'last_month':
-            startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-            endDate = new Date(now.getFullYear(), now.getMonth(), 0);
-            break;
-        default: // Should not happen with TypeScript, but as a fallback
-            startDate = new Date(yesterday);
-            startDate.setDate(yesterday.getDate() - 29);
-            endDate = yesterday;
-            break;
-    }
-
-    return {
-        startDate: toYYYYMMDD(startDate),
-        endDate: toYYYYMMDD(endDate),
-    };
-}
-
 function useAdjustCohortData(startDate?: string, endDate?: string) {
     const [rawData, setRawData] = useState<RawDataRow[]>([]);
+    const [prevRawData, setPrevRawData] = useState<RawDataRow[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -164,6 +104,7 @@ function useAdjustCohortData(startDate?: string, endDate?: string) {
         if (!startDate || !endDate) {
             setLoading(false);
             setRawData([]);
+            setPrevRawData([]);
             return;
         };
 
@@ -171,15 +112,35 @@ function useAdjustCohortData(startDate?: string, endDate?: string) {
             try {
                 setLoading(true);
                 setError(null);
-                const response = await fetch(`/api/data-source/AdjustCohortData?startDate=${startDate}&endDate=${endDate}`);
-                if (!response.ok) {
-                    throw new Error(`API Error: ${response.statusText}`);
-                }
-                const result = await response.json();
-                if (result.error) {
-                    throw new Error(result.details || result.error);
-                }
-                setRawData(result);
+
+                // Fetch current period data
+                const fetchCurrentPeriod = fetch(`/api/data-source/BigQuery_AdjustCohortData?startDate=${startDate}&endDate=${endDate}`).then(res => {
+                    if (!res.ok) throw new Error(`API Error (current): ${res.statusText}`);
+                    return res.json();
+                });
+
+                // Calculate and fetch previous period data
+                const start = parse(startDate!, 'yyyyMMdd', new Date());
+                const end = parse(endDate!, 'yyyyMMdd', new Date());
+                const duration = differenceInDays(end, start);
+                const prevEnd = subDays(start, 1);
+                const prevStart = subDays(prevEnd, duration);
+                const prevStartDate = format(prevStart, 'yyyyMMdd');
+                const prevEndDate = format(prevEnd, 'yyyyMMdd');
+                
+                const fetchPreviousPeriod = fetch(`/api/data-source/BigQuery_AdjustCohortData?startDate=${prevStartDate}&endDate=${prevEndDate}`).then(res => {
+                    if (!res.ok) throw new Error(`API Error (previous): ${res.statusText}`);
+                    return res.json();
+                });
+
+                const [currentResult, prevResult] = await Promise.all([fetchCurrentPeriod, fetchPreviousPeriod]);
+
+                if (currentResult.error) throw new Error(currentResult.details || currentResult.error);
+                if (prevResult.error) throw new Error(prevResult.details || prevResult.error);
+
+                setRawData(currentResult);
+                setPrevRawData(prevResult);
+
             } catch (e) {
                 setError(e instanceof Error ? e.message : "An unknown error occurred");
             } finally {
@@ -189,69 +150,7 @@ function useAdjustCohortData(startDate?: string, endDate?: string) {
         fetchData();
     }, [startDate, endDate]);
 
-    const processedData = useMemo(() => {
-        if (rawData.length === 0) return { roasData: [], cpiData: [] };
-
-        // 1. Group all raw data by date and aggregate metrics
-        const dailyAggregates = rawData.reduce((acc: Record<string, { cost: number; install: number; rev_d0: number; rev_d3: number; rev_d30: number; ratio_d30_d3: number; }>, row: RawDataRow) => {
-            const date = row.date;
-            if (!acc[date]) {
-                acc[date] = {
-                    cost: 0,
-                    install: 0,
-                    rev_d0: 0,
-                    rev_d3: 0,
-                    rev_d30: 0,
-                    ratio_d30_d3: row.RATIO_REVD30_REVD3 || 1 
-                };
-            }
-            acc[date].cost += row.cost || 0;
-            acc[date].install += row.install || 0;
-            acc[date].rev_d0 += row.REV_D0 || 0;
-            acc[date].rev_d3 += row.REV_D3 || 0;
-            acc[date].rev_d30 += row.REV_D30 || 0;
-            return acc;
-        }, {} as Record<string, { cost: number; install: number; rev_d0: number; rev_d3: number; rev_d30: number; ratio_d30_d3: number; }>);
-        
-        const sortedDates = Object.keys(dailyAggregates).sort((a,b) => new Date(a).getTime() - new Date(b).getTime());
-
-        // 2. Map aggregated data to the specific structures required by the charts
-        const roasData = sortedDates.map(date => {
-            const metrics = dailyAggregates[date];
-            const cost = metrics.cost;
-            
-            const roasD0 = cost > 0 ? (metrics.rev_d0 / cost) * 100 : 0;
-            const roasD30 = cost > 0 ? (metrics.rev_d30 / cost) * 100 : 0;
-            const eRoasD30 = cost > 0 ? (metrics.rev_d3 * metrics.ratio_d30_d3) / cost * 100 : 0;
-
-            return {
-                date: format(parseISO(date), 'MMM dd'),
-                roasD0,
-                roasD30,
-                eRoasD30
-            };
-        });
-
-        const cpiData = sortedDates.map(date => {
-            const metrics = dailyAggregates[date];
-            const install = metrics.install;
-
-            const cpi = install > 0 ? metrics.cost / install : 0;
-            const eLtvD30 = install > 0 ? (metrics.rev_d3 * metrics.ratio_d30_d3) / install : 0;
-            
-            return {
-                date: format(parseISO(date), 'MMM dd'),
-                cpi,
-                eLtvD30,
-                cost: metrics.cost
-            };
-        });
-
-        return { roasData, cpiData };
-
-    }, [rawData]);
-
-    return { ...processedData, rawData, loading, error };
+    return { rawData, prevRawData, loading, error };
 }
 
 // Custom hook to extract filter options from raw data, sort theo cost giảm dần
@@ -483,31 +382,32 @@ const CalendarHeatmap = ({ data }: { data: Array<{ date: string; value: number }
 // Custom horizontal scrollable legend
 function ChannelLegend({ channels, colors }: { channels: string[], colors: string[] }) {
   return (
-    <div className="overflow-x-auto mt-2 pb-1">
-      <div className="flex gap-4 min-w-max">
-        {channels.map((channel, idx) => (
-          <div key={channel} className="flex items-center gap-1 whitespace-nowrap">
-            <span className="inline-block w-3 h-3 rounded-full" style={{ background: colors[idx % colors.length] }} />
-            <span className="text-xs" style={{ color: colors[idx % colors.length] }}>{channel}</span>
-          </div>
-        ))}
-      </div>
+    <div className="flex flex-wrap justify-center items-center gap-x-4 gap-y-2 mt-4">
+      {channels.map((channel, idx) => (
+        <div key={channel} className="flex items-center text-sm">
+          <span
+            className="w-3 h-3 rounded-full mr-2"
+            style={{ backgroundColor: colors[idx % colors.length] }}
+          />
+          <span>{channel}</span>
+        </div>
+      ))}
     </div>
-  )
+  );
 }
 
 const chartColors = ["#10b981", "#3b82f6", "#f59e0b", "#ef4444", "#8b5cf6", "#6366f1", "#f472b6", "#22d3ee", "#16a34a", "#eab308", "#f43f5e", "#a21caf", "#0ea5e9", "#facc15", "#f87171"];
 
 export default function ReportsPage() {
     const [date, setDate] = useState<DateRange | undefined>({
-        from: subDays(new Date(), 29),
-        to: new Date(),
+        from: subDays(new Date(), 30),
+        to: subDays(new Date(), 1),
     });
 
     const startDate = date?.from ? format(date.from, 'yyyyMMdd') : undefined;
     const endDate = date?.to ? format(date.to, 'yyyyMMdd') : undefined;
 
-    const { roasData, cpiData, rawData, loading, error } = useAdjustCohortData(startDate, endDate);
+    const { rawData, prevRawData, loading, error } = useAdjustCohortData(startDate, endDate);
     const filters = useAdjustCohortFilters(rawData || []);
 
     const [selectedFilters, setSelectedFilters] = useState<Record<string, string[]>>({
@@ -535,6 +435,19 @@ export default function ReportsPage() {
             });
         });
     }, [rawData, selectedFilters]);
+
+    const prevFilteredRows = useMemo(() => {
+        if (!prevRawData) return [];
+        const hasActiveFilters = Object.values(selectedFilters).some(v => v.length > 0);
+        if (!hasActiveFilters) return prevRawData;
+        return prevRawData.filter((row: RawDataRow) => {
+            return Object.entries(selectedFilters).every(([key, values]) => {
+                if (values.length === 0) return true;
+                const rowValue = row[key];
+                return rowValue !== undefined && values.includes(rowValue);
+            });
+        });
+    }, [prevRawData, selectedFilters]);
 
     // Lọc channel có tổng cost > 0 cho cả 2 chart dựa trên filteredRows
     const channelCostMap: Record<string, number> = {};
@@ -590,74 +503,108 @@ export default function ReportsPage() {
     const roasD0Channels = filteredChannels;
     const trafficChannels = filteredChannels;
 
-    // Tính toán lại filteredChartData dựa trên filteredRows
-    const filteredChartData = useMemo(() => {
-        if (!filteredRows || filteredRows.length === 0) return { roasData: [], cpiData: [], stats: { averageCpi: 0, totalCost: 0, averageRoasD0: 0, averageERoasD30: 0 } };
+    // Tính toán lại chartData dựa trên filteredRows
+    const chartData = useMemo(() => {
         const processAggregatedData = (data: RawDataRow[]) => {
-            if (data.length === 0) return { roasData: [], cpiData: [], stats: { averageCpi: 0, totalCost: 0, averageRoasD0: 0, averageERoasD30: 0 } };
-            const dailyAggregates = data.reduce((acc: Record<string, { cost: number; install: number; rev_d0: number; rev_d3: number; rev_d30: number; ratio_d30_d3: number; }>, row: RawDataRow) => {
+            if (!data || data.length === 0) return { 
+                roasData: [], 
+                cpiData: [], 
+                stats: { averageCpi: 0, totalCost: 0, averageRoasD0: 0, averageERoasD30: 0, averageRoasD30: 0 } 
+            };
+
+            const dailyAggregates = data.reduce((acc, row) => {
                 const date = row.date;
                 if (!acc[date]) {
-                    acc[date] = { cost: 0, install: 0, rev_d0: 0, rev_d3: 0, rev_d30: 0, ratio_d30_d3: row.RATIO_REVD30_REVD3 || 1 };
+                    acc[date] = { cost: 0, install: 0, rev_d0: 0, rev_d3: 0, rev_d30: 0, weighted_ratio_numerator: 0 };
                 }
                 acc[date].cost += row.cost || 0;
                 acc[date].install += row.install || 0;
                 acc[date].rev_d0 += row.REV_D0 || 0;
                 acc[date].rev_d3 += row.REV_D3 || 0;
                 acc[date].rev_d30 += row.REV_D30 || 0;
+                acc[date].weighted_ratio_numerator += (row.REV_D3 || 0) * (row.RATIO_REVD30_REVD3 || 0);
                 return acc;
-            }, {});
+            }, {} as Record<string, { cost: number; install: number; rev_d0: number; rev_d3: number; rev_d30: number; weighted_ratio_numerator: number; }>);
+
             const totalCost = Object.values(dailyAggregates).reduce((sum, day) => sum + day.cost, 0);
             const totalInstall = Object.values(dailyAggregates).reduce((sum, day) => sum + day.install, 0);
-            const averageCpi = totalInstall > 0 ? totalCost / totalInstall : 0;
             const totalRevD0 = Object.values(dailyAggregates).reduce((sum, day) => sum + day.rev_d0, 0);
-            const totalPredictedRevD30 = Object.values(dailyAggregates).reduce((sum, day) => sum + (day.rev_d3 * day.ratio_d30_d3), 0);
-            const averageRoasD0 = totalCost > 0 ? (totalRevD0 / totalCost) * 100 : 0;
-            const averageERoasD30 = totalCost > 0 ? (totalPredictedRevD30 / totalCost) * 100 : 0;
+            const totalRevD30 = Object.values(dailyAggregates).reduce((sum, day) => sum + day.rev_d30, 0);
+            const totalPredictedRevD30 = Object.values(dailyAggregates).reduce((sum, day) => sum + day.weighted_ratio_numerator, 0);
+            
+            const stats = {
+              totalCost,
+              averageCpi: totalInstall > 0 ? totalCost / totalInstall : 0,
+              averageRoasD0: totalCost > 0 ? (totalRevD0 / totalCost) * 100 : 0,
+              averageRoasD30: totalCost > 0 ? (totalRevD30 / totalCost) * 100 : 0,
+              averageERoasD30: totalCost > 0 ? (totalPredictedRevD30 / totalCost) * 100 : 0,
+            }
+
             const sortedDates = Object.keys(dailyAggregates).sort((a,b) => new Date(a).getTime() - new Date(b).getTime());
+            
             const roasData = sortedDates.map(date => {
                 const metrics = dailyAggregates[date];
                 const cost = metrics.cost;
                 const roasD0 = cost > 0 ? (metrics.rev_d0 / cost) * 100 : 0;
                 const roasD30 = cost > 0 ? (metrics.rev_d30 / cost) * 100 : 0;
-                const eRoasD30 = cost > 0 ? (metrics.rev_d3 * metrics.ratio_d30_d3) / cost * 100 : 0;
+                const eRoasD30 = cost > 0 ? (metrics.weighted_ratio_numerator / cost) * 100 : 0;
                 return { date: format(parseISO(date), 'MMM dd'), roasD0, roasD30, eRoasD30, cost: metrics.cost };
             });
+
             const cpiData = sortedDates.map(date => {
                 const metrics = dailyAggregates[date];
                 const install = metrics.install;
                 const cpi = install > 0 ? metrics.cost / install : 0;
-                const eLtvD30 = install > 0 ? (metrics.rev_d3 * metrics.ratio_d30_d3) / install : 0;
+                const eLtvD30 = install > 0 ? metrics.weighted_ratio_numerator / install : 0;
                 return { date: format(parseISO(date), 'MMM dd'), cpi, eLtvD30, cost: metrics.cost };
             });
-            return { roasData, cpiData, stats: { averageCpi, totalCost, averageRoasD0, averageERoasD30 } };
-        };
-        return processAggregatedData(filteredRows);
-    }, [filteredRows]);
 
-    // Tính lại roasChartMax và cpiChartMax dựa trên filteredChartData
+            return { roasData, cpiData, stats };
+        };
+
+        const currentData = processAggregatedData(filteredRows);
+        const prevData = processAggregatedData(prevFilteredRows);
+
+        const calculateChange = (current: number, previous: number) => {
+            if (previous === 0) return 0; // Avoid division by zero
+            return (current - previous) / previous;
+        };
+
+        const changes = {
+            roasD0Change: calculateChange(currentData.stats.averageRoasD0, prevData.stats.averageRoasD0),
+            roasD30Change: calculateChange(currentData.stats.averageRoasD30, prevData.stats.averageRoasD30),
+            eroasD30Change: calculateChange(currentData.stats.averageERoasD30, prevData.stats.averageERoasD30),
+            cpiChange: calculateChange(currentData.stats.averageCpi, prevData.stats.averageCpi),
+            totalCostChange: calculateChange(currentData.stats.totalCost, prevData.stats.totalCost),
+        }
+        
+        return { ...currentData, stats: {...currentData.stats, ...changes} };
+
+    }, [filteredRows, prevFilteredRows]);
+
+    // Tính lại roasChartMax và cpiChartMax dựa trên chartData
     const roasChartMax = useMemo(() => {
-        if (!filteredChartData.roasData || filteredChartData.roasData.length === 0) {
+        if (!chartData.roasData || chartData.roasData.length === 0) {
             return 150; // Default
         }
-        const maxVal = filteredChartData.roasData.reduce((max, item) => {
+        const maxVal = chartData.roasData.reduce((max, item) => {
             const currentMax = Math.max(item.roasD0, item.roasD30, item.eRoasD30);
             return currentMax > max ? currentMax : max;
         }, 0);
         return Math.max(maxVal * 1.2, 110); 
-    }, [filteredChartData.roasData]);
+    }, [chartData.roasData]);
 
     const cpiChartMax = useMemo(() => {
-        if (!filteredChartData.cpiData || filteredChartData.cpiData.length === 0) {
+        if (!chartData.cpiData || chartData.cpiData.length === 0) {
             return 1000; // A default value if no data
         }
-        const maxVal = filteredChartData.cpiData.reduce((max, item) => {
+        const maxVal = chartData.cpiData.reduce((max, item) => {
             const currentMax = Math.max(item.cpi, item.eLtvD30);
             return currentMax > max ? currentMax : max;
         }, 0);
         if (maxVal === 0) return 1;
         return maxVal * 1.2;
-    }, [filteredChartData.cpiData]);
+    }, [chartData.cpiData]);
 
     // State cho expand/collapse các channel
     const [expandedChannels, setExpandedChannels] = useState<Set<string>>(new Set());
@@ -996,7 +943,7 @@ export default function ReportsPage() {
     };
 
     // Hàm format số
-    function fmtCurrency(val: number) { return val.toLocaleString('en-US', { maximumFractionDigits: 0 }) + ' đ'; }
+    function fmtCurrency(val: number) { return val.toLocaleString('en-US', { maximumFractionDigits: 0 }) + ' $'; }
     function fmtPercent(val: number) { return (val * 100).toFixed(2) + '%'; }
     function fmtPercent0(val: number) { return (val * 100).toFixed(0) + '%'; }
     function fmtNumber(val: number) { return val.toLocaleString('en-US', { maximumFractionDigits: 0 }); }
@@ -1118,10 +1065,10 @@ export default function ReportsPage() {
                             <PopoverContent className="w-auto p-0" align="start">
                                 <div className="flex">
                                     <div className="flex flex-col space-y-2 border-r p-4">
-                                         <Button variant="ghost" className="justify-start" onClick={() => setDate({from: subDays(new Date(), 6), to: new Date()})}>Last 7 days</Button>
-                                         <Button variant="ghost" className="justify-start" onClick={() => setDate({from: subDays(new Date(), 29), to: new Date()})}>Last 30 days</Button>
-                                         <Button variant="ghost" className="justify-start" onClick={() => setDate({from: subDays(new Date(), 89), to: new Date()})}>Last 90 days</Button>
-                                         <Button variant="ghost" className="justify-start" onClick={() => setDate({from: startOfMonth(new Date()), to: new Date()})}>This month</Button>
+                                         <Button variant="ghost" className="justify-start" onClick={() => setDate({from: subDays(new Date(), 7), to: subDays(new Date(), 1)})}>Last 7 days</Button>
+                                         <Button variant="ghost" className="justify-start" onClick={() => setDate({from: subDays(new Date(), 30), to: subDays(new Date(), 1)})}>Last 30 days</Button>
+                                         <Button variant="ghost" className="justify-start" onClick={() => setDate({from: subDays(new Date(), 90), to: subDays(new Date(), 1)})}>Last 90 days</Button>
+                                         <Button variant="ghost" className="justify-start" onClick={() => setDate({from: startOfMonth(new Date()), to: subDays(new Date(), 1)})}>This month</Button>
                                          <Button variant="ghost" className="justify-start" onClick={() => {
                                              const start = startOfMonth(subMonths(new Date(), 1));
                                              const end = endOfMonth(subMonths(new Date(), 1));
@@ -1163,30 +1110,24 @@ export default function ReportsPage() {
             <div className="grid grid-cols-3 gap-4 mb-6">
               <div className="text-center">
                 <div className="text-xs font-medium text-blue-600 mb-1">ROAS D0</div>
-                                <div className="text-2xl font-bold text-gray-900">{(filteredChartData.stats?.averageRoasD0 ?? 0).toFixed(2)}%</div>
-                <div className="flex items-center justify-center gap-1 text-xs">
-                  <TrendingDown className="h-3 w-3 text-red-500" />
-                  <span className="text-red-500">-15.4%</span>
-                </div>
+                                <div className="text-2xl font-bold text-gray-900">{(chartData.stats?.averageRoasD0 ?? 0).toFixed(2)}%</div>
+                <ScorecardChange value={chartData.stats?.roasD0Change} />
               </div>
               <div className="text-center">
                 <div className="text-xs font-medium text-pink-600 mb-1">eROAS D30</div>
-                                <div className="text-2xl font-bold text-gray-900">{(filteredChartData.stats?.averageERoasD30 ?? 0).toFixed(2)}%</div>
-                <div className="flex items-center justify-center gap-1 text-xs">
-                  <TrendingDown className="h-3 w-3 text-red-500" />
-                  <span className="text-red-500">-7.3%</span>
-                </div>
+                                <div className="text-2xl font-bold text-gray-900">{(chartData.stats?.averageERoasD30 ?? 0).toFixed(2)}%</div>
+                <ScorecardChange value={chartData.stats?.eroasD30Change} />
               </div>
               <div className="text-center">
                 <div className="text-xs font-medium text-cyan-600 mb-1">ROAS D30</div>
-                <div className="text-2xl font-bold text-gray-400">No data</div>
-                <div className="text-xs text-gray-400">No data</div>
+                <div className="text-2xl font-bold text-gray-900">{(chartData.stats?.averageRoasD30 ?? 0).toFixed(2)}%</div>
+                <ScorecardChange value={chartData.stats?.roasD30Change} />
               </div>
             </div>
 
             {/* Dual-Axis Chart */}
             <ResponsiveContainer width="100%" height={300}>
-                            <ComposedChart data={filteredChartData.roasData}>
+                            <ComposedChart data={chartData.roasData}>
                 <XAxis dataKey="date" />
                                 <YAxis yAxisId="left" orientation="left" domain={[0, roasChartMax]} tickFormatter={(value) => `${value.toFixed(0)}%`} />
                 <YAxis
@@ -1197,8 +1138,11 @@ export default function ReportsPage() {
                 <Tooltip
                   formatter={(value, name) => {
                                         const numValue = value as number;
-                                        if (name === "cost") return [formatLargeNumber(numValue, 2), "Cost"];
-                                        return [`${numValue.toFixed(2)}%`, name as string];
+                                        if (name === "cost") return [`$${formatLargeNumber(numValue, 2)}`, "Cost"]
+                                        if (name === "roasD0") return [`${numValue.toFixed(2)}%`, "ROAS D0"]
+                                        if (name === "roasD30") return [`${numValue.toFixed(2)}%`, "ROAS D30"]
+                                        if (name === "eRoasD30") return [`${numValue.toFixed(2)}%`, "eROAS D30"]
+                                        return [`${numValue.toFixed(2)}%`, name as string]
                   }}
                 />
                 <Legend />
@@ -1269,25 +1213,19 @@ export default function ReportsPage() {
             <div className="grid grid-cols-2 gap-6 mb-6">
               <div className="text-center">
                                 <div className="text-xs font-medium text-blue-600 mb-1">AVG. CPI</div>
-                                <div className="text-2xl font-bold text-gray-900">{(filteredChartData.stats?.averageCpi ?? 0).toFixed(2)} đ</div>
-                <div className="flex items-center justify-center gap-1 text-xs">
-                  <TrendingDown className="h-3 w-3 text-red-500" />
-                  <span className="text-red-500">-8.9%</span>
-                </div>
+                                <div className="text-2xl font-bold text-gray-900">${(chartData.stats?.averageCpi ?? 0).toFixed(2)}</div>
+                <ScorecardChange value={chartData.stats?.cpiChange} />
               </div>
               <div className="text-center">
                                 <div className="text-xs font-medium text-cyan-600 mb-1">TOTAL COST</div>
-                                <div className="text-xl font-bold text-gray-900">{formatLargeNumber(filteredChartData.stats?.totalCost ?? 0)} đ</div>
-                <div className="flex items-center justify-center gap-1 text-xs">
-                  <TrendingUp className="h-3 w-3 text-green-500" />
-                  <span className="text-green-500">+6.7%</span>
-                </div>
+                                <div className="text-xl font-bold text-gray-900">${formatLargeNumber(chartData.stats?.totalCost ?? 0)}</div>
+                <ScorecardChange value={chartData.stats?.totalCostChange} />
               </div>
             </div>
 
             {/* Dual-Axis Chart */}
             <ResponsiveContainer width="100%" height={300}>
-                            <ComposedChart data={filteredChartData.cpiData}>
+                            <ComposedChart data={chartData.cpiData}>
                 <XAxis dataKey="date" />
                                 <YAxis yAxisId="left" orientation="left" domain={[0, cpiChartMax]} tickFormatter={(value) => `${value.toFixed(2)}`} />
                 <YAxis
@@ -1298,10 +1236,10 @@ export default function ReportsPage() {
                 <Tooltip
                   formatter={(value, name) => {
                                         const numValue = value as number;
-                                        if (name === "cost") return [`${formatLargeNumber(numValue, 2)} đ`, "Cost"]
-                                        if (name === "cpi") return [`${numValue.toFixed(2)} đ`, "CPI"]
-                                        if (name === "eLtvD30") return [`${numValue.toFixed(2)}`, "eLTV D30"]
-                                        return [`${numValue.toFixed(2)}`, name as string]
+                                        if (name === "cost") return [`$${formatLargeNumber(numValue, 2)}`, "Cost"]
+                                        if (name === "cpi") return [`$${numValue.toFixed(2)}`, "CPI"]
+                                        if (name === "eLtvD30") return [`$${numValue.toFixed(2)}`, "eLTV D30"]
+                                        return [`${numValue.toFixed(2)}%`, name as string]
                   }}
                 />
                 <Legend />
@@ -1487,7 +1425,7 @@ export default function ReportsPage() {
                   <Slider
                     min={0}
                     max={maxCost}
-                    step={100}
+                    step={maxCost / 100}
                     value={localCostRange}
                     onValueChange={(value) => setLocalCostRange(value as [number, number])}
                     onValueCommit={(value) => setCommittedCostRange(value as [number, number])}
@@ -1628,3 +1566,19 @@ export default function ReportsPage() {
     </div>
   )
 }
+
+const ScorecardChange = ({ value }: { value?: number }) => {
+  if (value === undefined || !isFinite(value)) {
+    return <div className="text-xs text-gray-400">No prior data</div>;
+  }
+  const isPositive = value >= 0;
+  const colorClass = isPositive ? "text-green-500" : "text-red-500";
+  const Icon = isPositive ? TrendingUp : TrendingDown;
+
+  return (
+    <div className={`flex items-center justify-center gap-1 text-xs ${colorClass}`}>
+      <Icon className="h-3 w-3" />
+      <span>{(value * 100).toFixed(1)}%</span>
+    </div>
+  );
+};

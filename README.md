@@ -26,7 +26,7 @@ Retrieves data from a specified data source with date filtering and caching.
 ```json
 [
   {
-    "date": "2024-01-01",
+    "date": "2024-01-01", 
     "country_code": "US",
     "channel": "facebook",
     "campaign_name": "Campaign Name",

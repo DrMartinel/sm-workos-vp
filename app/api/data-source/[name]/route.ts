@@ -98,7 +98,7 @@ async function runQueryBySource(sourceType: string, query: string, params: any):
 }
 
 export async function GET(request: NextRequest, { params }: { params: { name: string } }) {
-    const dataSourceName = params.name;
+    const { name: dataSourceName } = await params;
     const { searchParams } = new URL(request.url);
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
