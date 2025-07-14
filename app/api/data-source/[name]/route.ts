@@ -49,16 +49,21 @@ function initializeMySqlConnection() {
     return connection;
 }
 
-async function runQueryBySource(sourceType: string, query: string, params: any): Promise<any[]> {
+async function runQueryBySource(sourceType: string, query: string, params: any, uniqueRequestId: string): Promise<any[]> {
     switch (sourceType) {
         case 'bigquery':
+            console.time(`[API /${uniqueRequestId}]   L-2: BQ Client Init`);
             const bigquery = initializeBigQuery();
+            console.timeEnd(`[API /${uniqueRequestId}]   L-2: BQ Client Init`);
             const options = {
                 query: query,
                 location: 'US', // This could be part of the definition
                 params: params,
             };
+            console.log(`[API /${uniqueRequestId}]   L-2: Executing BigQuery query (includes data download)...`);
+            console.time(`[API /${uniqueRequestId}]   L-2: BQ Query Execution & Download`);
             const [rows] = await bigquery.query(options);
+            console.timeEnd(`[API /${uniqueRequestId}]   L-2: BQ Query Execution & Download`);
             return rows;
         case 'mysql':
             const mysqlPool = initializeMySqlConnection();
@@ -97,8 +102,14 @@ async function runQueryBySource(sourceType: string, query: string, params: any):
     }
 }
 
-export async function GET(request: NextRequest, { params }: { params: { name: string } }) {
+export async function GET(request: NextRequest, { params }: { params: { name:string } }) {
+    const handlerStart = Date.now();
+    // Use `await` as required by Next.js App Router for dynamic routes.
     const { name: dataSourceName } = await params;
+    const uniqueRequestId = `${dataSourceName}-${handlerStart}`;
+
+    console.log(`[API /${dataSourceName}] Request received. Unique ID: ${uniqueRequestId}`);
+
     const { searchParams } = new URL(request.url);
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
@@ -118,26 +129,31 @@ export async function GET(request: NextRequest, { params }: { params: { name: st
      console.log(`[Cache] MISS for ${cacheKey}`);
 
     try {
-        // --- 3. Load data source definition and query
-        // Using a template literal with a static path helps Next.js/Webpack discover the module at build time.
+        console.time(`[API /${uniqueRequestId}] L-1: Total Handler Time`);
+
+        console.time(`[API /${uniqueRequestId}]   Step 1: Load Definition`);
         const definitionModule = await import(`../../../../data-sources/${dataSourceName}/definition.ts`);
         const definition: DataSourceDefinition = definitionModule.default;
+        console.timeEnd(`[API /${uniqueRequestId}]   Step 1: Load Definition`);
 
+        console.time(`[API /${uniqueRequestId}]   Step 2: Read Query File`);
         const queryPath = path.join(process.cwd(), 'data-sources', dataSourceName, definition.queryFile);
         let query = await fs.readFile(queryPath, 'utf-8');
-
-        // --- 4. Replace placeholders safely
-        // We go back to parameterized queries to avoid SQLi and type errors
+        console.timeEnd(`[API /${uniqueRequestId}]   Step 2: Read Query File`);
+        
         query = query.replace(/@DS_START_DATE/g, '@startDate').replace(/@DS_END_DATE/g, '@endDate');
 
-        // --- 5. Execute query
-        const rows = await runQueryBySource(definition.source, query, { startDate, endDate });
+        console.log(`[API /${uniqueRequestId}] --- Starting Step 3: Execute Query ---`);
+        console.time(`[API /${uniqueRequestId}]   Step 3: Run Query By Source`);
+        const rows = await runQueryBySource(definition.source, query, { startDate, endDate }, uniqueRequestId);
+        console.timeEnd(`[API /${uniqueRequestId}]   Step 3: Run Query By Source`);
+        console.log(`[API /${uniqueRequestId}] --- Finished Step 3: Execute Query ---`);
 
-        // --- 6. Clean and Cache Result
+
         console.log(`[${dataSourceName} Query] Fetched ${rows.length} rows from the database.`);
-
         const metrics = definition.metrics || [];
 
+        console.time(`[API /${uniqueRequestId}]   Step 4: Clean Data`);
         const cleanRows = rows.map(row => {
             const newRow = {...row};
             if (newRow.date && newRow.date.value) {
@@ -153,12 +169,29 @@ export async function GET(request: NextRequest, { params }: { params: { name: st
 
             return newRow;
         });
-
+        console.timeEnd(`[API /${uniqueRequestId}]   Step 4: Clean Data`);
+        
+        console.time(`[API /${uniqueRequestId}]   Step 5: Store in Cache`);
         console.log(`[Cache] Storing ${cleanRows.length} rows for key: ${cacheKey}`);
         cache.set(cacheKey, { data: cleanRows, timestamp: Date.now() });
+        console.timeEnd(`[API /${uniqueRequestId}]   Step 5: Store in Cache`);
 
+
+        const rowCount = cleanRows.length;
+        console.time(`[API /${uniqueRequestId}]   Step 6: JSON Stringify`);
+        const responseJsonString = JSON.stringify(cleanRows);
+        console.timeEnd(`[API /${uniqueRequestId}]   Step 6: JSON Stringify`);
+        const responseSize = responseJsonString.length;
+        
+        console.log(`[API /${dataSourceName}] Query returned ${rowCount} rows.`);
+        console.log(`[API /${dataSourceName}] JSON response size: ${(responseSize / 1024 / 1024).toFixed(2)} MB`);
+        
+        console.log(`[API /${uniqueRequestId}] --- Preparing to send response ---`);
+        console.timeEnd(`[API /${uniqueRequestId}] L-1: Total Handler Time`);
         return NextResponse.json(cleanRows);
     } catch (error) {
+        // We need to end the timer here in case of an error to avoid warnings.
+        console.timeEnd(`[API /${uniqueRequestId}] L-1: Total Handler Time`);
         console.error(`[${dataSourceName} API Error]`, error);
         // Distinguish between file not found and other errors
         if (error && (error as NodeJS.ErrnoException).code === 'ERR_MODULE_NOT_FOUND') {

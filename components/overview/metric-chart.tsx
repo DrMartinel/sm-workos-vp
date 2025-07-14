@@ -113,7 +113,7 @@ export const MetricChart = ({ data, keys, isLoading, title, valueFormatter, isAr
                             isAreaChart ? (
                                 <Area
                                     key={key}
-                                    type="monotone"
+                                    type="linear"
                                     dataKey={key}
                                     stroke={PRIMARY_COLOR}
                                     fill={PRIMARY_COLOR}
@@ -125,7 +125,7 @@ export const MetricChart = ({ data, keys, isLoading, title, valueFormatter, isAr
                             ) : (
                                 <Line
                                     key={key}
-                                    type="monotone"
+                                    type="linear"
                                     dataKey={key}
                                     stroke={COLORS[index % COLORS.length]}
                                     strokeWidth={2}

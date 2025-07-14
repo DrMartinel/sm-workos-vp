@@ -365,10 +365,14 @@ export default function OverviewPage() {
 
       {/* App Performance Table */}
       <AppsDataTable 
-        dateRange={date}
-        selectedApps={selectedApps}
-        selectedPlatforms={selectedPlatforms}
-      />
+        dateRange={date} 
+        selectedApps={selectedApps} 
+        selectedPlatforms={selectedPlatforms} 
+        onAppSelect={(appName) => {
+          setSelectedApps([appName]);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+        />
     </div>
   )
 }

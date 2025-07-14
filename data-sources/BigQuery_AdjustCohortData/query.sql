@@ -25,7 +25,7 @@ A AS (
   FROM `sm-data-center.Adjust.cumulative_cohort`
   WHERE 
     date BETWEEN PARSE_DATE('%Y%m%d', @DS_START_DATE) AND PARSE_DATE('%Y%m%d', @DS_END_DATE)
-    AND cost IS NOT NULL
+    AND cost IS NOT NULL 
     AND period IN (0, 1, 3, 7, 30, 60, 90, 120)
     AND channel != 'Google Organic Search'
   GROUP BY

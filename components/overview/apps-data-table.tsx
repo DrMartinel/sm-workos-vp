@@ -17,6 +17,7 @@ interface AppsDataTableProps {
     dateRange: DateRange | undefined;
     selectedApps: string[];
     selectedPlatforms: string[];
+    onAppSelect: (appName: string) => void;
 }
 
 const formatCurrency = (value: number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
@@ -51,7 +52,7 @@ const MetricCell = ({ value, change, formatter }: { value: number, change: numbe
 
 const ITEMS_PER_PAGE = 20;
 
-export const AppsDataTable = ({ dateRange, selectedApps, selectedPlatforms }: AppsDataTableProps) => {
+export const AppsDataTable = ({ dateRange, selectedApps, selectedPlatforms, onAppSelect }: AppsDataTableProps) => {
     const [sorting, setSorting] = useState<Sorting>({ metric: 'revenue', direction: 'desc' });
     const [currentPage, setCurrentPage] = useState(1);
     
@@ -108,7 +109,7 @@ export const AppsDataTable = ({ dateRange, selectedApps, selectedPlatforms }: Ap
                             ) : paginatedData.map((app) => (
                                 <TableRow key={app.app_id}>
                                     <TableCell>
-                                        <div className="flex items-center gap-3">
+                                        <button onClick={() => onAppSelect(app.app_name)} className="flex items-center gap-3 text-left group">
                                             {app.node_icon ? (
                                                 <Image
                                                     src={app.node_icon}
@@ -123,10 +124,10 @@ export const AppsDataTable = ({ dateRange, selectedApps, selectedPlatforms }: Ap
                                                 </div>
                                             )}
                                             <div className="hidden md:block">
-                                                <div className="font-medium">{app.app_name}</div>
+                                                <div className="font-medium group-hover:underline">{app.app_name}</div>
                                                 <div className="text-xs text-gray-500">{app.app_id}</div>
                                             </div>
-                                        </div>
+                                        </button>
                                     </TableCell>
                                     <MetricCell value={app.downloads} change={app.downloads_change} formatter={formatNumber} />
                                     <MetricCell value={app.revenue} change={app.revenue_change} />
