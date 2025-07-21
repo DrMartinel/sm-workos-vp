@@ -7,3 +7,6 @@
 [submodule "app/dashboard-legacy/reports"]
 	path = app/dashboard-legacy/reports
 	url = https://github.com/quangsmg/sm-workos-reports.git
+[submodule "app/(dashboard)/reports"]
+	path = app/(dashboard)/reports
+	url = https://github.com/quangsmg/sm-workos-reports.git
