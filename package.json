@@ -9,6 +9,9 @@
     "start": "next start"
   },
   "dependencies": {
+    "@sm-workos/reports": "file:app/(dashboard)/reports",
+    "@sm-workos/shared-ui": "file:app/shared-ui",
+    "@sm-workos/domain-apps": "file:app/domain-apps",
     "@google-cloud/bigquery": "^8.1.0",
     "@hookform/resolvers": "^3.9.1",
     "@radix-ui/react-accordion": "1.2.2",

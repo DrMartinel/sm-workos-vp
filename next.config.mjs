@@ -9,6 +9,7 @@ const pwaConfig = withPWA({
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  transpilePackages: ['@sm-workos/reports', '@sm-workos/shared-ui', '@sm-workos/domain-apps'],
   eslint: {
     ignoreDuringBuilds: true,
   },
