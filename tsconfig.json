@@ -21,6 +21,7 @@
     "paths": {
       "@/components/*": ["./app/shared-ui/components/*"],
       "@/lib/*": ["./app/shared-ui/lib/*"],
+      "@/domain-apps/*": ["./app/domain-apps/*"],
       "@/*": ["./*"]
     }
   },
