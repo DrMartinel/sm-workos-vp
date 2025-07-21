@@ -1,0 +1,3 @@
+[submodule "app/shared-ui"]
+	path = app/shared-ui
+	url = https://github.com/quangsmg/sm-workos-shared-ui.git
