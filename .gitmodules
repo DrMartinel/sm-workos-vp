@@ -1,12 +1,9 @@
 [submodule "app/shared-ui"]
 	path = app/shared-ui
-	url = https://github.com/quangsmg/sm-workos-shared-ui.git
+	url = https://oauth2:${GITHUB_PAT}@github.com/quangsmg/sm-workos-shared-ui.git
 [submodule "app/domain-apps"]
 	path = app/domain-apps
-	url = https://github.com/quangsmg/sm-workos-domain-apps.git
-[submodule "app/dashboard-legacy/reports"]
-	path = app/dashboard-legacy/reports
-	url = https://github.com/quangsmg/sm-workos-reports.git
+	url = https://oauth2:${GITHUB_PAT}@github.com/quangsmg/sm-workos-domain-apps.git
 [submodule "app/(dashboard)/reports"]
 	path = app/(dashboard)/reports
-	url = https://github.com/quangsmg/sm-workos-reports.git
+	url = https://oauth2:${GITHUB_PAT}@github.com/quangsmg/sm-workos-reports.git
