@@ -80,16 +80,54 @@ The project uses a custom script to initialize submodules. You need to tell Verc
 
 After completing these steps, trigger a new deployment on Vercel. The build process should now successfully clone the private submodules and build the application.
 
+## Local Development Setup
+
+To work on this project locally, you must use a special script to initialize the environment. This script correctly handles submodule cloning, even if you do not have access to all private submodules (like the `reports` module).
+
+**DO NOT use `git submodule update --init` directly.**
+
+### First-Time Setup
+
+1.  **Clone the main repository:**
+    ```bash
+    git clone https://github.com/quangsmg/sm-workos.git
+    cd sm-workos
+    ```
+
+2.  **Run the development environment setup script:**
+    This script will clone all the submodules you have access to. If you don't have access to the `reports` repository, it will create a "dummy" module in its place so you can still run the project.
+    ```bash
+    ./init-dev-env.sh
+    ```
+
+3.  **Install dependencies:**
+    ```bash
+    pnpm install
+    ```
+
+4.  **Start the development server:**
+    ```bash
+    pnpm run dev
+    ```
+
+### Pulling Latest Submodule Code
+
+When you need to update your local submodules to the latest version committed in the main repo, simply re-run the setup script:
+```bash
+./init-dev-env.sh
+```
+
 ## Table of Contents
 1. [Project Architecture](#project-architecture)
 2. [Deployment on Vercel](#deployment-on-vercel)
-3. [API Endpoints](#api-endpoints)
-4. [UI Components](#ui-components)
-5. [Custom Hooks](#custom-hooks)
-6. [Utility Functions](#utility-functions)
-7. [Data Sources](#data-sources)
-8. [Page Components](#page-components)
-9. [Theme System](#theme-system)
+3. [Local Development Setup](#local-development-setup)
+4. [API Endpoints](#api-endpoints)
+5. [UI Components](#ui-components)
+6. [Custom Hooks](#custom-hooks)
+7. [Utility Functions](#utility-functions)
+8. [Data Sources](#data-sources)
+9. [Page Components](#page-components)
+10. [Theme System](#theme-system)
 
 ## API Endpoints
 
