@@ -35,9 +35,9 @@ for path in "${!submodules[@]}"; do
   # Remove the local submodule directory
   rm -rf "$path"
   
-  # Add the submodule with the PAT
+  # Add the submodule with the PAT, using --force to override the .gitignore rule
   echo "Adding submodule $repo_name at $path"
-  git submodule add "$repo_url" "$path"
+  git submodule add --force "$repo_url" "$path"
 done
 
 echo "Submodule initialization complete." 
