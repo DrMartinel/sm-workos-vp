@@ -1,92 +1,45 @@
-# API Documentation
+# Smartmove WorkOS
 
-## Project Architecture
+Welcome to the central repository for the Smartmove WorkOS project. This document provides all the necessary information for developers to get started, understand the architecture, and contribute effectively.
 
-This project employs a multi-repository architecture using Git submodules to promote separation of concerns, enhance security, and improve scalability. The codebase is divided into a main application shell and several independent modules, each managed in its own private GitHub repository.
+## Table of Contents
 
-### Submodule Structure
+- [Getting Started](#getting-started)
+  - [Prerequisites](#prerequisites)
+  - [Local Development Setup](#local-development-setup)
+- [Deployment](#deployment)
+  - [Deploying to Vercel](#deploying-to-vercel)
+- [Architecture](#architecture)
+  - [Multi-Repository Structure](#multi-repository-structure)
+  - [Authentication Flow](#authentication-flow)
+  - [Data Layer](#data-layer)
+- [Technical Documentation](#technical-documentation)
+  - [API Endpoints](#api-endpoints)
+  - [UI Components](#ui-components)
+  - [Custom Hooks](#custom-hooks)
+  - [Available Data Sources](#available-data-sources)
+- [Development Guidelines](#development-guidelines)
+  - [Component Development](#component-development)
+  - [API Development](#api-development)
+  - [Testing](#testing)
 
--   **Main Repository (`sm-workos`)**:
-    -   Acts as the primary application container.
-    -   Manages top-level routing, Next.js configuration (`next.config.mjs`, `tsconfig.json`), and integrates all submodules.
+---
 
--   **`app/shared-ui` (`sm-workos-shared-ui`)**:
-    -   A dedicated module for all reusable UI components, following the principles of shadcn/ui.
-    -   Contains foundational elements like `Button`, `Card`, `Input`, etc., accessible via the `@/components` path alias.
-    -   Also includes shared utility functions, like `cn`, under the `@/lib` alias.
+## Getting Started
 
--   **`app/domain-apps` (`sm-workos-domain-apps`)**:
-    -   Houses distinct business-logic applications or features that are self-contained.
-    -   This modular approach allows features to be developed and maintained independently.
+Follow these instructions to set up your local development environment.
 
--   **`app/(dashboard)/reports` (`sm-workos-reports`)**:
-    -   A comprehensive module for the entire data reporting and analytics suite.
-    -   It is a self-sufficient vertical slice of the application, containing its own:
-        -   Next.js Pages/Routes
-        -   React Hooks for data fetching (`use-overview-data`, etc.)
-        -   API Routes (`/api/data-source/[name]`)
-        -   Data Source definitions (`/data-sources`)
+### Prerequisites
 
-### Integration
+-   [Node.js](https://nodejs.org/) (LTS version recommended)
+-   [pnpm](https://pnpm.io/) package manager
+-   Git
 
-Locally, submodules are managed via the `.gitmodules` file. For deployment, a custom script (`init-submodules.sh`) is used to correctly initialize these private repositories on Vercel.
+### Local Development Setup
 
-## Deployment on Vercel
-
-Deploying this project to Vercel requires specific configuration to allow Vercel to access the private Git submodules during the build process.
-
-Follow these steps carefully:
-
-### Step 1: Create a GitHub Personal Access Token (PAT)
-
-Vercel needs a PAT to clone the private submodule repositories.
-
-1.  Navigate to [**GitHub Developer Settings > Personal access tokens > Fine-grained tokens**](https://github.com/settings/tokens?type=beta).
-2.  Click **"Generate new token"**.
-3.  **Token name**: Give it a descriptive name (e.g., `Vercel Submodules Access`).
-4.  **Expiration**: Set an appropriate expiration date.
-5.  **Repository access**: Select **"Only select repositories"** and add the main repository (`sm-workos`) AND all submodule repositories (`sm-workos-shared-ui`, `sm-workos-domain-apps`, `sm-workos-reports`).
-6.  **Permissions**:
-    -   Scroll down to **Repository permissions**.
-    -   Find **Contents** and set its access level to **`Read-only`**.
-    -   Leave all other permissions as `No access`.
-7.  Click **"Generate token"** and copy the token value immediately.
-
-### Step 2: Configure Vercel Environment Variables
-
-1.  In your Vercel project dashboard, go to **Settings > Environment Variables**.
-2.  Create a new variable:
-    -   **Name**: `GITHUB_PAT`
-    -   **Value**: Paste the token you copied from GitHub.
-3.  Ensure the variable is available for all environments (Production, Preview, Development).
-
-### Step 3: Grant Vercel App Access on GitHub
-
-You must also explicitly grant the Vercel GitHub App access to the submodule repositories.
-
-1.  Go to your GitHub account **Settings > Applications**.
-2.  Find **Vercel** in the "Installed GitHub Apps" tab and click **Configure**.
-3.  In the **Repository access** section, ensure that all submodule repositories are selected and included in the access list.
-
-### Step 4: Configure Vercel Install Command
-
-The project uses a custom script to initialize submodules. You need to tell Vercel to run it.
-
-1.  In your Vercel project dashboard, go to **Settings > General**.
-2.  Find the **Build & Development Settings** section.
-3.  Enable the override for the **Install Command**.
-4.  Set the command to: `pnpm vercel-install && pnpm install`
-5.  Click **Save**.
-
-After completing these steps, trigger a new deployment on Vercel. The build process should now successfully clone the private submodules and build the application.
-
-## Local Development Setup
-
-To work on this project locally, you must use a special script to initialize the environment. This script correctly handles submodule cloning, even if you do not have access to all private submodules (like the `reports` module).
+This project uses a multi-repo structure powered by Git submodules. To set up the environment correctly, you **must** use the provided helper script.
 
 **DO NOT use `git submodule update --init` directly.**
-
-### First-Time Setup
 
 1.  **Clone the main repository:**
     ```bash
@@ -94,8 +47,8 @@ To work on this project locally, you must use a special script to initialize the
     cd sm-workos
     ```
 
-2.  **Run the development environment setup script:**
-    This script will clone all the submodules you have access to. If you don't have access to the `reports` repository, it will create a "dummy" module in its place so you can still run the project.
+2.  **Run the environment setup script:**
+    This script intelligently clones all submodules you have access to. If you lack permissions for a specific module (e.g., `reports`), it creates a functional placeholder, allowing the project to build without errors.
     ```bash
     ./init-dev-env.sh
     ```
@@ -109,910 +62,116 @@ To work on this project locally, you must use a special script to initialize the
     ```bash
     pnpm run dev
     ```
+    The application will be available at `http://localhost:3000`.
 
-### Pulling Latest Submodule Code
-
-When you need to update your local submodules to the latest version committed in the main repo, simply re-run the setup script:
-```bash
-./init-dev-env.sh
-```
-
-## Table of Contents
-1. [Project Architecture](#project-architecture)
-2. [Deployment on Vercel](#deployment-on-vercel)
-3. [Local Development Setup](#local-development-setup)
-4. [API Endpoints](#api-endpoints)
-5. [UI Components](#ui-components)
-6. [Custom Hooks](#custom-hooks)
-7. [Utility Functions](#utility-functions)
-8. [Data Sources](#data-sources)
-9. [Page Components](#page-components)
-10. [Theme System](#theme-system)
-
-## API Endpoints
-
-### Data Source API
-
-#### GET `/api/data-source/[name]`
-
-Retrieves data from a specified data source with date filtering and caching.
-
-**Parameters:**
-- `name` (string): Data source name (e.g., "AdjustCohortData")
-- `startDate` (string): Start date in format YYYYMMDD
-- `endDate` (string): End date in format YYYYMMDD
-
-**Response:**
-```json
-[
-  {
-    "date": "2024-01-01", 
-    "country_code": "US",
-    "channel": "facebook",
-    "campaign_name": "Campaign Name",
-    "cost": 1000,
-    "install": 100,
-    "REV_D0": 50,
-    "REV_D3": 150,
-    "REV_D7": 250,
-    "REV_D30": 500,
-    "app_fullname": "App Name"
-  }
-]
-```
+---
 
-**Error Responses:**
-- `400`: Missing startDate or endDate
-- `404`: Data source not found
-- `500`: Internal server error
+## Deployment
 
-**Features:**
-- 5-minute in-memory caching
-- BigQuery integration
-- Parameterized queries for security
-- Error handling with detailed messages
+### Deploying to Vercel
 
-**Example Usage:**
-```javascript
-const response = await fetch('/api/data-source/AdjustCohortData?startDate=20240101&endDate=20240131');
-const data = await response.json();
-```
+Deploying to Vercel requires specific configuration to handle private Git submodules.
 
-## Data Source Architecture
+1.  **Create a GitHub Personal Access Token (PAT):**
+    -   Navigate to GitHub's [Fine-grained tokens](https://github.com/settings/tokens?type=beta) page.
+    -   Generate a new token with **Read-only** access to the **Contents** of the main repository and all submodule repositories.
 
-The data source system is designed for maximum flexibility and extensibility, allowing developers to easily add new data sources like MySQL or Google Sheets without altering the core API logic. This is achieved through a "convention over configuration" approach.
+2.  **Configure Vercel Environment Variables:**
+    -   In your Vercel project, go to **Settings > Environment Variables**.
+    -   Create a variable named `GITHUB_PAT` and paste your token as the value.
 
-### Core Components
+3.  **Grant Vercel App Access:**
+    -   In your GitHub account **Settings > Applications > Vercel**, ensure the app has access to all required repositories (main + submodules).
 
-1.  **Dynamic API Endpoint (`/api/data-source/[name]/route.ts`)**: This single endpoint acts as a gateway for all data source requests. The `[name]` parameter in the URL corresponds to the specific data source to be queried (e.g., `AdjustCohortData`).
+4.  **Set Vercel Install Command:**
+    -   In your Vercel project, go to **Settings > General > Build & Development Settings**.
+    -   Override the **Install Command** and set it to: `pnpm vercel-install && pnpm install`.
 
-2.  **Data Source Directory (`/data-sources/[name]`)**: Each data source has its own dedicated directory. The directory name must exactly match the `[name]` parameter used in the API call.
+---
 
-3.  **Definition File (`definition.ts`)**: Inside each data source directory, a `definition.ts` file must exist. This file exports a default object that defines the data source's metadata, primarily:
-    - `source`: The type of the data source (e.g., `'bigquery'`, `'mysql'`).
-    - `queryFile`: The name of the file containing the SQL query.
+## Architecture
 
-4.  **Query File (`query.sql`)**: This file contains the raw SQL query. It uses placeholders like `@DS_START_DATE` and `@DS_END_DATE`, which are safely replaced with parameterized values by the API.
+### Multi-Repository Structure
 
-### Execution Flow Example
+The project is modularized using Git submodules to enhance security, scalability, and separation of concerns.
 
-When a request is made to `/api/data-source/AdjustCohortData?startDate=20240101&endDate=20240131`:
+-   **`sm-workos` (Main Repo):** The application shell, managing routing, configuration, and submodule integration.
+-   **`app/shared-ui` (`sm-workos-shared-ui`):** A library of reusable UI components (Buttons, Cards, etc.) and utilities.
+-   **`app/domain-apps` (`sm-workos-domain-apps`):** Contains distinct, self-contained business features.
+-   **`app/(dashboard)/reports` (`sm-workos-reports`):** A complete, vertical slice for the data analytics suite, including its own pages, hooks, APIs, and data source definitions.
 
-1.  **Cache Check**: The API first checks an in-memory cache for a matching request. If valid cached data exists, it's returned immediately. 
-2.  **Load Definition**: If no cache is found, the API dynamically imports `/data-sources/AdjustCohortData/definition.ts`.
-3.  **Read Query**: It reads the query from the file specified in `queryFile` (e.g., `query.sql`).
-4.  **Execute Query**: The `runQueryBySource` function is called. Based on the `source` property (`'bigquery'`), it initializes the appropriate client, replaces placeholders with secure parameters, and executes the query.
-5.  **Cache and Respond**: The results are cleaned, stored in the cache for future requests, and returned to the client as JSON.
+### Authentication Flow
 
-### How to Add a New Data Source (e.g., MySQL)
+Authentication is handled by Supabase Auth using an email/password flow.
 
-1.  **Update the API**: In `/api/data-source/[name]/route.ts`, add a new `case` to the `runQueryBySource` function to handle the `'mysql'` source type. This involves adding logic to connect to MySQL and execute the query.
+-   User accounts are pre-created by an administrator.
+-   The `@supabase/ssr` library manages sessions securely in browser cookies.
+-   A central `middleware.ts` protects all routes, redirecting unauthenticated users to `/login`.
 
-    ```typescript
-    // Inside runQueryBySource function in route.ts
-    switch (sourceType) {
-        case 'bigquery':
-            // ... existing BigQuery logic
-            break;
-        case 'mysql':
-            // Add new logic to connect to MySQL and run the query
-            // const mysql = initializeMySqlClient();
-            // const [rows] = await mysql.query(query, params);
-            // return rows;
-        // ...
-    }
-    ```
+### Data Layer
 
-2.  **Create New Directory**: Create a new folder, e.g., `/data-sources/MySqlSalesReport/`.
+#### Data Source Architecture
 
-3.  **Add Definition and Query Files**:
-    - Inside the new directory, create a `definition.ts` file:
-      ```typescript
-      export default {
-        source: 'mysql', // Specify the new source type
-        queryFile: 'sales_query.sql'
-      };
-      ```
-    - Create the corresponding `sales_query.sql` file with the MySQL query.
+The system uses a flexible, convention-over-configuration approach for data fetching.
 
-That's it! The API will now be able to serve data from your new MySQL source.
+1.  A dynamic API endpoint at `/api/data-source/[name]` serves as a gateway.
+2.  Each data source is defined in its own directory under `/data-sources/[name]`.
+3.  A `definition.ts` file specifies the source type (e.g., 'bigquery') and query file.
+4.  A `query.sql` file contains the parameterized SQL query.
 
-## Data Aggregation and Calculation Principles
+#### Data Aggregation Principles
 
-To ensure data accuracy and consistency, especially in analytics and reporting, it is crucial to follow a strict principle when handling aggregated data.
+To ensure data accuracy, we follow a strict rule: **Aggregate first, then calculate.** Raw, additive metrics (like `cost`, `installs`) are summed up before calculating derived metrics (like `ROAS`, `CPI`). This prevents misleading results from averaging pre-calculated ratios.
 
-### The Golden Rule: Aggregate First, Calculate Second
+---
 
-You **must not** average pre-calculated metrics (like taking the average of a list of ROAS percentages). The correct method is to **aggregate the raw, additive components first**, and then perform the calculation on the aggregated totals.
+## Technical Documentation
 
-### Additive vs. Calculated Metrics
+### API Endpoints
 
-It's important to distinguish between two types of metrics:
+#### `GET /api/data-source/[name]`
 
--   **Additive Metrics**: These are raw values that can be summed up across different dimensions without losing their meaning.
-    -   **Examples**: `cost`, `installs`, `REV_D0`, `REV_D3`, `retained_users_D1`.
+Retrieves data from a specified source.
+-   **Params:** `startDate` (YYYYMMDD), `endDate` (YYYYMMDD).
+-   **Features:** In-memory caching, BigQuery integration, parameterized queries.
 
--   **Calculated Metrics**: These are metrics derived from other metrics, often as ratios or percentages. They **cannot** be directly summed or averaged.
-    -   **Examples**: `CPI` (Cost Per Install), `ROAS` (Return On Ad Spend), `Retention Rate`, `CTR` (Click-Through Rate).
+### UI Components
 
-### Why Averaging Calculated Metrics is Wrong
+A comprehensive set of reusable components is available.
 
-Consider two campaigns:
--   **Campaign A**: Cost $10, ROAS 150%
--   **Campaign B**: Cost $1,000, ROAS 50%
+-   **Core Components:** `Button`, `Card`, `Input`, `Select`, `Dialog`, `Form` elements, `Sidebar`, etc.
+-   **Custom Components:** `TaskDetailModal`, `ThemeProvider`.
 
-**Incorrect Method (Averaging ROAS):**
-`(150% + 50%) / 2 = 100%`
-This result is misleading because it ignores the vastly different scales (costs) of the campaigns.
+*For detailed props and usage examples, please refer to the source code in the `app/shared-ui` submodule.*
 
-### The Correct Approach: Aggregating Raw Components
-
-1.  **Aggregate (SUM) the raw components:**
-    -   First, find out the revenue for each campaign:
-        -   Campaign A Revenue = $10 * 150% = $15
-        -   Campaign B Revenue = $1,000 * 50% = $500
-    -   Sum the costs and revenues:
-        -   `Total Cost` = $10 + $1,000 = $1,010
-        -   `Total Revenue` = $15 + $500 = $515
-
-2.  **Calculate the final metric from the aggregated totals:**
-    -   `Aggregated ROAS` = (`Total Revenue` / `Total Cost`) * 100 = (`$515 / $1,010`) * 100 ≈ **51%**
-
-This 51% figure accurately reflects the overall performance, properly weighted by cost.
-
-### Handling Complex Weighted Averages
-
-For metrics that are themselves ratios (e.g., `RATIO_REVD30_REVD3`), you must calculate a weighted average. The weight should be the denominator of the original ratio.
-
--   `aggregated_ratio` = SUM(`denominator` * `ratio`) / SUM(`denominator`)
-
-For `RATIO_REVD30_REVD3`, the denominator is `REV_D3`. So the formula is:
--   `aggregated_ratio_revd30_revd3` = SUM(`REV_D3` * `RATIO_REVD30_REVD3`) / SUM(`REV_D3`)
-
-The final `eROAS D30` is then calculated using this aggregated ratio and other aggregated components.
-
-### Implementation Examples
-
-#### SQL (Recommended)
-
-Performing aggregation directly in the database is the most efficient method.
-
-```sql
-SELECT
-    channel,
-    SUM(cost) AS total_cost,
-    SUM(installs) AS total_installs,
-    SUM(rev_d3) AS total_rev_d3,
-    -- Calculate the numerator for the weighted average
-    SUM(rev_d3 * ratio_revd30_revd3) AS weighted_ratio_numerator
-FROM
-    your_table
-GROUP BY
-    channel;
-```
-You can then use these aggregated values in the backend or frontend to calculate the final metrics.
-
-#### JavaScript (Client-side)
-
-If you have raw, un-aggregated data on the client, use `Array.prototype.reduce()` to aggregate before calculating.
-
-```javascript
-const rawData = [/* ... array of campaign data ... */];
-
-const aggregated = rawData.reduce((acc, row) => {
-    acc.total_cost += row.cost || 0;
-    acc.total_rev_d3 += row.REV_D3 || 0;
-    acc.weighted_ratio_numerator += (row.REV_D3 || 0) * (row.RATIO_REVD30_REVD3 || 0);
-    // ... sum other additive metrics ...
-    return acc;
-}, {
-    total_cost: 0,
-    total_rev_d3: 0,
-    weighted_ratio_numerator: 0,
-    // ... initialize other metrics ...
-});
-
-// Now, calculate the final metrics from the aggregated object
-const aggregated_ratio = aggregated.weighted_ratio_numerator / aggregated.total_rev_d3;
-const aggregated_eRoas_d30 = (aggregated.total_rev_d3 * aggregated_ratio) / aggregated.total_cost * 100;
-```
-
-## UI Components
-
-### Core Components
-
-#### Button
-A versatile button component with multiple variants and sizes.
-
-**Props:**
-```typescript
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link'
-  size?: 'default' | 'sm' | 'lg' | 'icon'
-  asChild?: boolean
-}
-```
-
-**Usage:**
-```jsx
-<Button variant="default" size="lg">
-  Click me
-</Button>
-
-<Button variant="outline" size="sm">
-  Secondary action
-</Button>
-
-<Button variant="ghost" size="icon">
-  <Icon className="h-4 w-4" />
-</Button>
-```
-
-#### Card
-A flexible card component for displaying content with header, body, and footer.
-
-**Components:**
-- `Card`: Main container
-- `CardHeader`: Header section
-- `CardTitle`: Title within header
-- `CardDescription`: Description text
-- `CardContent`: Main content area
-- `CardFooter`: Footer section
-
-**Usage:**
-```jsx
-<Card>
-  <CardHeader>
-    <CardTitle>Card Title</CardTitle>
-    <CardDescription>Card description</CardDescription>
-  </CardHeader>
-  <CardContent>
-    <p>Card content goes here</p>
-  </CardContent>
-  <CardFooter>
-    <Button>Action</Button>
-  </CardFooter>
-</Card>
-```
-
-#### Form Components
-Comprehensive form handling with react-hook-form integration.
-
-**Components:**
-- `Form`: Form provider wrapper
-- `FormField`: Field wrapper with validation
-- `FormItem`: Individual form item container
-- `FormLabel`: Accessible form label
-- `FormControl`: Form input control
-- `FormDescription`: Help text
-- `FormMessage`: Error message display
-
-**Usage:**
-```jsx
-<Form {...form}>
-  <form onSubmit={form.handleSubmit(onSubmit)}>
-    <FormField
-      control={form.control}
-      name="username"
-      render={({ field }) => (
-        <FormItem>
-          <FormLabel>Username</FormLabel>
-          <FormControl>
-            <Input placeholder="Enter username" {...field} />
-          </FormControl>
-          <FormDescription>Your unique username</FormDescription>
-          <FormMessage />
-        </FormItem>
-      )}
-    />
-  </form>
-</Form>
-```
-
-#### Input
-Standard input component with consistent styling.
-
-**Props:**
-```typescript
-interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
-  // Inherits all standard HTML input props
-}
-```
-
-**Usage:**
-```jsx
-<Input 
-  type="email" 
-  placeholder="Enter your email" 
-  value={email}
-  onChange={(e) => setEmail(e.target.value)}
-/>
-```
-
-#### Select
-Dropdown select component with search and multi-selection capabilities.
-
-**Components:**
-- `Select`: Main select container
-- `SelectTrigger`: Trigger button
-- `SelectValue`: Selected value display
-- `SelectContent`: Options container
-- `SelectItem`: Individual option
-
-**Usage:**
-```jsx
-<Select value={value} onValueChange={setValue}>
-  <SelectTrigger>
-    <SelectValue placeholder="Select option" />
-  </SelectTrigger>
-  <SelectContent>
-    <SelectItem value="option1">Option 1</SelectItem>
-    <SelectItem value="option2">Option 2</SelectItem>
-  </SelectContent>
-</Select>
-```
-
-#### Textarea
-Multi-line text input component.
-
-**Props:**
-```typescript
-interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
-  // Inherits all standard HTML textarea props
-}
-```
-
-**Usage:**
-```jsx
-<Textarea 
-  placeholder="Enter your message"
-  value={message}
-  onChange={(e) => setMessage(e.target.value)}
-  rows={4}
-/>
-```
-
-#### Dialog
-Modal dialog component for overlays and forms.
-
-**Components:**
-- `Dialog`: Main dialog container
-- `DialogTrigger`: Trigger button
-- `DialogContent`: Modal content
-- `DialogHeader`: Dialog header
-- `DialogTitle`: Dialog title
-- `DialogDescription`: Dialog description
-- `DialogFooter`: Dialog footer
-- `DialogClose`: Close button
-
-**Usage:**
-```jsx
-<Dialog>
-  <DialogTrigger asChild>
-    <Button>Open Dialog</Button>
-  </DialogTrigger>
-  <DialogContent>
-    <DialogHeader>
-      <DialogTitle>Dialog Title</DialogTitle>
-      <DialogDescription>Dialog description</DialogDescription>
-    </DialogHeader>
-    <p>Dialog content</p>
-    <DialogFooter>
-      <Button>Save</Button>
-    </DialogFooter>
-  </DialogContent>
-</Dialog>
-```
-
-#### Sidebar
-Comprehensive sidebar navigation component with collapsible functionality.
-
-**Components:**
-- `SidebarProvider`: Context provider for sidebar state
-- `Sidebar`: Main sidebar container
-- `SidebarHeader`: Header section
-- `SidebarContent`: Main content area
-- `SidebarFooter`: Footer section
-- `SidebarMenu`: Navigation menu
-- `SidebarMenuItem`: Individual menu item
-- `SidebarTrigger`: Toggle button
-
-**Props:**
-```typescript
-interface SidebarProps {
-  side?: 'left' | 'right'
-  variant?: 'sidebar' | 'floating' | 'inset'
-  collapsible?: 'offcanvas' | 'icon' | 'none'
-  defaultOpen?: boolean
-  open?: boolean
-  onOpenChange?: (open: boolean) => void
-}
-```
-
-**Usage:**
-```jsx
-<SidebarProvider>
-  <Sidebar>
-    <SidebarHeader>
-      <h2>Navigation</h2>
-    </SidebarHeader>
-    <SidebarContent>
-      <SidebarMenu>
-        <SidebarMenuItem>
-          <a href="/dashboard">Dashboard</a>
-        </SidebarMenuItem>
-        <SidebarMenuItem>
-          <a href="/tasks">Tasks</a>
-        </SidebarMenuItem>
-      </SidebarMenu>
-    </SidebarContent>
-  </Sidebar>
-  <main>
-    <SidebarTrigger />
-    {/* Main content */}
-  </main>
-</SidebarProvider>
-```
-
-### Custom Components
-
-#### TaskDetailModal
-Comprehensive task management modal with subtasks, comments, and metadata.
-
-**Props:**
-```typescript
-interface TaskDetailModalProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  task?: Task
-}
-```
-
-**Features:**
-- Task title editing
-- Description management
-- Subtask creation and tracking
-- Comment system with formatting
-- Custom fields (budget, approver, department, complexity)
-- Project assignment
-- Priority and label management
-- Date and deadline tracking
-- Rich metadata editing
-
-**Usage:**
-```jsx
-<TaskDetailModal
-  open={isModalOpen}
-  onOpenChange={setIsModalOpen}
-  task={selectedTask}
-/>
-```
-
-#### ThemeProvider
-Theme management component providing dark/light mode functionality.
-
-**Props:**
-```typescript
-interface ThemeProviderProps {
-  children: React.ReactNode
-  attribute?: 'class' | 'data-theme'
-  defaultTheme?: 'light' | 'dark' | 'system'
-  enableSystem?: boolean
-  disableTransitionOnChange?: boolean
-}
-```
-
-**Usage:**
-```jsx
-<ThemeProvider
-  attribute="class"
-  defaultTheme="system"
-  enableSystem
-  disableTransitionOnChange
->
-  {children}
-</ThemeProvider>
-```
-
-## Custom Hooks
-
-### useIsMobile
-Hook for detecting mobile breakpoints and responsive behavior.
-
-**Returns:**
-```typescript
-function useIsMobile(): boolean
-```
-
-**Usage:**
-```jsx
-const isMobile = useIsMobile()
-
-return (
-  <div className={isMobile ? 'mobile-layout' : 'desktop-layout'}>
-    {/* Content */}
-  </div>
-)
-```
-
-**Features:**
-- Listens to window resize events
-- Uses 768px breakpoint
-- Returns undefined during SSR to prevent hydration mismatches
-- Automatically updates on window resize
-
-### useToast
-Hook for displaying toast notifications with queue management.
-
-**Returns:**
-```typescript
-interface UseToastReturn {
-  toast: (props: ToastProps) => {
-    id: string
-    dismiss: () => void
-    update: (props: ToastProps) => void
-  }
-  dismiss: (toastId?: string) => void
-  toasts: ToasterToast[]
-}
-```
-
-**Usage:**
-```jsx
-const { toast } = useToast()
-
-const showToast = () => {
-  toast({
-    title: "Success",
-    description: "Operation completed successfully",
-    variant: "default"
-  })
-}
-
-// With custom action
-toast({
-  title: "Error",
-  description: "Something went wrong",
-  variant: "destructive",
-  action: <Button onClick={retry}>Retry</Button>
-})
-```
-
-**Features:**
-- Queue management (limit: 1 toast)
-- Auto-dismiss functionality
-- Toast variants (default, destructive)
-- Custom actions support
-- Update and dismiss methods
-
-### useSidebar
-Hook for managing sidebar state and behavior.
-
-**Returns:**
-```typescript
-interface SidebarContext {
-  state: 'expanded' | 'collapsed'
-  open: boolean
-  setOpen: (open: boolean) => void
-  openMobile: boolean
-  setOpenMobile: (open: boolean) => void
-  isMobile: boolean
-  toggleSidebar: () => void
-}
-```
-
-**Usage:**
-```jsx
-const { open, toggleSidebar, isMobile } = useSidebar()
-
-return (
-  <button onClick={toggleSidebar}>
-    {open ? 'Close' : 'Open'} Sidebar
-  </button>
-)
-```
-
-## Utility Functions
-
-### cn (Class Names)
-Utility function for merging Tailwind CSS classes with conflict resolution.
-
-**Signature:**
-```typescript
-function cn(...inputs: ClassValue[]): string
-```
-
-**Usage:**
-```jsx
-const buttonClass = cn(
-  'px-4 py-2 rounded',
-  variant === 'primary' && 'bg-blue-500 text-white',
-  variant === 'secondary' && 'bg-gray-200 text-gray-900',
-  disabled && 'opacity-50 cursor-not-allowed',
-  className
-)
-```
-
-**Features:**
-- Merges multiple class strings
-- Resolves Tailwind conflicts (e.g., `bg-red-500` overrides `bg-blue-500`)
-- Handles conditional classes
-- Supports arrays and objects
-
-## Data Sources
-
-### AdjustCohortData
-BigQuery data source for mobile app cohort analysis.
-
-**Configuration:**
-```typescript
-{
-  source: 'bigquery',
-  queryFile: './query.sql',
-  dimensions: [
-    'app_fullname', 'channel', 'country_code',
-    'campaign_name', 'date', 'mmp'
-  ],
-  metrics: [
-    'cost', 'imps_D0', 'install', 'RATIO_REVD30_REVD3',
-    'retained_users_D0', 'retained_users_D1', 'retained_users_D3',
-    'retained_users_D7', 'retained_users_D30',
-    'REV_D0', 'REV_D3', 'REV_D7', 'REV_D30',
-    'REV_D60', 'REV_D90', 'REV_D120'
-  ]
-}
-```
-
-**Query Parameters:**
-- `@DS_START_DATE`: Start date filter
-- `@DS_END_DATE`: End date filter
-
-**Data Schema:**
-```sql
--- Key metrics available:
--- Revenue metrics: REV_D0, REV_D3, REV_D7, REV_D30, REV_D60, REV_D90, REV_D120
--- Retention metrics: retained_users_D0, retained_users_D1, retained_users_D3, retained_users_D7, retained_users_D30
--- Performance metrics: cost, install, imps_D0, RATIO_REVD30_REVD3
--- Dimensions: app_fullname, channel, country_code, campaign_name, date, mmp
-```
-
-## Page Components
-
-### WorkspaceDashboard
-Main dashboard component with navigation and overview cards.
-
-**Features:**
-- Collapsible sidebar with primary and secondary navigation
-- Mobile-responsive design
-- Quick action buttons for common tasks
-- Activity feed display
-- Team overview statistics
-- Keyboard shortcuts support
-
-**Navigation Structure:**
-```javascript
-const primaryIcons = [
-  { id: "home", icon: Home, label: "Home" },
-  { id: "reports", icon: BarChart3, label: "Reports" },
-  { id: "tasks", icon: CheckSquare, label: "Tasks" },
-  { id: "requests", icon: FileText, label: "Requests" },
-  { id: "goals", icon: Target, label: "Goals" },
-  { id: "notifications", icon: Bell, label: "Notifications" },
-  { id: "workflow", icon: GitBranch, label: "Workflow" },
-  { id: "settings", icon: Settings, label: "Settings" }
-]
-```
-
-**Usage:**
-```jsx
-<WorkspaceDashboard />
-```
-
-### Application Routes
-The application includes several route structures:
-
-#### `/` - Dashboard
-Main workspace dashboard with navigation and overview
-
-#### `/tasks` - Task Management
-Task listing and management interface
-
-#### `/reports` - Analytics
-Data visualization and reporting interface
-
-#### `/workflow-editor` - Workflow Management
-Visual workflow editor for process automation
-
-#### `/login` - Authentication
-User authentication interface
-
-#### `/signup` - Registration
-User registration interface
-
-#### `/forgot-password` - Password Recovery
-Password reset interface
-
-## Theme System
-
-### Theme Configuration
-The application uses next-themes for theme management with the following configuration:
-
-```jsx
-<ThemeProvider
-  attribute="class"
-  defaultTheme="light"
-  enableSystem
-  disableTransitionOnChange
->
-  {children}
-</ThemeProvider>
-```
-
-### CSS Variables
-Theme colors are defined as CSS variables in `globals.css`:
-
-```css
-:root {
-  --background: 0 0% 100%;
-  --foreground: 222.2 84% 4.9%;
-  --card: 0 0% 100%;
-  --card-foreground: 222.2 84% 4.9%;
-  --primary: 222.2 47.4% 11.2%;
-  --primary-foreground: 210 40% 98%;
-  /* ... more theme variables */
-}
-
-.dark {
-  --background: 222.2 84% 4.9%;
-  --foreground: 210 40% 98%;
-  /* ... dark theme variables */
-}
-```
-
-### Tailwind Configuration
-Theme integration with Tailwind CSS is configured in `tailwind.config.ts`:
-
-```typescript
-module.exports = {
-  theme: {
-    extend: {
-      colors: {
-        background: "hsl(var(--background))",
-        foreground: "hsl(var(--foreground))",
-        primary: {
-          DEFAULT: "hsl(var(--primary))",
-          foreground: "hsl(var(--primary-foreground))",
-        },
-        // ... more color definitions
-      }
-    }
-  }
-}
-```
-
-## Error Handling
-
-### API Error Responses
-All API endpoints return consistent error responses:
-
-```typescript
-interface ErrorResponse {
-  error: string
-  details?: string
-}
-```
-
-### Client-Side Error Handling
-Components include error boundaries and graceful fallbacks:
-
-```jsx
-// Toast notifications for user feedback
-const { toast } = useToast()
-
-const handleError = (error: Error) => {
-  toast({
-    title: "Error",
-    description: error.message,
-    variant: "destructive"
-  })
-}
-```
-
-## Performance Considerations
-
-### Caching Strategy
-- API responses cached for 5 minutes
-- React Query integration for client-side caching
-- Static asset optimization
-
-### Code Splitting
-- Dynamic imports for large components
-- Route-based code splitting
-- Lazy loading for modal components
-
-### Optimization Features
-- Image optimization with Next.js
-- Bundle analysis and optimization
-- Tree shaking for unused code elimination
-
-## Security
-
-### API Security
-- Parameterized queries to prevent SQL injection
-- Environment variable configuration for sensitive data
-- CORS configuration for API endpoints
-
-### Authentication
-- JWT token-based authentication
-- Protected routes with middleware
-- Session management
+### Custom Hooks
+
+-   `useIsMobile`: Detects mobile breakpoints.
+-   `useToast`: Displays toast notifications.
+-   `useSidebar`: Manages sidebar state.
+
+### Available Data Sources
+
+-   **`AdjustCohortData`**: BigQuery source for mobile app cohort analysis. Provides metrics like `cost`, `install`, `REV_D0`, `REV_D30`, `retained_users_D7`, etc.
+
+---
 
 ## Development Guidelines
 
 ### Component Development
-1. Use TypeScript for type safety
-2. Implement proper error boundaries
-3. Include accessibility features (ARIA labels, keyboard navigation)
-4. Follow responsive design patterns
-5. Use the established design system
+1.  Use TypeScript.
+2.  Implement accessibility features.
+3.  Follow responsive design patterns.
+4.  Utilize the established design system from `shared-ui`.
 
 ### API Development
-1. Implement proper error handling
-2. Use parameterized queries
-3. Include request validation
-4. Implement caching strategies
-5. Document all endpoints
+1.  Implement robust error handling.
+2.  Use parameterized queries to prevent injection attacks.
+3.  Include request validation.
+4.  Implement caching where appropriate.
 
 ### Testing
-- Unit tests for utility functions
-- Integration tests for API endpoints
-- Component testing with React Testing Library
-- E2E tests for critical user flows
-
-## Authentication
-The application uses Supabase Auth for authentication, employing an email and password-based flow. User accounts must be pre-created by an administrator in the Supabase dashboard; public sign-ups are disabled.
-
-### Authentication Flow
-1.  **Login Request**: The user enters their registered email and password on the `/login` page.
-2.  **Verification**: The application sends the credentials to Supabase using the `signInWithPassword` method.
-3.  **Session Creation**: If the credentials are valid, Supabase returns a session object. The `@supabase/ssr` helper library securely stores this session in browser cookies.
-4.  **Redirection**: After a successful login, the user is redirected to the main application dashboard at `/reports/overview`. If the credentials are invalid, an error message is displayed on the login form.
-
-### Session Management
--   **Supabase SSR Package**: The `@supabase/ssr` package is used to manage user sessions across Server Components, Client Components, Middleware, and Route Handlers.
--   **Secure Cookies**: User sessions are stored in secure, HTTP-only cookies, which are automatically refreshed and managed by the middleware.
-
-### Route Protection
--   **Middleware (`middleware.ts`)**: A middleware is implemented to protect all application routes. It inspects incoming requests to verify a valid user session.
--   **Redirection Logic**:
-    -   If a user is **not logged in** and tries to access any protected page, they are automatically redirected to `/login`.
-    -   If a user **is logged in** and tries to access the `/login` page, they are automatically redirected to `/reports/overview`.
--   **Protected Routes**: All routes are protected by default, except for public assets (`_next/static`, `_next/image`, `favicon.ico`) and the login page itself.
-
-### Key Components & Files
--   **Environment Variables (`.env.local`)**: Stores `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
--   **Supabase Clients (`lib/utils/supabase/`)**: Separate client initializations for browser (`client.ts`) and server-side (`server.ts`) environments.
--   **Login Page (`/app/login/page.tsx`)**: A Client Component containing the email/password submission form.
--   **Logout Button (`/components/auth/logout-button.tsx`)**: A Client Component that handles the sign-out process.
-
-This documentation provides comprehensive coverage of all public APIs, functions, and components in the workspace. Each section includes usage examples, type definitions, and best practices for implementation.
+-   Unit tests for utility functions and hooks.
+-   Integration tests for API endpoints.
+-   Component tests with React Testing Library.
+-   E2E tests for critical user flows.
