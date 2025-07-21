@@ -1,13 +1,95 @@
 # API Documentation
 
+## Project Architecture
+
+This project employs a multi-repository architecture using Git submodules to promote separation of concerns, enhance security, and improve scalability. The codebase is divided into a main application shell and several independent modules, each managed in its own private GitHub repository.
+
+### Submodule Structure
+
+-   **Main Repository (`sm-workos`)**:
+    -   Acts as the primary application container.
+    -   Manages top-level routing, Next.js configuration (`next.config.mjs`, `tsconfig.json`), and integrates all submodules.
+
+-   **`app/shared-ui` (`sm-workos-shared-ui`)**:
+    -   A dedicated module for all reusable UI components, following the principles of shadcn/ui.
+    -   Contains foundational elements like `Button`, `Card`, `Input`, etc., accessible via the `@/components` path alias.
+    -   Also includes shared utility functions, like `cn`, under the `@/lib` alias.
+
+-   **`app/domain-apps` (`sm-workos-domain-apps`)**:
+    -   Houses distinct business-logic applications or features that are self-contained.
+    -   This modular approach allows features to be developed and maintained independently.
+
+-   **`app/(dashboard)/reports` (`sm-workos-reports`)**:
+    -   A comprehensive module for the entire data reporting and analytics suite.
+    -   It is a self-sufficient vertical slice of the application, containing its own:
+        -   Next.js Pages/Routes
+        -   React Hooks for data fetching (`use-overview-data`, etc.)
+        -   API Routes (`/api/data-source/[name]`)
+        -   Data Source definitions (`/data-sources`)
+
+### Integration
+
+Locally, submodules are managed via the `.gitmodules` file. For deployment, a custom script (`init-submodules.sh`) is used to correctly initialize these private repositories on Vercel.
+
+## Deployment on Vercel
+
+Deploying this project to Vercel requires specific configuration to allow Vercel to access the private Git submodules during the build process.
+
+Follow these steps carefully:
+
+### Step 1: Create a GitHub Personal Access Token (PAT)
+
+Vercel needs a PAT to clone the private submodule repositories.
+
+1.  Navigate to [**GitHub Developer Settings > Personal access tokens > Fine-grained tokens**](https://github.com/settings/tokens?type=beta).
+2.  Click **"Generate new token"**.
+3.  **Token name**: Give it a descriptive name (e.g., `Vercel Submodules Access`).
+4.  **Expiration**: Set an appropriate expiration date.
+5.  **Repository access**: Select **"Only select repositories"** and add the main repository (`sm-workos`) AND all submodule repositories (`sm-workos-shared-ui`, `sm-workos-domain-apps`, `sm-workos-reports`).
+6.  **Permissions**:
+    -   Scroll down to **Repository permissions**.
+    -   Find **Contents** and set its access level to **`Read-only`**.
+    -   Leave all other permissions as `No access`.
+7.  Click **"Generate token"** and copy the token value immediately.
+
+### Step 2: Configure Vercel Environment Variables
+
+1.  In your Vercel project dashboard, go to **Settings > Environment Variables**.
+2.  Create a new variable:
+    -   **Name**: `GITHUB_PAT`
+    -   **Value**: Paste the token you copied from GitHub.
+3.  Ensure the variable is available for all environments (Production, Preview, Development).
+
+### Step 3: Grant Vercel App Access on GitHub
+
+You must also explicitly grant the Vercel GitHub App access to the submodule repositories.
+
+1.  Go to your GitHub account **Settings > Applications**.
+2.  Find **Vercel** in the "Installed GitHub Apps" tab and click **Configure**.
+3.  In the **Repository access** section, ensure that all submodule repositories are selected and included in the access list.
+
+### Step 4: Configure Vercel Install Command
+
+The project uses a custom script to initialize submodules. You need to tell Vercel to run it.
+
+1.  In your Vercel project dashboard, go to **Settings > General**.
+2.  Find the **Build & Development Settings** section.
+3.  Enable the override for the **Install Command**.
+4.  Set the command to: `pnpm vercel-install && pnpm install`
+5.  Click **Save**.
+
+After completing these steps, trigger a new deployment on Vercel. The build process should now successfully clone the private submodules and build the application.
+
 ## Table of Contents
-1. [API Endpoints](#api-endpoints)
-2. [UI Components](#ui-components)
-3. [Custom Hooks](#custom-hooks)
-4. [Utility Functions](#utility-functions)
-5. [Data Sources](#data-sources)
-6. [Page Components](#page-components)
-7. [Theme System](#theme-system)
+1. [Project Architecture](#project-architecture)
+2. [Deployment on Vercel](#deployment-on-vercel)
+3. [API Endpoints](#api-endpoints)
+4. [UI Components](#ui-components)
+5. [Custom Hooks](#custom-hooks)
+6. [Utility Functions](#utility-functions)
+7. [Data Sources](#data-sources)
+8. [Page Components](#page-components)
+9. [Theme System](#theme-system)
 
 ## API Endpoints
 
