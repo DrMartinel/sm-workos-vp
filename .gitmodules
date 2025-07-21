@@ -4,3 +4,6 @@
 [submodule "app/domain-apps"]
 	path = app/domain-apps
 	url = https://github.com/quangsmg/sm-workos-domain-apps.git
+[submodule "app/dashboard-legacy/reports"]
+	path = app/dashboard-legacy/reports
+	url = https://github.com/quangsmg/sm-workos-reports.git
