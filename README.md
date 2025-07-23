@@ -112,12 +112,23 @@ Authentication is handled by Supabase Auth using an email/password flow.
 
 #### Data Source Architecture
 
-The system uses a flexible, convention-over-configuration approach for data fetching.
+The system uses a flexible, convention-over-configuration approach for data fetching, centered around a dynamic API endpoint at `/api/data-source/[name]`.
 
-1.  A dynamic API endpoint at `/api/data-source/[name]` serves as a gateway.
-2.  Each data source is defined in its own directory under `/data-sources/[name]`.
-3.  A `definition.ts` file specifies the source type (e.g., 'bigquery') and query file.
-4.  A `query.sql` file contains the parameterized SQL query.
+Each data source is defined by a directory under `/data-sources/[name]`, containing two key files:
+
+1.  **`definition.ts`**: Specifies metadata, including:
+    -   `source`: The data source type (e.g., `'bigquery'`, `'mysql'`).
+    -   `queryFile`: The path to the SQL query file.
+    -   `dimensions`: A list of columns that can be used for grouping or filtering.
+    -   `metrics`: An object defining available metrics and their default aggregation method (e.g., `{ cost: 'SUM', roas: 'AVG' }`). If an array is provided, `SUM` is used by default.
+
+2.  **`query.sql`**: Contains the raw, detailed query. It can include `@DS_START_DATE` and `@DS_END_DATE` placeholders, which are replaced before execution.
+
+#### Dynamic Query Generation
+
+The backend dynamically constructs the final query based on API parameters:
+- The `query.sql` content (with dates replaced) is wrapped in a Common Table Expression (CTE) (e.g., `WITH raw AS (...)`).
+- `SELECT`, `GROUP BY`, and `WHERE` clauses are then added to this CTE based on the `metrics`, `group_by`, and `filter_by` parameters, allowing for flexible data aggregation and filtering without modifying the base query.
 
 #### Data Aggregation Principles
 
@@ -131,9 +142,14 @@ To ensure data accuracy, we follow a strict rule: **Aggregate first, then calcul
 
 #### `GET /api/data-source/[name]`
 
-Retrieves data from a specified source.
--   **Params:** `startDate` (YYYYMMDD), `endDate` (YYYYMMDD).
--   **Features:** In-memory caching, BigQuery integration, parameterized queries.
+Retrieves and processes data from a specified source.
+-   **Query Parameters:**
+    -   `startDate`: Required. The start date in `YYYYMMDD` format.
+    -   `endDate`: Required. The end date in `YYYYMMDD` format.
+    -   `group_by`: Optional. A comma-separated list of dimensions to group the data by.
+    -   `filter_by`: Optional. A URL-encoded JSON object for filtering (e.g., `{"country_code":["VN","US"]}`).
+    -   `metrics`: Optional. A comma-separated list of metrics to retrieve. If omitted, all defined metrics are returned.
+-   **Features:** In-memory caching, BigQuery/MySQL integration, dynamic aggregation and filtering.
 
 ### UI Components
 
@@ -149,6 +165,7 @@ A comprehensive set of reusable components is available.
 -   `useIsMobile`: Detects mobile breakpoints.
 -   `useToast`: Displays toast notifications.
 -   `useSidebar`: Manages sidebar state.
+-   `useDatasourceQuery`: A React Query hook to fetch data from the `/api/data-source` endpoint with support for date ranges, grouping, filtering, and metric selection.
 
 ### Available Data Sources
 

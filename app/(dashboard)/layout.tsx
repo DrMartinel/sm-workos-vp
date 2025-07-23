@@ -37,7 +37,7 @@ import { LucideProps } from "lucide-react"
 type L2Item = {
   id: string;
   label: string;
-  href: string;
+  href?: string;
   icon?: React.ElementType<LucideProps>;
   isCollapsible?: boolean;
   subItems?: { id: string; label: string; href: string }[];
@@ -219,14 +219,136 @@ export default function ReportsLayout({
         </div>
       </header>
 
-      {/* Unified Sidebar */}
+      {/* Sidebar container with overlay for mobile */}
+      <div
+        className={cn(
+          "fixed inset-0 z-50 md:hidden",
+          mobileSidebarOpen ? "block" : "hidden"
+        )}
+      >
+        {/* Overlay */}
+        <div
+          className="absolute inset-0 bg-black/60"
+          onClick={() => setMobileSidebarOpen(false)}
+        ></div>
+        
+        {/* Sidebar content */}
+        <aside
+          className={cn(
+            "absolute inset-y-0 left-0 flex w-72 bg-white transition-transform duration-300 ease-in-out",
+            mobileSidebarOpen ? "translate-x-0" : "-translate-x-full"
+          )}
+        >
+          {/* This structure is for mobile view where sidebar is always expanded */}
+          <div className="w-16 flex-shrink-0 flex flex-col items-center justify-between py-6 border-r border-gray-100">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100">
+              <span className="text-lg font-bold text-gray-700">W</span>
+            </div>
+            <div className="h-px w-8 bg-gray-200" />
+            <TooltipProvider>
+              <div className="flex flex-col items-center space-y-6">
+                {primaryIcons.map((item) => {
+                  if (item.id === 'profile') return null;
+
+                  const Icon = item.icon
+                  const isHiddenOnMobile = item.id === 'notifications';
+
+                  return (
+                    <Tooltip key={item.id}>
+                      <TooltipTrigger asChild>
+                        <Link
+                          href={item.href || '#'}
+                          onClick={() => handleL1Click(item)}
+                          className={cn(
+                            "flex h-10 w-10 items-center justify-center rounded-full transition-colors",
+                            activeIcon === item.id
+                              ? "bg-gray-900 text-white"
+                              : "text-gray-500 hover:bg-gray-100 hover:text-gray-900",
+                            isHiddenOnMobile && "hidden md:flex"
+                          )}
+                        >
+                          <Icon className="h-5 w-5" />
+                        </Link>
+                      </TooltipTrigger>
+                      <TooltipContent side="right">
+                        <p>{item.label}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  )
+                })}
+              </div>
+            </TooltipProvider>
+          </div>
+          {currentSecondaryMenu && (
+            <div className="flex-1 flex flex-col border-r border-gray-200">
+              <div className="flex items-center justify-between border-b border-gray-200 px-4 py-4 flex-shrink-0">
+                <h2 className="text-lg font-medium">{currentSecondaryMenu.title}</h2>
+              </div>
+
+              <nav className="flex-1 overflow-y-auto px-2 py-2">
+                {currentSecondaryMenu.items.map((item) => {
+                  if (item.isCollapsible) {
+                    return (
+                      <div key={item.id} className="mb-4">
+                        <button
+                          onClick={() => setExpandedL2Groups(s => ({...s, [item.id]: !s[item.id]}))}
+                          className="flex items-center justify-between w-full px-3 py-1 text-sm text-gray-500 hover:text-gray-700 transition-colors"
+                        >
+                          <div className="flex items-center gap-2">
+                            {expandedL2Groups[item.id] ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                            <span className="font-medium uppercase text-xs">{item.label}</span>
+                          </div>
+                        </button>
+                        {expandedL2Groups[item.id] && (
+                          <div className="mt-1 ml-2 space-y-1">
+                            {item.subItems?.map(subItem => (
+                              <Link
+                                key={subItem.id}
+                                href={subItem.href}
+                                onClick={() => setMobileSidebarOpen(false)}
+                                className={cn("flex items-center w-full px-3 py-2 text-sm rounded-md transition-colors",
+                                  pathname === subItem.href
+                                  ? "bg-gray-100 text-gray-900 font-semibold"
+                                  : "text-gray-700 hover:bg-gray-50"
+                                )}
+                              >
+                                <span>{subItem.label}</span>
+                              </Link>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  }
+                  const Icon = item.icon || TrendingUp; // Fallback icon
+                  return (
+                    <Link
+                      key={item.id}
+                      href={item.href || '#'}
+                      onClick={() => setMobileSidebarOpen(false)}
+                      className={cn("flex items-center w-full px-3 py-2 text-sm rounded-md font-medium mb-4 transition-colors", 
+                        pathname === item.href 
+                        ? "bg-gray-100" 
+                        : "hover:bg-gray-50 text-gray-700"
+                      )}
+                    >
+                      <Icon className="h-4 w-4 text-blue-500 mr-2" />
+                      <span>{item.label}</span>
+                    </Link>
+                  );
+                })}
+              </nav>
+            </div>
+          )}
+        </aside>
+      </div>
+
+
+      {/* Desktop Sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex bg-white transition-transform duration-300 ease-in-out",
-          "w-full md:w-auto", // Full width trên mobile, auto trên desktop
-          sidebarCollapsed ? "md:w-16" : "md:w-72", // Width cho desktop
-          mobileSidebarOpen ? "translate-x-0" : "-translate-x-full", // Logic trượt ra/vào
-          "md:translate-x-0" // Luôn hiển thị trên desktop
+          "fixed inset-y-0 left-0 z-40 hidden md:flex bg-white transition-all duration-300 ease-in-out",
+          openSecondaryMenuId && !sidebarCollapsed ? "w-72" : "w-16"
         )}
       >
         {/* Primary Sidebar Section */}
@@ -282,14 +404,12 @@ export default function ReportsLayout({
           <div
             className={cn(
               "flex-1 flex flex-col border-r border-gray-200 transition-all duration-300",
-              sidebarCollapsed ? "opacity-0 w-0 overflow-hidden" : "opacity-100",
+              sidebarCollapsed ? "opacity-0 w-0 overflow-hidden pointer-events-none" : "opacity-100",
             )}
           >
             <div className="flex items-center justify-between border-b border-gray-200 px-4 py-4 flex-shrink-0">
               <h2 className="text-lg font-medium">{currentSecondaryMenu.title}</h2>
-              <Button variant="ghost" size="icon" onClick={toggleMobileSidebar} className="md:hidden">
-                <X className="h-5 w-5" />
-              </Button>
+              {/* No close button needed for desktop secondary menu */}
             </div>
 
             <nav className="flex-1 overflow-y-auto px-2 py-2">
@@ -331,7 +451,7 @@ export default function ReportsLayout({
                 return (
                   <Link
                     key={item.id}
-                    href={item.href}
+                    href={item.href || '#'}
                     onClick={() => setMobileSidebarOpen(false)}
                     className={cn("flex items-center w-full px-3 py-2 text-sm rounded-md font-medium mb-4 transition-colors", 
                       pathname === item.href 
