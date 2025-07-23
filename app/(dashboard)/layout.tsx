@@ -95,8 +95,8 @@ const secondaryMenus: Record<string, { title: string; items: L2Item[] }> = {
   hrm: {
     title: "HRM",
     items: [
-      { id: "timekeeping", label: "Timekeeping", href: "/timekeeping", icon: Clock },
-      { id: "meeting-booking", label: "Meeting Booking", href: "/meeting-booking", icon: Calendar },
+      { id: "timekeeping", label: "Timekeeping", href: "/hrm/timekeeping", icon: Clock },
+      { id: "meeting-booking", label: "Meeting Booking", href: "/hrm/meeting-booking", icon: Calendar },
     ]
   },
   home: {
