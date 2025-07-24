@@ -240,7 +240,7 @@ export default function ReportsLayout({
           )}
         >
           {/* This structure is for mobile view where sidebar is always expanded */}
-          <div className="w-16 flex-shrink-0 flex flex-col items-center justify-between py-6 border-r border-gray-100">
+          <div className="w-16 flex-shrink-0 flex flex-col items-center justify-start gap-6 py-6 border-r border-gray-100">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100">
               <span className="text-lg font-bold text-gray-700">W</span>
             </div>
