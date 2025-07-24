@@ -149,7 +149,7 @@ export default function TimekeepingPage() {
       setIsCameraActive(true)
     } catch (error) {
       console.error("Error accessing camera:", error)
-      alert("Unable to access camera. Please check permissions.")
+      alert("Không thể truy cập camera. Vui lòng kiểm tra quyền truy cập.")
     }
   }
 
@@ -185,7 +185,7 @@ export default function TimekeepingPage() {
     // Get the current user
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      alert("User not authenticated");
+      alert("Người dùng chưa xác thực");
       return;
     }
 
@@ -203,7 +203,7 @@ export default function TimekeepingPage() {
 
       if (uploadError) {
         console.error(uploadError);
-        alert("Failed to upload image: " + uploadError.message);
+        alert("Tải lên hình ảnh thất bại: " + uploadError.message);
         return;
       }
 
@@ -220,11 +220,11 @@ export default function TimekeepingPage() {
     console.log("Insert response:", { data, error });
 
     if (error) {
-      alert("Failed to save timekeeping data: " + (error as any).message || JSON.stringify(error));
+      alert("Lưu dữ liệu chấm công thất bại: " + (error as any).message || JSON.stringify(error));
       return;
     }
 
-    alert("Check-in completed successfully!");
+    alert("Chấm công vào ca thành công!");
     setIsCheckedIn(true);
     setIsCheckedOut(false);
     // 
@@ -232,7 +232,7 @@ export default function TimekeepingPage() {
 
   const handleCheckOut = async () => {
     if (!todayTimekeeping || !todayTimekeeping.id) {
-      alert("No timekeeping record found for today.");
+      alert("Không tìm thấy bản ghi chấm công ngày hôm nay.");
       return;
     }
     setIsCheckingOut(true);
@@ -245,7 +245,7 @@ export default function TimekeepingPage() {
     setIsCheckingOut(false);
 
     if (error) {
-      alert("Failed to check out: " + (error as any).message || JSON.stringify(error));
+      alert("Chấm công ra ca thất bại: " + (error as any).message || JSON.stringify(error));
       return;
     }
 
@@ -254,9 +254,9 @@ export default function TimekeepingPage() {
   };
 
   const steps = [
-    { number: 1, title: "Location Check", icon: MapPin },
-    { number: 2, title: "Take Photo", icon: Camera },
-    { number: 3, title: "Confirm", icon: Check },
+    { number: 1, title: "Kiểm tra vị trí", icon: MapPin },
+    { number: 2, title: "Chụp ảnh", icon: Camera },
+    { number: 3, title: "Xác nhận", icon: Check },
   ]
 
   if (loading) {
@@ -270,8 +270,8 @@ export default function TimekeepingPage() {
         <div className="max-w-2xl mx-auto">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">Timekeeping</h1>
-            <p className="text-gray-500 mt-1">Check in to record your attendance</p>
+            <h1 className="text-3xl font-bold text-gray-900">Chấm công</h1>
+            <p className="text-gray-500 mt-1">Chấm công vào ca để ghi nhận thời gian làm việc</p>
           </div>
 
           {/* Progress Steps */}
@@ -327,14 +327,14 @@ export default function TimekeepingPage() {
                 {steps[currentStep - 1] && (
                   <>
                     {React.createElement(steps[currentStep - 1].icon, { className: "h-5 w-5" })}
-                    Step {currentStep}: {steps[currentStep - 1].title}
+                    Bước {currentStep}: {steps[currentStep - 1].title}
                   </>
                 )}
               </CardTitle>
               <CardDescription>
-                {currentStep === 1 && "We need to verify you're within 100m of the office"}
-                {currentStep === 2 && "Take a photo for attendance verification"}
-                {currentStep === 3 && "Review and confirm your check-in"}
+                {currentStep === 1 && "Chúng tôi cần xác minh bạn đang ở trong phạm vi 100m từ văn phòng"}
+                {currentStep === 2 && "Chụp ảnh để xác minh chấm công"}
+                {currentStep === 3 && "Xem lại và xác nhận chấm công vào ca"}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -356,18 +356,18 @@ export default function TimekeepingPage() {
                   {locationStatus === null && (
                     <Button onClick={checkLocation} className="bg-blue-600 hover:bg-blue-700">
                       <MapPin className="h-4 w-4 mr-2" />
-                      Check Location
+                      Kiểm tra vị trí
                     </Button>
                   )}
 
-                  {locationStatus === "checking" && <p className="text-gray-600">Checking your location...</p>}
+                  {locationStatus === "checking" && <p className="text-gray-600">Đang kiểm tra vị trí của bạn...</p>}
 
                   {locationStatus === "approved" && (
                     <div>
-                      <h3 className="text-lg font-medium text-green-600 mb-2">Location Approved</h3>
-                      <p className="text-gray-600 mb-4">You're within the required distance from the office</p>
+                      <h3 className="text-lg font-medium text-green-600 mb-2">Vị trí được chấp nhận</h3>
+                      <p className="text-gray-600 mb-4">Bạn đang ở trong phạm vi yêu cầu từ văn phòng</p>
                       <Button onClick={() => setCurrentStep(2)} className="bg-green-600 hover:bg-green-700">
-                        Next Step
+                        Bước tiếp theo
                         <ArrowRight className="h-4 w-4 ml-2" />
                       </Button>
                     </div>
@@ -375,14 +375,14 @@ export default function TimekeepingPage() {
 
                   {locationStatus === "denied" && (
                     <div>
-                      <h3 className="text-lg font-medium text-red-600 mb-2">Location Too Far</h3>
-                      <p className="text-gray-600 mb-4">You need to be within 100 meters of the office to check in</p>
+                      <h3 className="text-lg font-medium text-red-600 mb-2">Vị trí quá xa</h3>
+                      <p className="text-gray-600 mb-4">Bạn cần ở trong phạm vi 100 mét từ văn phòng để chấm công</p>
                       <Button
                         onClick={() => setLocationStatus(null)}
                         variant="outline"
                         className="border-red-300 text-red-600 hover:bg-red-50"
                       >
-                        Try Again
+                        Thử lại
                       </Button>
                     </div>
                   )}
@@ -399,7 +399,7 @@ export default function TimekeepingPage() {
                         {!isCameraActive ? (
                           <div className="text-center">
                             <Camera className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-                            <p className="text-gray-500 text-sm">Camera preview will appear here</p>
+                            <p className="text-gray-500 text-sm">Xem trước camera sẽ hiển thị ở đây</p>
                           </div>
                         ) : (
                           <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
@@ -411,12 +411,12 @@ export default function TimekeepingPage() {
                     {!isCameraActive ? (
                       <Button onClick={startCamera} className="bg-purple-600 hover:bg-purple-700">
                         <Camera className="h-4 w-4 mr-2" />
-                        Start Camera
+                        Bật camera
                       </Button>
                     ) : (
                       <Button onClick={capturePhoto} className="bg-purple-600 hover:bg-purple-700">
                         <Camera className="h-4 w-4 mr-2" />
-                        Capture
+                        Chụp ảnh
                       </Button>
                     )}
                   </div>
@@ -431,20 +431,20 @@ export default function TimekeepingPage() {
                   </div>
 
                   <div>
-                    <h3 className="text-lg font-medium mb-4">Confirm Check-in</h3>
+                    <h3 className="text-lg font-medium mb-4">Xác nhận chấm công vào ca</h3>
 
                     {capturedImage && (
                       <div className="mb-4">
                         <img
                           src={capturedImage || "/placeholder.svg"}
-                          alt="Captured photo"
+                          alt="Ảnh đã chụp"
                           className="w-48 h-48 object-cover rounded-lg border-2 border-gray-300 mx-auto mb-4"
                         />
                       </div>
                     )}
 
                     <div className="bg-gray-50 rounded-lg p-4 mb-4">
-                      <div className="text-sm text-gray-600 mb-1">Check-in Time</div>
+                      <div className="text-sm text-gray-600 mb-1">Thời gian chấm công vào ca</div>
                       <div className="text-xl font-bold text-gray-900">
                        {currentTimeString}
                       </div>
@@ -454,7 +454,7 @@ export default function TimekeepingPage() {
                     </div>
                     <Button onClick={handleComplete} className="bg-green-600 hover:bg-green-700">
                       <Check className="h-4 w-4 mr-2" />
-                      Complete Check-in
+                      Hoàn thành chấm công vào ca
                     </Button>
                   </div>
                 </div>
@@ -471,20 +471,20 @@ export default function TimekeepingPage() {
         <div className="max-w-2xl mx-auto">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">Timekeeping</h1>
-            <p className="text-gray-500 mt-1">You're currently checked in</p>
+            <h1 className="text-3xl font-bold text-gray-900">Chấm công</h1>
+            <p className="text-gray-500 mt-1">Bạn hiện đang trong ca làm việc</p>
           </div>
 
           <Card>
             <CardHeader className="text-center">
-              <CardDescription>You're currently at work</CardDescription>
+              <CardDescription>Bạn đang làm việc tại văn phòng</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6 text-center">
               {/* Check-in Time and Current Time Combined */}
               <div className="bg-gray-50 rounded-lg p-6">
                 <div className="grid grid-cols-2 gap-6">
                   <div className="text-center">
-                    <div className="text-sm text-gray-600 mb-2">Check-in Time</div>
+                    <div className="text-sm text-gray-600 mb-2">Thời gian vào ca</div>
                     <div className="text-2xl font-bold text-gray-900">
                       {checkInTime?.toLocaleTimeString("vi-VN", {
                         hour: "2-digit",
@@ -493,7 +493,7 @@ export default function TimekeepingPage() {
                     </div>
                   </div>
                   <div className="text-center">
-                    <div className="text-sm text-blue-600 mb-2">Current Time</div>
+                    <div className="text-sm text-blue-600 mb-2">Thời gian hiện tại</div>
                     <div className="text-2xl font-bold text-blue-900">
                       {currentTime.toLocaleTimeString("vi-VN", {
                         hour: "2-digit",
@@ -518,7 +518,7 @@ export default function TimekeepingPage() {
               {/* Working Hours */}
               {checkInTime && (
                 <div className="bg-purple-50 rounded-lg p-4">
-                  <div className="text-sm text-purple-600 mb-1">Working Hours Today</div>
+                  <div className="text-sm text-purple-600 mb-1">Số giờ làm việc hôm nay</div>
                   <div className="text-lg font-bold text-purple-900">
                     {Math.floor((currentTime.getTime() - checkInTime.getTime()) / (1000 * 60 * 60))}h{" "}
                     {Math.floor(((currentTime.getTime() - checkInTime.getTime()) % (1000 * 60 * 60)) / (1000 * 60))}m
@@ -535,12 +535,12 @@ export default function TimekeepingPage() {
                 {isCheckingOut ? (
                   <>
                     <Clock className="h-5 w-5 mr-2 animate-spin" />
-                    Checking Out...
+                    Đang chấm công ra ca...
                   </>
                 ) : (
                   <>
                     <LogOut className="h-5 w-5 mr-2" />
-                    Check Out
+                    Chấm công ra ca
                   </>
                 )}
               </Button>
@@ -565,25 +565,25 @@ export default function TimekeepingPage() {
             <CardContent className="space-y-6 text-center pt-8">
               {/* Work Summary */}
               <div className="bg-gray-50 rounded-lg p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Work Summary</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Tóm tắt ngày làm việc</h3>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-gray-100 rounded-lg p-4 border border-gray-200">
-                    <div className="text-sm text-gray-600 mb-2">Work Hours</div>
+                    <div className="text-sm text-gray-600 mb-2">Giờ làm việc</div>
                     <div className="space-y-2">
                       <div className="flex justify-between items-center">
-                        <span className="text-xs text-green-600">Check-in</span>
+                        <span className="text-xs text-green-600">Vào ca</span>
                         <span className="text-sm font-bold text-green-900">
-                          {checkInTime?.toLocaleTimeString("en-US", {
+                          {checkInTime?.toLocaleTimeString("vi-VN", {
                             hour: "2-digit",
                             minute: "2-digit",
                           })}
                         </span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-xs text-red-600">Check-out</span>
+                        <span className="text-xs text-red-600">Ra ca</span>
                         <span className="text-sm font-bold text-red-900">
-                          {currentTime.toLocaleTimeString("en-US", {
+                          {currentTime.toLocaleTimeString("vi-VN", {
                             hour: "2-digit",
                             minute: "2-digit",
                           })}
@@ -593,7 +593,7 @@ export default function TimekeepingPage() {
                   </div>
 
                   <div className="bg-gray-100 rounded-lg p-4 border border-gray-200">
-                    <div className="text-sm text-gray-600 mb-2">Total Hours</div>
+                    <div className="text-sm text-gray-600 mb-2">Tổng thời gian</div>
                     <div className="text-2xl font-bold text-blue-900">
                       {workingHours}h {workingMinutes}m
                     </div>
@@ -602,7 +602,7 @@ export default function TimekeepingPage() {
 
                 <div className="text-center mt-4">
                   <div className="text-sm text-gray-600">
-                    {checkInTime?.toLocaleDateString("en-US", {
+                    {checkInTime?.toLocaleDateString("vi-VN", {
                       weekday: "long",
                       year: "numeric",
                       month: "long",
@@ -614,10 +614,9 @@ export default function TimekeepingPage() {
 
               {/* Success Message */}
               <div className="bg-blue-50 rounded-lg p-6">
-                <h4 className="text-lg font-semibold text-gray-900 mb-2">Great Work! 💪</h4>
+                <h4 className="text-lg font-semibold text-gray-900 mb-2">Làm việc tuyệt vời! 💪</h4>
                 <p className="text-gray-600">
-                  Thank you for your dedication and effort today. Have a great rest and get ready for another productive
-                  day!
+                  Cảm ơn bạn vì sự tận tâm và nỗ lực hôm nay. Hãy nghỉ ngơi thoải mái và chuẩn bị cho một ngày làm việc hiệu quả khác!
                 </p>
               </div>
             </CardContent>
