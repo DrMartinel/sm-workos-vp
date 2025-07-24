@@ -12,6 +12,16 @@ import { createClient } from "@/lib/utils/supabase/client"
 import { formatDateTime } from "./utils/formatDateTime"
 import { useToast, toast } from "@/hooks/use-toast"
 import MeetingBookingLoading from "./loading"
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogFooter,
+  DialogTitle,
+  DialogDescription,
+  DialogClose,
+} from "@/components/ui/dialog";
 
 interface MeetingRoom {
   id: string
@@ -49,6 +59,8 @@ export default function MeetingBookingPage() {
   const [user, setUser] = useState<any>(null);
   const [editing, setEditing] = useState(false);
   const [editingMeetingId, setEditingMeetingId] = useState<string | null>(null);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [meetingToCancel, setMeetingToCancel] = useState<string | null>(null);
 
   useEffect(() => {
     fetchData()
@@ -82,8 +94,16 @@ export default function MeetingBookingPage() {
       .from('meetings')
       .select('id, title, start_time, end_time, organizer_id, organizer_name, room_id, status')
       .order('start_time', { ascending: true });
-    if (roomsError) console.error('Error fetching meeting rooms:', roomsError)
-    if (meetingsError) console.error('Error fetching meetings:', meetingsError)
+    if (roomsError) toast({
+      title: 'Error fetching meeting rooms',
+      description: roomsError.message || String(roomsError),
+      variant: 'destructive',
+    });
+    if (meetingsError) toast({
+      title: 'Error fetching meetings',
+      description: meetingsError.message || String(meetingsError),
+      variant: 'destructive',
+    });
     setMeetingRooms(rooms || [])
     setMeetings(
       (meetingsData || []).map((m: any) => ({
@@ -102,8 +122,12 @@ export default function MeetingBookingPage() {
 
   const handleCreateMeeting = async () => {
     if (!selectedRoom || !newMeeting.title || !newMeeting.startTime || !newMeeting.endTime) {
-      alert("Please fill in all required fields")
-      return
+      toast({
+        title: 'Missing required fields',
+        description: 'Please fill in all required fields',
+        variant: 'destructive',
+      });
+      return;
     }
     setLoading(true)
     const supabase = createClient();
@@ -119,7 +143,11 @@ export default function MeetingBookingPage() {
     });
     
     if (error) {
-      alert('Failed to book meeting: ' + error.message);
+      toast({
+        title: 'Failed to book meeting',
+        description: error.message,
+        variant: 'destructive',
+      });
       setLoading(false)
       return;
     }
@@ -137,14 +165,17 @@ export default function MeetingBookingPage() {
 
     setCurrentStep(2);
     setLoading(false)
-    alert('Meeting booked successfully!');
+    toast({
+      title: 'Meeting booked successfully!',
+      description: 'Your meeting has been created.',
+    });
   }
 
-  const handleCancelMeeting = async (meetingId: string) => {
-    if (!window.confirm("Are you sure you want to cancel this meeting?")) return;
+  const handleCancelMeeting = async () => {
+    if (!meetingToCancel) return;
     setLoading(true);
     const supabase = createClient();
-    const { error } = await supabase.rpc('cancel_meeting', { p_meeting_id: meetingId });
+    const { error } = await supabase.rpc('cancel_meeting', { p_meeting_id: meetingToCancel });
     if (error) {
       toast({
         title: 'Failed to cancel meeting',
@@ -152,6 +183,8 @@ export default function MeetingBookingPage() {
         variant: 'destructive',
       });
       setLoading(false);
+      setCancelDialogOpen(false);
+      setMeetingToCancel(null);
       return;
     }
     toast({
@@ -160,6 +193,8 @@ export default function MeetingBookingPage() {
     });
     await fetchData();
     setLoading(false);
+    setCancelDialogOpen(false);
+    setMeetingToCancel(null);
   };
 
   const toDatetimeLocal = (dateString: string) => {
@@ -185,7 +220,11 @@ export default function MeetingBookingPage() {
 
   const handleEditMeeting = async () => {
     if (!selectedRoom || !newMeeting.title || !newMeeting.startTime || !newMeeting.endTime) {
-      alert("Please fill in all required fields");
+      toast({
+        title: 'Missing required fields',
+        description: 'Please fill in all required fields',
+        variant: 'destructive',
+      });
       return;
     }
     setLoading(true);
@@ -402,16 +441,36 @@ export default function MeetingBookingPage() {
                             <Button variant="ghost" size="sm" onClick={() => handleEditClick(meeting)}>
                               <Edit className="h-4 w-4" />
                             </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-red-600 hover:text-red-700"
-                              onClick={() => handleCancelMeeting(meeting.id)}
-                              disabled={loading}
-                              aria-label="Cancel meeting"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            <Dialog open={cancelDialogOpen && meetingToCancel === meeting.id} onOpenChange={(open) => { if (!open) { setCancelDialogOpen(false); setMeetingToCancel(null); } }}>
+                              <DialogTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-red-600 hover:text-red-700"
+                                  onClick={() => { setCancelDialogOpen(true); setMeetingToCancel(meeting.id); }}
+                                  disabled={loading}
+                                  aria-label="Cancel meeting"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent>
+                                <DialogHeader>
+                                  <DialogTitle>Cancel Meeting</DialogTitle>
+                                  <DialogDescription>
+                                    Are you sure you want to cancel this meeting? This action cannot be undone.
+                                  </DialogDescription>
+                                </DialogHeader>
+                                <DialogFooter>
+                                  <DialogClose asChild>
+                                    <Button variant="outline">No, keep meeting</Button>
+                                  </DialogClose>
+                                  <Button variant="destructive" onClick={handleCancelMeeting} disabled={loading}>
+                                    Yes, cancel meeting
+                                  </Button>
+                                </DialogFooter>
+                              </DialogContent>
+                            </Dialog>
                           </div>
                         )}
                       </div>

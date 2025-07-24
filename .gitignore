@@ -31,3 +31,5 @@ next-env.d.ts
 
 # Ignore submodule paths to prevent accidental commits of dummy modules
 /app/(dashboard)/reports
+
+.vscode
