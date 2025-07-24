@@ -9,7 +9,7 @@ const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "Smartmove WorkOS",
-  description: "SmartMove",
+  description: "Hệ thống quản lý không gian làm việc thông minh",
   generator: "v0.dev",
   manifest: "/manifest.json",
   icons: {
@@ -31,7 +31,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="vi" suppressHydrationWarning>
       <body className={inter.className}>
         <ThemeProvider attribute="class" forcedTheme="light">
           <ReactQueryProvider>{children}</ReactQueryProvider>

@@ -13,24 +13,24 @@ import { Button } from "@/components/ui/button"
 
 const announcements = [
   {
-    title: "New Company-Wide Holiday Policy",
-    content: "We're excited to announce an updated holiday schedule with more flexible time-off options.",
-    date: "2 hours ago",
+    title: "Chính sách nghỉ lễ mới của công ty",
+    content: "Chúng tôi vui mừng thông báo lịch nghỉ lễ được cập nhật với nhiều tùy chọn thời gian nghỉ linh hoạt hơn.",
+    date: "2 giờ trước",
   },
   {
-    title: "Q3 All-Hands Meeting Next Week",
-    content: "Join us for our quarterly all-hands meeting to discuss our progress and future goals.",
-    date: "1 day ago",
+    title: "Cuộc họp toàn thể Q3 tuần tới",
+    content: "Tham gia cùng chúng tôi trong cuộc họp toàn thể hàng quý để thảo luận về tiến độ và mục tiêu tương lai.",
+    date: "1 ngày trước",
   },
   {
-    title: "Welcome Our New Head of Engineering!",
-    content: "Please give a warm welcome to Sarah Johnson, who will be leading our engineering team.",
-    date: "2 days ago",
+    title: "Chào mừng Trưởng phòng Kỹ thuật mới!",
+    content: "Hãy chào đón nồng nhiệt Sarah Johnson, người sẽ dẫn dắt đội ngũ kỹ thuật của chúng ta.",
+    date: "2 ngày trước",
   },
   {
-    title: "Server Maintenance This Weekend",
-    content: "Please be aware of scheduled server maintenance this Saturday from 2 AM to 4 AM.",
-    date: "4 days ago",
+    title: "Bảo trì máy chủ cuối tuần này",
+    content: "Vui lòng lưu ý việc bảo trì máy chủ theo lịch trình vào thứ Bảy từ 2 giờ sáng đến 4 giờ sáng.",
+    date: "4 ngày trước",
   },
 ]
 
@@ -39,37 +39,37 @@ export default function WorkspaceDashboard() {
     <div className="flex-1 overflow-auto p-4 md:p-8">
       <div className="mx-auto max-w-4xl">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Welcome to Workspace</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Chào mừng đến với Không gian làm việc</h1>
         </div>
 
         <div className="grid gap-6 md:grid-cols-2">
           <Card>
             <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-              <CardDescription>Frequently used tools and shortcuts</CardDescription>
+              <CardTitle>Thao tác nhanh</CardTitle>
+              <CardDescription>Các công cụ và phím tắt thường dùng</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 gap-4">
                 <Link href="#">
                   <Button variant="outline" className="h-20 flex-col justify-center gap-1 w-full bg-transparent">
                     <CheckSquare className="h-5 w-5" />
-                    <span>Tasks</span>
+                    <span>Nhiệm vụ</span>
                   </Button>
                 </Link>
                 <Link href="/reports/overview">
                   <Button variant="outline" className="h-20 flex-col justify-center gap-1 w-full bg-transparent">
                     <BarChart3 className="h-5 w-5" />
-                    <span>Reports</span>
+                    <span>Báo cáo</span>
                   </Button>
                 </Link>
                 <Button variant="outline" className="h-20 flex-col justify-center gap-1 bg-transparent">
                   <Target className="h-5 w-5" />
-                  <span>Set Goal</span>
+                  <span>Đặt mục tiêu</span>
                 </Button>
                 <Link href="/workflow-editor">
                   <Button variant="outline" className="h-20 flex-col justify-center gap-1 w-full bg-transparent">
                     <GitBranch className="h-5 w-5" />
-                    <span>Workflow</span>
+                    <span>Quy trình</span>
                   </Button>
                 </Link>
               </div>
@@ -78,8 +78,8 @@ export default function WorkspaceDashboard() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Announcements</CardTitle>
-              <CardDescription>Latest news and updates from the company.</CardDescription>
+              <CardTitle>Thông báo</CardTitle>
+              <CardDescription>Tin tức và cập nhật mới nhất từ công ty.</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -99,7 +99,7 @@ export default function WorkspaceDashboard() {
             <CardFooter className="pt-4">
               <Link href="#" className="w-full">
                 <Button variant="outline" className="w-full">
-                  View all
+                  Xem tất cả
                 </Button>
               </Link>
             </CardFooter>
@@ -107,25 +107,25 @@ export default function WorkspaceDashboard() {
 
           <Card className="md:col-span-2">
             <CardHeader>
-              <CardTitle>Team Overview</CardTitle>
-              <CardDescription>Current team status and progress</CardDescription>
+              <CardTitle>Tổng quan nhóm</CardTitle>
+              <CardDescription>Trạng thái và tiến độ hiện tại của nhóm</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid gap-6 md:grid-cols-3">
                 <div className="rounded-lg border border-gray-200 p-4">
-                  <div className="text-sm font-medium text-gray-500">Active Tasks</div>
+                  <div className="text-sm font-medium text-gray-500">Nhiệm vụ đang hoạt động</div>
                   <div className="mt-2 text-3xl font-bold">24</div>
-                  <div className="mt-1 text-xs text-green-500">+12% from last week</div>
+                  <div className="mt-1 text-xs text-green-500">+12% so với tuần trước</div>
                 </div>
                 <div className="rounded-lg border border-gray-200 p-4">
-                  <div className="text-sm font-medium text-gray-500">Pending Requests</div>
+                  <div className="text-sm font-medium text-gray-500">Yêu cầu đang chờ</div>
                   <div className="mt-2 text-3xl font-bold">7</div>
-                  <div className="mt-1 text-xs text-amber-500">+3% from last week</div>
+                  <div className="mt-1 text-xs text-amber-500">+3% so với tuần trước</div>
                 </div>
                 <div className="rounded-lg border border-gray-200 p-4">
-                  <div className="text-sm font-medium text-gray-500">Completed Goals</div>
+                  <div className="text-sm font-medium text-gray-500">Mục tiêu đã hoàn thành</div>
                   <div className="mt-2 text-3xl font-bold">12</div>
-                  <div className="mt-1 text-xs text-green-500">+8% from last week</div>
+                  <div className="mt-1 text-xs text-green-500">+8% so với tuần trước</div>
                 </div>
               </div>
             </CardContent>
