@@ -53,14 +53,14 @@ interface Team {
 const teamsData: Team[] = [
   {
     id: "marketing",
-    name: "Marketing Team",
-    description: "Campaign management and marketing automation tools",
+    name: "Đội Marketing",
+    description: "Công cụ quản lý chiến dịch và tự động hóa marketing",
     color: "blue",
     applications: [
       {
         id: "campaign-mgmt",
         name: "Campaign Management",
-        description: "Manage and optimize marketing campaigns",
+        description: "Quản lý và tối ưu hóa các chiến dịch marketing",
         icon: TrendingUp,
         color: "bg-blue-500",
         favorite: true,
@@ -68,21 +68,21 @@ const teamsData: Team[] = [
       {
         id: "budget-allocation",
         name: "Budget Allocation",
-        description: "Distribute marketing budget across channels",
+        description: "Phân bổ ngân sách marketing giữa các kênh",
         icon: DollarSign,
         color: "bg-green-500",
       },
       {
         id: "cost-distribution",
         name: "Cost Distribution",
-        description: "Analyze cost distribution across campaigns",
+        description: "Phân tích phân phối chi phí giữa các chiến dịch",
         icon: BarChart3,
         color: "bg-purple-500",
       },
       {
         id: "smart-bidding",
         name: "Smart Bidding",
-        description: "AI-powered bidding optimization",
+        description: "Tối ưu hóa đấu giá bằng AI",
         icon: Zap,
         color: "bg-yellow-500",
         favorite: true,
@@ -90,7 +90,7 @@ const teamsData: Team[] = [
       {
         id: "creative-mgmt",
         name: "Creative Management",
-        description: "Manage creative assets and variations",
+        description: "Quản lý tài sản sáng tạo và các biến thể",
         icon: Eye,
         color: "bg-pink-500",
       },
@@ -98,14 +98,14 @@ const teamsData: Team[] = [
   },
   {
     id: "monetization",
-    name: "Monetization Team",
-    description: "Revenue optimization and testing tools",
+    name: "Đội Kiếm tiền",
+    description: "Công cụ tối ưu hóa doanh thu và thử nghiệm",
     color: "green",
     applications: [
       {
         id: "ecpm-prediction",
         name: "eCPM Prediction",
-        description: "Predict effective cost per mille",
+        description: "Dự đoán chi phí hiệu quả trên nghìn lần hiển thị",
         icon: Target,
         color: "bg-emerald-500",
         favorite: true,
@@ -113,7 +113,7 @@ const teamsData: Team[] = [
       {
         id: "ab-testing",
         name: "A/B Testing",
-        description: "Run and analyze A/B experiments",
+        description: "Chạy và phân tích thí nghiệm A/B",
         icon: TestTube,
         color: "bg-cyan-500",
       },
@@ -121,21 +121,21 @@ const teamsData: Team[] = [
   },
   {
     id: "aso",
-    name: "ASO Team",
-    description: "App Store Optimization and keyword management",
+    name: "Đội ASO",
+    description: "Tối ưu hóa App Store và quản lý từ khóa",
     color: "orange",
     applications: [
       {
         id: "localization",
         name: "Localization",
-        description: "Manage app localization across markets",
+        description: "Quản lý bản địa hóa ứng dụng trên các thị trường",
         icon: Globe,
         color: "bg-indigo-500",
       },
       {
         id: "keyword-tracking",
         name: "Keyword Tracking",
-        description: "Track keyword rankings and performance",
+        description: "Theo dõi thứ hạng và hiệu suất từ khóa",
         icon: MapPin,
         color: "bg-red-500",
         favorite: true,
@@ -143,7 +143,7 @@ const teamsData: Team[] = [
       {
         id: "keyword-density",
         name: "Keyword Density",
-        description: "Analyze keyword density optimization",
+        description: "Phân tích tối ưu hóa mật độ từ khóa",
         icon: Hash,
         color: "bg-orange-500",
       },
@@ -151,42 +151,42 @@ const teamsData: Team[] = [
   },
   {
     id: "back-office",
-    name: "Back-Office",
-    description: "Internal operations and management systems",
+    name: "Hành chính",
+    description: "Hệ thống vận hành và quản lý nội bộ",
     color: "gray",
     applications: [
       {
         id: "hrm",
         name: "HRM",
-        description: "Human Resource Management System",
+        description: "Hệ thống quản lý nhân sự",
         icon: Users,
         color: "bg-slate-500",
       },
       {
         id: "recruitment",
         name: "Recruitment",
-        description: "Talent acquisition and hiring platform",
+        description: "Nền tảng thu hút và tuyển dụng nhân tài",
         icon: UserCheck,
         color: "bg-blue-600",
       },
       {
         id: "canteen",
         name: "Canteen",
-        description: "Cafeteria management and meal ordering",
+        description: "Quản lý căng tin và đặt món ăn",
         icon: Calendar,
         color: "bg-green-600",
       },
       {
         id: "meeting-room",
         name: "Meeting Room",
-        description: "Conference room booking system",
+        description: "Hệ thống đặt phòng họp",
         icon: Building,
         color: "bg-purple-600",
       },
       {
         id: "asset-mgmt",
         name: "Asset Management",
-        description: "Company asset tracking and management",
+        description: "Theo dõi và quản lý tài sản công ty",
         icon: Layers,
         color: "bg-gray-600",
       },
@@ -194,14 +194,14 @@ const teamsData: Team[] = [
   },
   {
     id: "bod",
-    name: "BoD",
-    description: "Board of Directors executive tools",
+    name: "Hội đồng quản trị",
+    description: "Công cụ điều hành của Hội đồng quản trị",
     color: "red",
     applications: [
       {
         id: "finance",
         name: "Finance",
-        description: "Financial reporting and analytics",
+        description: "Báo cáo tài chính và phân tích",
         icon: Briefcase,
         color: "bg-emerald-600",
         favorite: true,
@@ -209,7 +209,7 @@ const teamsData: Team[] = [
       {
         id: "legal-mgmt",
         name: "Legal Management",
-        description: "Legal document and compliance management",
+        description: "Quản lý tài liệu pháp lý và tuân thủ",
         icon: Scale,
         color: "bg-red-600",
       },
@@ -303,7 +303,7 @@ export default function ApplicationsPage() {
             team.color === "red" && "bg-red-100 text-red-700",
           )}
         >
-          {team.applications.length} apps
+          {team.applications.length} ứng dụng
         </Badge>
       </div>
 
@@ -326,8 +326,8 @@ export default function ApplicationsPage() {
       {/* Header */}
       <div className="space-y-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Applications</h1>
-          <p className="text-gray-500 mt-1">Access all your business applications organized by team.</p>
+          <h1 className="text-3xl font-bold text-gray-900">Ứng dụng</h1>
+          <p className="text-gray-500 mt-1">Truy cập tất cả ứng dụng kinh doanh của bạn được tổ chức theo nhóm.</p>
         </div>
 
         {/* Search and Controls */}
@@ -335,7 +335,7 @@ export default function ApplicationsPage() {
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
-              placeholder="Search applications..."
+              placeholder="Tìm kiếm ứng dụng..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10"
@@ -357,7 +357,7 @@ export default function ApplicationsPage() {
       <div className="space-y-8">
         {searchTerm && (
           <div className="mb-4">
-            <h2 className="text-lg font-medium text-gray-900">Search Results for "{searchTerm}"</h2>
+            <h2 className="text-lg font-medium text-gray-900">Kết quả tìm kiếm cho "{searchTerm}"</h2>
           </div>
         )}
 
@@ -366,7 +366,7 @@ export default function ApplicationsPage() {
         ) : (
           <div className="text-center py-12">
             <AppWindow className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-500">No applications found matching your search.</p>
+            <p className="text-gray-500">Không tìm thấy ứng dụng nào phù hợp với tìm kiếm của bạn.</p>
           </div>
         )}
       </div>
