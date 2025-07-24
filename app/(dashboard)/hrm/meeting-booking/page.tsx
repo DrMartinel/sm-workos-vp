@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { ArrowLeft, Calendar, Clock, Users, MapPin, Plus, Edit, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -8,6 +8,10 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
+import { createClient } from "@/lib/utils/supabase/client"
+import { formatDateTime } from "./utils/formatDateTime"
+import { useToast, toast } from "@/hooks/use-toast"
+import MeetingBookingLoading from "./loading"
 
 interface MeetingRoom {
   id: string
@@ -22,115 +26,202 @@ interface Meeting {
   title: string
   startTime: string
   endTime: string
-  date: string
-  organizer: string
+  organizer_id: string
+  organizer_name: string | null
   roomId: string
+  status: string
 }
-
-const meetingRooms: MeetingRoom[] = [
-  {
-    id: "room-1",
-    name: "Conference Room A",
-    capacity: 12,
-    location: "Floor 2",
-    equipment: ["Projector", "Whiteboard", "Video Conference"],
-  },
-  {
-    id: "room-2",
-    name: "Meeting Room B",
-    capacity: 6,
-    location: "Floor 2",
-    equipment: ["TV Screen", "Whiteboard"],
-  },
-  {
-    id: "room-3",
-    name: "Executive Room",
-    capacity: 8,
-    location: "Floor 3",
-    equipment: ["Projector", "Video Conference", "Sound System"],
-  },
-  {
-    id: "room-4",
-    name: "Small Meeting Room",
-    capacity: 4,
-    location: "Floor 1",
-    equipment: ["TV Screen"],
-  },
-]
-
-const mockMeetings: Meeting[] = [
-  {
-    id: "meeting-1",
-    title: "Weekly Team Standup",
-    startTime: "09:00",
-    endTime: "10:00",
-    date: "2025-01-10",
-    organizer: "John Doe",
-    roomId: "room-1",
-  },
-  {
-    id: "meeting-2",
-    title: "Product Review",
-    startTime: "14:00",
-    endTime: "15:30",
-    date: "2025-01-10",
-    organizer: "Jane Smith",
-    roomId: "room-1",
-  },
-  {
-    id: "meeting-3",
-    title: "Client Presentation",
-    startTime: "10:00",
-    endTime: "11:30",
-    date: "2025-01-10",
-    organizer: "Mike Johnson",
-    roomId: "room-2",
-  },
-]
 
 export default function MeetingBookingPage() {
   const [currentStep, setCurrentStep] = useState(1)
   const [selectedRoom, setSelectedRoom] = useState<MeetingRoom | null>(null)
-  const [meetings, setMeetings] = useState<Meeting[]>(mockMeetings)
+  const [meetingRooms, setMeetingRooms] = useState<MeetingRoom[]>([])
+  const [meetings, setMeetings] = useState<Meeting[]>([])
+  const [loading, setLoading] = useState(true)
+  const [creating, setCreating] = useState(false)
   const [newMeeting, setNewMeeting] = useState({
     title: "",
-    date: "",
     startTime: "",
     endTime: "",
-    organizer: "Current User",
+    organizer_id: "Current User",
+    status: "Scheduled",
   })
+  const [user, setUser] = useState<any>(null);
+  const [editing, setEditing] = useState(false);
+  const [editingMeetingId, setEditingMeetingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchData()
+  }, [])
+  
+  useEffect(() => {
+    const fetchUser = async () => {
+      const supabase = createClient();
+      const { data, error } = await supabase.auth.getUser();
+      if (data?.user) {
+        setUser(data.user);
+      }
+    };
+    fetchUser();
+  }, []);
 
   const handleRoomSelect = (room: MeetingRoom) => {
     setSelectedRoom(room)
     setCurrentStep(2)
   }
+  
+  const fetchData = async () => {
+    setLoading(true)
+    const supabase = createClient()
+    // Fetch meeting rooms
+    const { data: rooms, error: roomsError } = await supabase
+      .from('meeting_rooms')
+      .select('id, name, capacity, location, equipment')
+    // Fetch meetings
+    const { data: meetingsData, error: meetingsError } = await supabase
+      .from('meetings')
+      .select('id, title, start_time, end_time, organizer_id, organizer_name, room_id, status')
+      .order('start_time', { ascending: true });
+    if (roomsError) console.error('Error fetching meeting rooms:', roomsError)
+    if (meetingsError) console.error('Error fetching meetings:', meetingsError)
+    setMeetingRooms(rooms || [])
+    setMeetings(
+      (meetingsData || []).map((m: any) => ({
+        id: m.id,
+        title: m.title,
+        startTime: m.start_time,
+        endTime: m.end_time,
+        organizer_id: m.organizer_id,
+        organizer_name: m.organizer_name,
+        roomId: m.room_id,
+        status: m.status,
+      }))
+    )
+    setLoading(false)
+  }
 
-  const handleCreateMeeting = () => {
-    if (!selectedRoom || !newMeeting.title || !newMeeting.date || !newMeeting.startTime || !newMeeting.endTime) {
+  const handleCreateMeeting = async () => {
+    if (!selectedRoom || !newMeeting.title || !newMeeting.startTime || !newMeeting.endTime) {
       alert("Please fill in all required fields")
       return
     }
+    setLoading(true)
+    const supabase = createClient();
 
-    const meeting: Meeting = {
-      id: `meeting-${Date.now()}`,
-      title: newMeeting.title,
-      startTime: newMeeting.startTime,
-      endTime: newMeeting.endTime,
-      date: newMeeting.date,
-      organizer: newMeeting.organizer,
-      roomId: selectedRoom.id,
+    const startUTC = localToUTCISOString(newMeeting.startTime);
+    const endUTC = localToUTCISOString(newMeeting.endTime);
+
+    const { data, error } = await supabase.rpc('create_meeting', {
+      p_room_id: selectedRoom.id,
+      p_title: newMeeting.title,
+      p_start_time: startUTC,
+      p_end_time: endUTC,
+    });
+    
+    if (error) {
+      alert('Failed to book meeting: ' + error.message);
+      setLoading(false)
+      return;
     }
-
-    setMeetings([...meetings, meeting])
+    
+    // Optionally, refetch meetings from Supabase or append the new one
+    fetchData()
+    
     setNewMeeting({
       title: "",
-      date: "",
       startTime: "",
       endTime: "",
-      organizer: "Current User",
-    })
-    setCurrentStep(2) // Go back to room meetings list
+      organizer_id: user?.id || "Current User",
+      status: "Scheduled",
+    });
+
+    setCurrentStep(2);
+    setLoading(false)
+    alert('Meeting booked successfully!');
   }
+
+  const handleCancelMeeting = async (meetingId: string) => {
+    if (!window.confirm("Are you sure you want to cancel this meeting?")) return;
+    setLoading(true);
+    const supabase = createClient();
+    const { error } = await supabase.rpc('cancel_meeting', { p_meeting_id: meetingId });
+    if (error) {
+      toast({
+        title: 'Failed to cancel meeting',
+        description: error.message,
+        variant: 'destructive',
+      });
+      setLoading(false);
+      return;
+    }
+    toast({
+      title: 'Meeting cancelled',
+      description: 'The meeting has been cancelled successfully.',
+    });
+    await fetchData();
+    setLoading(false);
+  };
+
+  const toDatetimeLocal = (dateString: string) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    // Pad month, day, hour, minute with leading zeros
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  };
+
+  const handleEditClick = (meeting: Meeting) => {
+    setNewMeeting({
+      title: meeting.title,
+      startTime: toDatetimeLocal(meeting.startTime),
+      endTime: toDatetimeLocal(meeting.endTime),
+      organizer_id: meeting.organizer_id,
+      status: meeting.status,
+    });
+    setEditing(true);
+    setEditingMeetingId(meeting.id);
+    setCurrentStep(3);
+  };
+
+  const handleEditMeeting = async () => {
+    if (!selectedRoom || !newMeeting.title || !newMeeting.startTime || !newMeeting.endTime) {
+      alert("Please fill in all required fields");
+      return;
+    }
+    setLoading(true);
+    const supabase = createClient();
+    const rpcResult: { data: any; error: any } = await supabase.rpc('update_meeting', {
+      p_meeting_id: editingMeetingId,
+      p_title: newMeeting.title,
+      p_start_time: localToUTCISOString(newMeeting.startTime),
+      p_end_time: localToUTCISOString(newMeeting.endTime),
+    });
+    if (rpcResult.error) {
+      toast({
+        title: 'Failed to update meeting',
+        description: rpcResult.error.message,
+        variant: 'destructive',
+      });
+      setLoading(false);
+      return;
+    }
+    toast({
+      title: 'Meeting updated',
+      description: 'The meeting has been updated successfully.',
+    });
+    await fetchData();
+    setNewMeeting({
+      title: "",
+      startTime: "",
+      endTime: "",
+      organizer_id: user?.id || "Current User",
+      status: "Scheduled",
+    });
+    setEditing(false);
+    setEditingMeetingId(null);
+    setCurrentStep(2);
+    setLoading(false);
+  };
 
   const getRoomMeetings = (roomId: string) => {
     return meetings.filter((meeting) => meeting.roomId === roomId)
@@ -141,6 +232,13 @@ export default function MeetingBookingPage() {
     { number: 2, title: "View Schedule", icon: Calendar },
     { number: 3, title: "Create Meeting", icon: Plus },
   ]
+
+  // In the render, show a loading spinner or message if loading is true
+  if (loading) {
+    return (
+      <MeetingBookingLoading />
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -272,26 +370,50 @@ export default function MeetingBookingPage() {
                     getRoomMeetings(selectedRoom.id).map((meeting) => (
                       <div key={meeting.id} className="flex items-center justify-between p-4 border rounded-lg">
                         <div className="flex-1">
-                          <h3 className="font-medium">{meeting.title}</h3>
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-medium">{meeting.title}</h3>
+                            <Badge
+                              className={
+                                meeting.status === "Scheduled"
+                                  ? "bg-blue-100 text-blue-800"
+                                  : meeting.status === "Completed"
+                                  ? "bg-green-100 text-green-800"
+                                  : meeting.status === "Cancelled"
+                                  ? "bg-red-100 text-red-800"
+                                  : "bg-gray-100 text-gray-800"
+                              }
+                            >
+                              {meeting.status}
+                            </Badge>
+                          </div>
                           <div className="flex items-center gap-4 text-sm text-gray-500 mt-1">
                             <span className="flex items-center">
                               <Clock className="h-4 w-4 mr-1" />
-                              {meeting.startTime} - {meeting.endTime}
+                              {formatDateTime(meeting.startTime)} - {formatDateTime(meeting.endTime)}
                             </span>
                             <span className="flex items-center">
                               <Users className="h-4 w-4 mr-1" />
-                              {meeting.organizer}
+                              {meeting.organizer_name || meeting.organizer_id}
                             </span>
                           </div>
                         </div>
-                        <div className="flex gap-2">
-                          <Button variant="ghost" size="sm">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
+                        {(meeting.organizer_id === user?.id && meeting.status === "Scheduled") && (
+                          <div className="flex gap-2">
+                            <Button variant="ghost" size="sm" onClick={() => handleEditClick(meeting)}>
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-red-600 hover:text-red-700"
+                              onClick={() => handleCancelMeeting(meeting.id)}
+                              disabled={loading}
+                              aria-label="Cancel meeting"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     ))
                   ) : (
@@ -311,19 +433,18 @@ export default function MeetingBookingPage() {
           <div>
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h2 className="text-xl font-semibold">Create New Meeting</h2>
-                <p className="text-gray-500">Book {selectedRoom.name} for your meeting</p>
+                <h2 className="text-xl font-semibold">{editing ? 'Edit Meeting' : 'Create New Meeting'}</h2>
+                <p className="text-gray-500">{editing ? `Edit your meeting in ${selectedRoom.name}` : `Book ${selectedRoom.name} for your meeting`}</p>
               </div>
-              <Button variant="outline" onClick={() => setCurrentStep(2)}>
+              <Button variant="outline" onClick={() => { setCurrentStep(2); setEditing(false); setEditingMeetingId(null); }}>
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back
               </Button>
             </div>
-
             <Card>
               <CardHeader>
                 <CardTitle>Meeting Details</CardTitle>
-                <CardDescription>Fill in the information for your meeting</CardDescription>
+                <CardDescription>{editing ? 'Edit the information for your meeting' : 'Fill in the information for your meeting'}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -336,47 +457,25 @@ export default function MeetingBookingPage() {
                       onChange={(e) => setNewMeeting({ ...newMeeting, title: e.target.value })}
                     />
                   </div>
-
-                  <div>
-                    <Label htmlFor="date">Date *</Label>
-                    <Input
-                      id="date"
-                      type="date"
-                      value={newMeeting.date}
-                      onChange={(e) => setNewMeeting({ ...newMeeting, date: e.target.value })}
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="organizer">Organizer</Label>
-                    <Input
-                      id="organizer"
-                      value={newMeeting.organizer}
-                      onChange={(e) => setNewMeeting({ ...newMeeting, organizer: e.target.value })}
-                    />
-                  </div>
-
                   <div>
                     <Label htmlFor="startTime">Start Time *</Label>
                     <Input
                       id="startTime"
-                      type="time"
+                      type="datetime-local"
                       value={newMeeting.startTime}
                       onChange={(e) => setNewMeeting({ ...newMeeting, startTime: e.target.value })}
                     />
                   </div>
-
                   <div>
                     <Label htmlFor="endTime">End Time *</Label>
                     <Input
                       id="endTime"
-                      type="time"
+                      type="datetime-local"
                       value={newMeeting.endTime}
                       onChange={(e) => setNewMeeting({ ...newMeeting, endTime: e.target.value })}
                     />
                   </div>
                 </div>
-
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <h4 className="font-medium mb-2">Room Information</h4>
                   <div className="text-sm text-gray-600 space-y-1">
@@ -394,14 +493,20 @@ export default function MeetingBookingPage() {
                     </p>
                   </div>
                 </div>
-
                 <div className="flex justify-end gap-4">
-                  <Button variant="outline" onClick={() => setCurrentStep(2)}>
+                  <Button variant="outline" onClick={() => { setCurrentStep(2); setEditing(false); setEditingMeetingId(null); }}>
                     Cancel
                   </Button>
-                  <Button onClick={handleCreateMeeting} className="bg-green-600 hover:bg-green-700">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create Meeting
+                  <Button
+                    onClick={editing ? handleEditMeeting : handleCreateMeeting}
+                    className={editing ? "bg-yellow-600 hover:bg-yellow-700" : "bg-green-600 hover:bg-green-700"}
+                    disabled={creating || loading}
+                  >
+                    {creating || loading ? (
+                      <span className="flex items-center"><span className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></span>{editing ? 'Saving...' : 'Creating...'}</span>
+                    ) : (
+                      <>{editing ? <Edit className="h-4 w-4 mr-2" /> : <Plus className="h-4 w-4 mr-2" />}{editing ? 'Save Changes' : 'Create Meeting'}</>
+                    )}
                   </Button>
                 </div>
               </CardContent>
@@ -411,4 +516,10 @@ export default function MeetingBookingPage() {
       </div>
     </div>
   )
+}
+
+function localToUTCISOString(localDateTimeString: string) {
+  if (!localDateTimeString) return "";
+  const localDate = new Date(localDateTimeString);
+  return localDate.toISOString(); // Always UTC
 }

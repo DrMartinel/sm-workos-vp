@@ -529,7 +529,7 @@ export default function TimekeepingPage() {
               {/* Check Out Button */}
               <Button
                 onClick={handleCheckOut}
-                disabled={isCheckingOut && locationStatus === "approved"}
+                disabled={isCheckingOut}
                 className="bg-red-600 hover:bg-red-700 text-white px-8 py-3 text-lg"
               >
                 {isCheckingOut ? (
@@ -540,7 +540,7 @@ export default function TimekeepingPage() {
                 ) : (
                   <>
                     <LogOut className="h-5 w-5 mr-2" />
-                    Chấm công ra ca
+                    {(!isCheckedIn) ? "Vị trí không hợp lệ" : "Chấm công ra ca"}
                   </>
                 )}
               </Button>

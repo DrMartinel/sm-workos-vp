@@ -25,6 +25,7 @@ interface Meeting {
   date: string
   organizer: string
   roomId: string
+  status: string
 }
 
 const meetingRooms: MeetingRoom[] = [
@@ -67,6 +68,7 @@ const mockMeetings: Meeting[] = [
     date: "2025-01-10",
     organizer: "John Doe",
     roomId: "room-1",
+    status: "Scheduled",
   },
   {
     id: "meeting-2",
@@ -76,6 +78,7 @@ const mockMeetings: Meeting[] = [
     date: "2025-01-10",
     organizer: "Jane Smith",
     roomId: "room-1",
+    status: "Scheduled",
   },
   {
     id: "meeting-3",
@@ -85,6 +88,7 @@ const mockMeetings: Meeting[] = [
     date: "2025-01-10",
     organizer: "Mike Johnson",
     roomId: "room-2",
+    status: "Scheduled",
   },
 ]
 
@@ -98,6 +102,7 @@ export default function MeetingBookingPage() {
     startTime: "",
     endTime: "",
     organizer: "Current User",
+    status: "Scheduled",
   })
 
   const handleRoomSelect = (room: MeetingRoom) => {
@@ -119,6 +124,7 @@ export default function MeetingBookingPage() {
       date: newMeeting.date,
       organizer: newMeeting.organizer,
       roomId: selectedRoom.id,
+      status: newMeeting.status,
     }
 
     setMeetings([...meetings, meeting])
@@ -128,6 +134,7 @@ export default function MeetingBookingPage() {
       startTime: "",
       endTime: "",
       organizer: "Current User",
+      status: "Scheduled",
     })
     setCurrentStep(2) // Go back to room meetings list
   }
