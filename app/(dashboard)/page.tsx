@@ -39,7 +39,7 @@ export default function WorkspaceDashboard() {
     <div className="flex-1 overflow-auto p-4 md:p-8">
       <div className="mx-auto max-w-4xl">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Chào mừng đến với Không gian làm việc</h1>
+          <h1 className="text-xl font-bold text-gray-900">Workspace của bạn</h1>
         </div>
 
         <div className="grid gap-6 md:grid-cols-2">
