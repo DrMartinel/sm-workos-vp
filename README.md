@@ -2,7 +2,7 @@
 
 Welcome to the central repository for the Smartmove WorkOS project. This document provides all the necessary information for developers to get started, understand the architecture, and contribute effectively.
 
-## Table of Contents
+## Table of Contents 
 
 - [Getting Started](#getting-started)
   - [Prerequisites](#prerequisites)
