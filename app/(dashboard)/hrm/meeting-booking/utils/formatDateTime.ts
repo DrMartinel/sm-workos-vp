@@ -1,6 +1,6 @@
 export function formatDateTime(dateString: string) {
   const date = new Date(dateString)
-  return date.toLocaleString(undefined, {
+  return date.toLocaleString('vi-VN', {
     year: 'numeric',
     month: 'short',
     day: '2-digit',

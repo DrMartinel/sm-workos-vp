@@ -95,12 +95,12 @@ export default function MeetingBookingPage() {
       .select('id, title, start_time, end_time, organizer_id, organizer_name, room_id, status')
       .order('start_time', { ascending: true });
     if (roomsError) toast({
-      title: 'Error fetching meeting rooms',
+      title: 'Lỗi khi tải danh sách phòng họp',
       description: roomsError.message || String(roomsError),
       variant: 'destructive',
     });
     if (meetingsError) toast({
-      title: 'Error fetching meetings',
+      title: 'Lỗi khi tải danh sách cuộc họp',
       description: meetingsError.message || String(meetingsError),
       variant: 'destructive',
     });
@@ -123,8 +123,8 @@ export default function MeetingBookingPage() {
   const handleCreateMeeting = async () => {
     if (!selectedRoom || !newMeeting.title || !newMeeting.startTime || !newMeeting.endTime) {
       toast({
-        title: 'Missing required fields',
-        description: 'Please fill in all required fields',
+        title: 'Thiếu thông tin bắt buộc',
+        description: 'Vui lòng điền đầy đủ tất cả các trường bắt buộc',
         variant: 'destructive',
       });
       return;
@@ -144,7 +144,7 @@ export default function MeetingBookingPage() {
     
     if (error) {
       toast({
-        title: 'Failed to book meeting',
+        title: 'Không thể đặt phòng họp',
         description: error.message,
         variant: 'destructive',
       });
@@ -166,8 +166,8 @@ export default function MeetingBookingPage() {
     setCurrentStep(2);
     setLoading(false)
     toast({
-      title: 'Meeting booked successfully!',
-      description: 'Your meeting has been created.',
+      title: 'Đặt phòng họp thành công!',
+      description: 'Cuộc họp của bạn đã được tạo.',
     });
   }
 
@@ -178,7 +178,7 @@ export default function MeetingBookingPage() {
     const { error } = await supabase.rpc('cancel_meeting', { p_meeting_id: meetingToCancel });
     if (error) {
       toast({
-        title: 'Failed to cancel meeting',
+        title: 'Không thể hủy cuộc họp',
         description: error.message,
         variant: 'destructive',
       });
@@ -188,8 +188,8 @@ export default function MeetingBookingPage() {
       return;
     }
     toast({
-      title: 'Meeting cancelled',
-      description: 'The meeting has been cancelled successfully.',
+      title: 'Đã hủy cuộc họp',
+      description: 'Cuộc họp đã được hủy thành công.',
     });
     await fetchData();
     setLoading(false);
@@ -221,8 +221,8 @@ export default function MeetingBookingPage() {
   const handleEditMeeting = async () => {
     if (!selectedRoom || !newMeeting.title || !newMeeting.startTime || !newMeeting.endTime) {
       toast({
-        title: 'Missing required fields',
-        description: 'Please fill in all required fields',
+        title: 'Thiếu thông tin bắt buộc',
+        description: 'Vui lòng điền đầy đủ tất cả các trường bắt buộc',
         variant: 'destructive',
       });
       return;
@@ -237,7 +237,7 @@ export default function MeetingBookingPage() {
     });
     if (rpcResult.error) {
       toast({
-        title: 'Failed to update meeting',
+        title: 'Không thể cập nhật cuộc họp',
         description: rpcResult.error.message,
         variant: 'destructive',
       });
@@ -245,8 +245,8 @@ export default function MeetingBookingPage() {
       return;
     }
     toast({
-      title: 'Meeting updated',
-      description: 'The meeting has been updated successfully.',
+      title: 'Đã cập nhật cuộc họp',
+      description: 'Cuộc họp đã được cập nhật thành công.',
     });
     await fetchData();
     setNewMeeting({
@@ -267,9 +267,9 @@ export default function MeetingBookingPage() {
   }
 
   const steps = [
-    { number: 1, title: "Select Room", icon: MapPin },
-    { number: 2, title: "View Schedule", icon: Calendar },
-    { number: 3, title: "Create Meeting", icon: Plus },
+    { number: 1, title: "Chọn Phòng", icon: MapPin },
+    { number: 2, title: "Xem Lịch", icon: Calendar },
+    { number: 3, title: "Tạo Cuộc Họp", icon: Plus },
   ]
 
   // In the render, show a loading spinner or message if loading is true
@@ -284,8 +284,8 @@ export default function MeetingBookingPage() {
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Meeting Room Booking</h1>
-          <p className="text-gray-500 mt-1">Reserve meeting rooms for your team</p>
+          <h1 className="text-3xl font-bold text-gray-900">Đặt Phòng Họp</h1>
+          <p className="text-gray-500 mt-1">Đặt phòng họp cho nhóm của bạn</p>
         </div>
 
         {/* Progress Steps */}
@@ -337,7 +337,7 @@ export default function MeetingBookingPage() {
         {/* Step 1: Select Room */}
         {currentStep === 1 && (
           <div>
-            <h2 className="text-xl font-semibold mb-4">Select a Meeting Room</h2>
+            <h2 className="text-xl font-semibold mb-4">Chọn Phòng Họp</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {meetingRooms.map((room) => (
                 <Card
@@ -360,7 +360,7 @@ export default function MeetingBookingPage() {
                   </CardHeader>
                   <CardContent>
                     <div>
-                      <h4 className="text-sm font-medium mb-2">Equipment:</h4>
+                      <h4 className="text-sm font-medium mb-2">Thiết bị:</h4>
                       <div className="flex flex-wrap gap-1">
                         {room.equipment.map((item) => (
                           <Badge key={item} variant="secondary" className="text-xs">
@@ -381,27 +381,27 @@ export default function MeetingBookingPage() {
           <div>
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h2 className="text-xl font-semibold">{selectedRoom.name} - Schedule</h2>
+                <h2 className="text-xl font-semibold">{selectedRoom.name} - Lịch Trình</h2>
                 <p className="text-gray-500">
-                  {selectedRoom.location} • Capacity: {selectedRoom.capacity} people
+                  {selectedRoom.location} • Sức chứa: {selectedRoom.capacity} người
                 </p>
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" onClick={() => setCurrentStep(1)}>
                   <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back
+                  Quay lại
                 </Button>
                 <Button onClick={() => setCurrentStep(3)} className="bg-blue-600 hover:bg-blue-700">
                   <Plus className="h-4 w-4 mr-2" />
-                  New Meeting
+                  Cuộc Họp Mới
                 </Button>
               </div>
             </div>
 
             <Card>
               <CardHeader>
-                <CardTitle>Today's Meetings</CardTitle>
-                <CardDescription>Current bookings for {selectedRoom.name}</CardDescription>
+                <CardTitle>Cuộc Họp Hôm Nay</CardTitle>
+                <CardDescription>Lịch đặt hiện tại cho {selectedRoom.name}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -422,7 +422,9 @@ export default function MeetingBookingPage() {
                                   : "bg-gray-100 text-gray-800"
                               }
                             >
-                              {meeting.status}
+                              {meeting.status === "Scheduled" ? "Đã lên lịch" : 
+                               meeting.status === "Completed" ? "Hoàn thành" :
+                               meeting.status === "Cancelled" ? "Đã hủy" : meeting.status}
                             </Badge>
                           </div>
                           <div className="flex items-center gap-4 text-sm text-gray-500 mt-1">
@@ -449,24 +451,24 @@ export default function MeetingBookingPage() {
                                   className="text-red-600 hover:text-red-700"
                                   onClick={() => { setCancelDialogOpen(true); setMeetingToCancel(meeting.id); }}
                                   disabled={loading}
-                                  aria-label="Cancel meeting"
+                                  aria-label="Hủy cuộc họp"
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
                               </DialogTrigger>
                               <DialogContent>
                                 <DialogHeader>
-                                  <DialogTitle>Cancel Meeting</DialogTitle>
+                                  <DialogTitle>Hủy Cuộc Họp</DialogTitle>
                                   <DialogDescription>
-                                    Are you sure you want to cancel this meeting? This action cannot be undone.
+                                    Bạn có chắc chắn muốn hủy cuộc họp này không? Hành động này không thể hoàn tác.
                                   </DialogDescription>
                                 </DialogHeader>
                                 <DialogFooter>
                                   <DialogClose asChild>
-                                    <Button variant="outline">No, keep meeting</Button>
+                                    <Button variant="outline">Không, giữ cuộc họp</Button>
                                   </DialogClose>
                                   <Button variant="destructive" onClick={handleCancelMeeting} disabled={loading}>
-                                    Yes, cancel meeting
+                                    Có, hủy cuộc họp
                                   </Button>
                                 </DialogFooter>
                               </DialogContent>
@@ -478,7 +480,7 @@ export default function MeetingBookingPage() {
                   ) : (
                     <div className="text-center py-8 text-gray-500">
                       <Calendar className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                      <p>No meetings scheduled for this room today</p>
+                      <p>Không có cuộc họp nào được lên lịch cho phòng này hôm nay</p>
                     </div>
                   )}
                 </div>
@@ -492,32 +494,32 @@ export default function MeetingBookingPage() {
           <div>
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h2 className="text-xl font-semibold">{editing ? 'Edit Meeting' : 'Create New Meeting'}</h2>
-                <p className="text-gray-500">{editing ? `Edit your meeting in ${selectedRoom.name}` : `Book ${selectedRoom.name} for your meeting`}</p>
+                <h2 className="text-xl font-semibold">{editing ? 'Chỉnh Sửa Cuộc Họp' : 'Tạo Cuộc Họp Mới'}</h2>
+                <p className="text-gray-500">{editing ? `Chỉnh sửa cuộc họp của bạn tại ${selectedRoom.name}` : `Đặt ${selectedRoom.name} cho cuộc họp của bạn`}</p>
               </div>
               <Button variant="outline" onClick={() => { setCurrentStep(2); setEditing(false); setEditingMeetingId(null); }}>
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Back
+                Quay lại
               </Button>
             </div>
             <Card>
               <CardHeader>
-                <CardTitle>Meeting Details</CardTitle>
-                <CardDescription>{editing ? 'Edit the information for your meeting' : 'Fill in the information for your meeting'}</CardDescription>
+                <CardTitle>Chi Tiết Cuộc Họp</CardTitle>
+                <CardDescription>{editing ? 'Chỉnh sửa thông tin cuộc họp của bạn' : 'Điền thông tin cho cuộc họp của bạn'}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="md:col-span-2">
-                    <Label htmlFor="title">Meeting Title *</Label>
+                    <Label htmlFor="title">Tiêu Đề Cuộc Họp *</Label>
                     <Input
                       id="title"
-                      placeholder="Enter meeting title"
+                      placeholder="Nhập tiêu đề cuộc họp"
                       value={newMeeting.title}
                       onChange={(e) => setNewMeeting({ ...newMeeting, title: e.target.value })}
                     />
                   </div>
                   <div>
-                    <Label htmlFor="startTime">Start Time *</Label>
+                    <Label htmlFor="startTime">Thời Gian Bắt Đầu *</Label>
                     <Input
                       id="startTime"
                       type="datetime-local"
@@ -526,7 +528,7 @@ export default function MeetingBookingPage() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="endTime">End Time *</Label>
+                    <Label htmlFor="endTime">Thời Gian Kết Thúc *</Label>
                     <Input
                       id="endTime"
                       type="datetime-local"
@@ -536,25 +538,25 @@ export default function MeetingBookingPage() {
                   </div>
                 </div>
                 <div className="bg-gray-50 p-4 rounded-lg">
-                  <h4 className="font-medium mb-2">Room Information</h4>
+                  <h4 className="font-medium mb-2">Thông Tin Phòng</h4>
                   <div className="text-sm text-gray-600 space-y-1">
                     <p>
-                      <strong>Room:</strong> {selectedRoom.name}
+                      <strong>Phòng:</strong> {selectedRoom.name}
                     </p>
                     <p>
-                      <strong>Location:</strong> {selectedRoom.location}
+                      <strong>Vị trí:</strong> {selectedRoom.location}
                     </p>
                     <p>
-                      <strong>Capacity:</strong> {selectedRoom.capacity} people
+                      <strong>Sức chứa:</strong> {selectedRoom.capacity} người
                     </p>
                     <p>
-                      <strong>Equipment:</strong> {selectedRoom.equipment.join(", ")}
+                      <strong>Thiết bị:</strong> {selectedRoom.equipment.join(", ")}
                     </p>
                   </div>
                 </div>
                 <div className="flex justify-end gap-4">
                   <Button variant="outline" onClick={() => { setCurrentStep(2); setEditing(false); setEditingMeetingId(null); }}>
-                    Cancel
+                    Hủy
                   </Button>
                   <Button
                     onClick={editing ? handleEditMeeting : handleCreateMeeting}
@@ -562,9 +564,9 @@ export default function MeetingBookingPage() {
                     disabled={creating || loading}
                   >
                     {creating || loading ? (
-                      <span className="flex items-center"><span className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></span>{editing ? 'Saving...' : 'Creating...'}</span>
+                      <span className="flex items-center"><span className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></span>{editing ? 'Đang lưu...' : 'Đang tạo...'}</span>
                     ) : (
-                      <>{editing ? <Edit className="h-4 w-4 mr-2" /> : <Plus className="h-4 w-4 mr-2" />}{editing ? 'Save Changes' : 'Create Meeting'}</>
+                      <>{editing ? <Edit className="h-4 w-4 mr-2" /> : <Plus className="h-4 w-4 mr-2" />}{editing ? 'Lưu Thay Đổi' : 'Tạo Cuộc Họp'}</>
                     )}
                   </Button>
                 </div>
