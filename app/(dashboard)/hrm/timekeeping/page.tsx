@@ -276,14 +276,14 @@ export default function TimekeepingPage() {
 
           {/* Progress Steps */}
           <div className="mb-8">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center w-full max-w-2xl">
               {steps.map((step, index) => {
                 const Icon = step.icon
                 const isActive = currentStep === step.number
                 const isCompleted = currentStep > step.number
 
                 return (
-                  <div key={step.number} className="flex items-center">
+                  <div key={step.number} className="flex items-center flex-1">
                     <div className="flex flex-col items-center">
                       <div
                         className={cn(
@@ -297,7 +297,7 @@ export default function TimekeepingPage() {
                       </div>
                       <span
                         className={cn(
-                          "text-sm mt-2 font-medium",
+                          "text-sm mt-2 font-medium text-center",
                           isActive && "text-blue-600",
                           isCompleted && "text-green-600",
                           !isActive && !isCompleted && "text-gray-400",
