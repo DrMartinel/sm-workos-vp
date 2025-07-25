@@ -8,7 +8,7 @@ function MeetingBookingLoading() {
         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
       </svg>
       <div className="text-xl font-semibold text-blue-700 animate-pulse tracking-wide">
-        Loading<span className="inline-block animate-bounce">...</span>
+        Đang tải<span className="inline-block animate-bounce">...</span>
       </div>
     </div>
   );
