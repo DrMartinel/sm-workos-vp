@@ -126,7 +126,7 @@ export default function ReportsLayout({
         >
           {/* Header */}
           <div className="flex items-center justify-between border-b border-gray-200 px-4 py-4 flex-shrink-0">
-            <h2 className="text-lg font-medium">Reports</h2>
+            <h2 className="text-lg font-medium">Báo cáo</h2>
           </div>
 
           {/* Scrollable Navigation */}
