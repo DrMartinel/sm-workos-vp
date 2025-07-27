@@ -44,7 +44,6 @@ export default function ReportsLayout({
     { id: "tasks", icon: CheckSquare, label: "Tasks", href: "/tasks" },
     { id: "requests", icon: FileText, label: "Requests", href: "#" },
     { id: "goals", icon: Target, label: "Goals", href: "#" },
-    { id: "notifications", icon: Bell, label: "Notifications", href: "#" },
     { id: "workflow", icon: GitBranch, label: "Workflow", href: "/workflow-editor" },
     { id: "settings", icon: Settings, label: "Settings", href: "#" },
   ]
@@ -59,11 +58,26 @@ export default function ReportsLayout({
 
   return (
     <div className="flex h-screen bg-gray-50">
-      {/* Mobile menu button */}
-      <div className="fixed top-4 left-4 z-50 md:hidden">
-        <Button variant="outline" size="icon" onClick={toggleMobileSidebar}>
-          <Menu className="h-4 w-4" />
-        </Button>
+      {/* Mobile Header Bar */}
+      <div className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 md:hidden">
+        <div className="flex items-center justify-between px-4 py-3">
+          <div className="flex items-center gap-3">
+            <Button variant="outline" size="icon" onClick={toggleMobileSidebar}>
+              <Menu className="h-4 w-4" />
+            </Button>
+            <h1 className="text-lg font-semibold text-gray-900">WorkOS</h1>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon">
+              <Bell className="h-5 w-5 text-gray-600" />
+            </Button>
+            <Button variant="ghost" size="icon">
+              <div className="h-6 w-6 overflow-hidden rounded-full bg-gray-200">
+                <User className="h-full w-full p-1 text-gray-500" />
+              </div>
+            </Button>
+          </div>
+        </div>
       </div>
 
       {/* Unified Sidebar */}
@@ -72,6 +86,7 @@ export default function ReportsLayout({
           "fixed inset-y-0 left-0 z-40 flex bg-white transition-all duration-300 ease-in-out",
           sidebarCollapsed ? "w-16" : "w-72",
           mobileSidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
+          "md:top-0 top-16", // Add top margin on mobile for header
         )}
       >
         {/* Primary Sidebar Section */}
@@ -110,7 +125,11 @@ export default function ReportsLayout({
               </div>
             </TooltipProvider>
           </div>
-          <div className="flex flex-col items-center space-y-6">
+          {/* Hide notification and profile on mobile, show on desktop */}
+          <div className="hidden md:flex flex-col items-center space-y-6">
+            <Button variant="ghost" size="icon">
+              <Bell className="h-5 w-5 text-gray-500" />
+            </Button>
             <div className="h-10 w-10 overflow-hidden rounded-full bg-gray-200">
               <User className="h-full w-full p-2 text-gray-500" />
             </div>
@@ -126,7 +145,7 @@ export default function ReportsLayout({
         >
           {/* Header */}
           <div className="flex items-center justify-between border-b border-gray-200 px-4 py-4 flex-shrink-0">
-            <h2 className="text-lg font-medium">Báo cáo</h2>
+            <h2 className="text-lg font-medium">Reports</h2>
           </div>
 
           {/* Scrollable Navigation */}
@@ -277,17 +296,26 @@ export default function ReportsLayout({
         {/* Collapse Toggle Button */}
         <button
           onClick={toggleSidebar}
-          className="absolute -right-3 top-1/2 transform -translate-y-1/2 flex items-center justify-center h-6 w-6 rounded-full bg-white border border-gray-200 shadow-sm z-50 text-gray-500 hover:text-gray-900"
+          className="absolute -right-3 top-1/2 transform -translate-y-1/2 flex items-center justify-center h-6 w-6 rounded-full bg-white border border-gray-200 shadow-sm z-50 text-gray-500 hover:text-gray-900 hidden md:flex"
         >
           {sidebarCollapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
         </button>
       </aside>
+
+      {/* Mobile Overlay */}
+      {mobileSidebarOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black bg-opacity-50 md:hidden"
+          onClick={() => setMobileSidebarOpen(false)}
+        />
+      )}
 
       {/* Main Content */}
       <main
         className={cn(
           "flex-1 overflow-auto transition-all duration-300 ease-in-out",
           sidebarCollapsed ? "md:ml-16" : "md:ml-72",
+          "pt-16 md:pt-0", // Add top padding on mobile for header
         )}
       >
         <Suspense fallback={null}>{children}</Suspense>

@@ -1,53 +1,86 @@
 "use client"
 
 import type React from "react"
-import { Suspense } from "react"
+
 import { useState } from "react"
-import Link from "next/link"
 import {
   Home,
   CheckSquare,
   FileText,
   Target,
   Bell,
-  GitBranch,
-  Settings,
   Menu,
   ChevronLeft,
   ChevronRight,
   User,
   BarChart3,
   AppWindow,
+  Briefcase,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import Link from "next/link"
 
-export default function ApplicationsLayout({
+export default function AnnouncementsLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode
-}>) {
-  const [activeIcon, setActiveIcon] = useState<string>("applications")
+}) {
+  const [activeIcon, setActiveIcon] = useState<string>("home")
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
 
   const primaryIcons = [
-    { id: "home", icon: Home, label: "Home", href: "/" },
-    { id: "reports", icon: BarChart3, label: "Reports", href: "/reports" },
-    { id: "tasks", icon: CheckSquare, label: "Tasks", href: "/tasks" },
-    { id: "applications", icon: AppWindow, label: "Applications", href: "/applications" },
-    { id: "requests", icon: FileText, label: "Requests", href: "#" },
-    { id: "goals", icon: Target, label: "Goals", href: "#" },
-    { id: "workflow", icon: GitBranch, label: "Workflow", href: "/workflow-editor" },
-    { id: "settings", icon: Settings, label: "Settings", href: "#" },
+    { id: "home", icon: Home, label: "Home" },
+    { id: "reports", icon: BarChart3, label: "Reports" },
+    { id: "tasks", icon: CheckSquare, label: "Tasks" },
+    { id: "applications", icon: AppWindow, label: "Applications" },
+    { id: "requests", icon: FileText, label: "Requests" },
+    { id: "goals", icon: Target, label: "Goals" },
+    { id: "business", icon: Briefcase, label: "Business" },
   ]
 
   const secondaryMenus = {
+    home: [
+      { id: "dashboard", label: "Dashboard" },
+      { id: "recent", label: "Recent Activity" },
+      { id: "favorites", label: "Favorites" },
+      { id: "team", label: "Team" },
+      { id: "announcements", label: "Announcements" },
+    ],
+    reports: [
+      { id: "overview", label: "Overview" },
+      { id: "analytics", label: "Analytics" },
+      { id: "insights", label: "Insights" },
+      { id: "trends", label: "Trends" },
+    ],
+    tasks: [
+      { id: "all", label: "All Tasks" },
+      { id: "assigned", label: "Assigned to Me" },
+      { id: "completed", label: "Completed" },
+      { id: "kanban", label: "Kanban Board" },
+    ],
     applications: [
       { id: "all-apps", label: "All Applications" },
       { id: "favourites", label: "Favourites" },
       { id: "recently-used", label: "Recently Used" },
+    ],
+    requests: [
+      { id: "my-requests", label: "My Requests" },
+      { id: "approvals", label: "Approvals" },
+      { id: "templates", label: "Templates" },
+      { id: "history", label: "History" },
+    ],
+    goals: [
+      { id: "objectives", label: "Objectives" },
+      { id: "key-results", label: "Key Results" },
+      { id: "progress", label: "Progress" },
+      { id: "reports", label: "Reports" },
+    ],
+    business: [
+      { id: "timekeeping", label: "Timekeeping" },
+      { id: "meeting-booking", label: "Meeting Booking" },
     ],
   }
 
@@ -89,7 +122,7 @@ export default function ApplicationsLayout({
           "fixed inset-y-0 left-0 z-40 flex bg-white transition-all duration-300 ease-in-out",
           sidebarCollapsed ? "w-16" : "w-72",
           mobileSidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
-          "md:top-0 top-16", // Add top margin on mobile for header
+          "md:top-0 top-16",
         )}
       >
         {/* Primary Sidebar Section */}
@@ -107,7 +140,17 @@ export default function ApplicationsLayout({
                     <Tooltip key={item.id}>
                       <TooltipTrigger asChild>
                         <Link
-                          href={item.href}
+                          href={
+                            item.id === "tasks"
+                              ? "/tasks"
+                              : item.id === "reports"
+                                ? "/reports"
+                                : item.id === "applications"
+                                  ? "/applications"
+                                  : item.id === "home"
+                                    ? "/"
+                                    : "#"
+                          }
                           onClick={() => setActiveIcon(item.id)}
                           className={cn(
                             "flex h-10 w-10 items-center justify-center rounded-full transition-colors",
@@ -147,17 +190,31 @@ export default function ApplicationsLayout({
           )}
         >
           <div className="flex items-center justify-between border-b border-gray-200 px-4 py-4">
-            <h2 className="text-lg font-medium">Applications</h2>
+            <h2 className="text-lg font-medium">{primaryIcons.find((icon) => icon.id === activeIcon)?.label}</h2>
           </div>
           <div className="flex-1 overflow-auto py-2">
             <nav className="space-y-1 px-2">
-              {secondaryMenus.applications?.map((item) => (
-                <button
+              {secondaryMenus[activeIcon as keyof typeof secondaryMenus]?.map((item) => (
+                <Link
                   key={item.id}
-                  className="flex w-full items-center rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                  href={
+                    activeIcon === "business" && item.id === "timekeeping"
+                      ? "/timekeeping"
+                      : activeIcon === "business" && item.id === "meeting-booking"
+                        ? "/meeting-booking"
+                        : activeIcon === "home" && item.id === "news"
+                          ? "/news"
+                          : activeIcon === "home" && item.id === "dashboard"
+                            ? "/"
+                            : "#"
+                  }
+                  className={cn(
+                    "flex w-full items-center rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900",
+                    activeIcon === "home" && item.id === "news" && "bg-gray-100 text-gray-900",
+                  )}
                 >
                   {item.label}
-                </button>
+                </Link>
               ))}
             </nav>
           </div>
@@ -185,10 +242,10 @@ export default function ApplicationsLayout({
         className={cn(
           "flex-1 overflow-auto transition-all duration-300 ease-in-out",
           sidebarCollapsed ? "md:ml-16" : "md:ml-72",
-          "pt-16 md:pt-0", // Add top padding on mobile for header
+          "pt-16 md:pt-0",
         )}
       >
-        <Suspense fallback={null}>{children}</Suspense>
+        {children}
       </main>
     </div>
   )

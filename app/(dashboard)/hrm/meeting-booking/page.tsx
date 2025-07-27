@@ -267,9 +267,9 @@ export default function MeetingBookingPage() {
   }
 
   const steps = [
-    { number: 1, title: "Chọn Phòng", icon: MapPin },
-    { number: 2, title: "Xem Lịch", icon: Calendar },
-    { number: 3, title: "Tạo Cuộc Họp", icon: Plus },
+    { number: 1, title: "Chọn phòng", icon: MapPin },
+    { number: 2, title: "Xem lịch", icon: Calendar },
+    { number: 3, title: "Book phòng", icon: Plus },
   ]
 
   // In the render, show a loading spinner or message if loading is true
@@ -284,7 +284,7 @@ export default function MeetingBookingPage() {
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Đặt Phòng Họp</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Đặt phòng họp</h1>
           <p className="text-gray-500 mt-1">Đặt phòng họp cho nhóm của bạn</p>
         </div>
 
@@ -337,7 +337,7 @@ export default function MeetingBookingPage() {
         {/* Step 1: Select Room */}
         {currentStep === 1 && (
           <div>
-            <h2 className="text-xl font-semibold mb-4">Chọn Phòng Họp</h2>
+            <h2 className="text-xl font-semibold mb-4">Chọn phòng họp</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {meetingRooms.map((room) => (
                 <Card
