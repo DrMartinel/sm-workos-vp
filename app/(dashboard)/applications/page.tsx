@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import {
   Search,
   Grid3X3,
@@ -13,7 +14,6 @@ import {
   Globe,
   Target,
   Briefcase,
-  Calendar,
   UserCheck,
   Building,
   Scale,
@@ -24,6 +24,7 @@ import {
   MapPin,
   Hash,
   Layers,
+  Gift,
 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -170,10 +171,10 @@ const teamsData: Team[] = [
         color: "bg-blue-600",
       },
       {
-        id: "canteen",
-        name: "Canteen",
-        description: "Quản lý căng tin và đặt món ăn",
-        icon: Calendar,
+        id: "sm-rewards",
+        name: "SM Rewards",
+        description: "Quản lý điểm thưởng và tích điểm",
+        icon: Gift,
         color: "bg-green-600",
       },
       {
@@ -218,6 +219,7 @@ const teamsData: Team[] = [
 ]
 
 export default function ApplicationsPage() {
+  const router = useRouter()
   const [searchTerm, setSearchTerm] = useState("")
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const [favorites, setFavorites] = useState<Set<string>>(
@@ -252,8 +254,27 @@ export default function ApplicationsPage() {
     const Icon = app.icon
     const isFavorite = favorites.has(app.id)
 
+    const handleCardClick = () => {
+      const routingPaths: Record<string, string> = {
+        "sm-rewards": "/applications/sm-rewards",
+        // Add more routing paths here as needed
+        // "campaign-mgmt": "/applications/campaign-mgmt",
+        // "budget-allocation": "/applications/budget-allocation",
+        // etc.
+      }
+
+      const path = routingPaths[app.id]
+      if (path) {
+        router.push(path)
+      }
+      // If no path is defined, the card will just be clickable but won't navigate
+    }
+
     return (
-      <Card className="group hover:shadow-lg transition-all duration-200 cursor-pointer hover:scale-105 border border-gray-200">
+      <Card 
+        className="group hover:shadow-lg transition-all duration-200 cursor-pointer hover:scale-105 border border-gray-200"
+        onClick={handleCardClick}
+      >
         <CardContent className="p-4">
           <div className="flex items-start gap-3">
             <div className={cn("p-2 rounded-lg text-white flex-shrink-0", app.color)}>
