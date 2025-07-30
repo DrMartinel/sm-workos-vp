@@ -586,7 +586,7 @@ export default function SMRewardsPage() {
           </CardContent>
         </Card>
 
-        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => window.location.href = '/applications/sm-rewards/menu'}>
+        {/* <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => window.location.href = '/applications/sm-rewards/menu'}>
           <CardContent className="p-6 text-center">
             <div className="h-12 w-12 mx-auto mb-3 bg-purple-100 rounded-full flex items-center justify-center">
               <Gift className="h-6 w-6 text-purple-600" />
@@ -594,7 +594,7 @@ export default function SMRewardsPage() {
             <h3 className="font-medium text-gray-900">View Menu</h3>
             <p className="text-sm text-gray-500 mt-1">Browse products</p>
           </CardContent>
-        </Card>
+        </Card> */}
 
         <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setCurrentView("history")}>
           <CardContent className="p-6 text-center">
