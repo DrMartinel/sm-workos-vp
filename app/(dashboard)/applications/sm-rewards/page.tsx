@@ -32,6 +32,8 @@ import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
 import BarcodeScanner from "@/components/qr-scanner"
 import BarcodeGenerator from "@/components/qr-generator"
+import { VNPayService } from "@/app/shared-ui/lib/utils/vnpay"
+import { useRouter, useSearchParams } from "next/navigation";
 
 // Transaction interface
 interface Transaction {
@@ -156,6 +158,9 @@ export default function SMRewardsPage() {
 
   const vndBalance = balance * 1000
 
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   // Fetch user's SM rewards balance on component mount
   useEffect(() => {
     const fetchBalance = async () => {
@@ -174,6 +179,20 @@ export default function SMRewardsPage() {
 
     fetchBalance()
   }, [])
+
+  // Effect to handle VNPay callback
+  useEffect(() => {
+    const payment = searchParams.get("payment");
+    if (payment === "success") {
+      setShowSuccessModal(true);
+      // Optionally, show credited amount: searchParams.get("amount")
+      // Optionally, refresh balance here
+      router.replace("/applications/sm-rewards"); // Clean up URL
+    } else if (payment === "error") {
+      setShowErrorModal(true);
+      router.replace("/applications/sm-rewards");
+    }
+  }, [searchParams, router]);
 
   // Helper function to generate current date and time
   const getCurrentDateTime = () => {
@@ -202,7 +221,24 @@ export default function SMRewardsPage() {
 
   const handleTopUp = async () => {
     if (topUpAmount && paymentMethod) {
-      const amount = Number.parseInt(topUpAmount)
+      const amount = Number.parseInt(topUpAmount);
+
+      if (paymentMethod === "vnpay") {
+        // VNPay flow
+        const res = await VNPayService.createPayment({
+          amount,
+          language: "vn",
+        });
+        if (res.success && res.paymentUrl) {
+          VNPayService.redirectToPayment(res.paymentUrl);
+          return; // Stop further execution, redirecting
+        } else {
+          setShowTopUpModal(false);
+          setShowErrorModal(true);
+          return;
+        }
+      }
+
       const coinsToAdd = Math.floor(amount * 0.001)
 
       try {
@@ -874,6 +910,7 @@ export default function SMRewardsPage() {
                   <SelectItem value="bank">Bank Transfer</SelectItem>
                   <SelectItem value="qr">QR Code Payment</SelectItem>
                   <SelectItem value="card">Credit Card</SelectItem>
+                  <SelectItem value="vnpay">VNPay (ATM/Bank)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
