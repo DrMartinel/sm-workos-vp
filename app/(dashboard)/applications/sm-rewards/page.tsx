@@ -34,6 +34,7 @@ import BarcodeScanner from "@/components/qr-scanner"
 import BarcodeGenerator from "@/components/qr-generator"
 import { VNPayService } from "@/app/shared-ui/lib/utils/vnpay"
 import { useRouter, useSearchParams } from "next/navigation";
+import { useToast } from "@/components/ui/use-toast";
 
 // Transaction interface
 interface Transaction {
@@ -155,44 +156,73 @@ export default function SMRewardsPage() {
   const [filterType, setFilterType] = useState("all")
   const [searchTransactionTerm, setSearchTransactionTerm] = useState("")
   const [showQRTesting, setShowQRTesting] = useState(false)
+  const [modalAmount, setModalAmount] = useState<string | null>(null);
+  const [modalOrderInfo, setModalOrderInfo] = useState<string | null>(null);
 
   const vndBalance = balance * 1000
 
-  const router = useRouter();
-  const searchParams = useSearchParams();
+
+  const skipInitialBalanceFetch = useRef(false);
 
   // Fetch user's SM rewards balance on component mount
-  useEffect(() => {
-    const fetchBalance = async () => {
-      try {
-        setIsLoadingBalance(true)
-        const userBalance = await profilesService.getSMRewardsBalance()
-        setBalance(userBalance)
-      } catch (error) {
-        console.error('Error fetching SM rewards balance:', error)
-        // Fallback to 0 if there's an error
-        setBalance(0)
-      } finally {
-        setIsLoadingBalance(false)
-      }
+  const fetchBalance = async () => {
+    try {
+      setIsLoadingBalance(true)
+      const userBalance = await profilesService.getSMRewardsBalance()
+      setBalance(userBalance)
+    } catch (error) {
+      console.error('Error fetching SM rewards balance:', error)
+      // Fallback to 0 if there's an error
+      setBalance(0)
+    } finally {
+      setIsLoadingBalance(false)
     }
+  }
 
-    fetchBalance()
-  }, [])
+  useEffect(() => {
+    if (!skipInitialBalanceFetch.current) {
+      fetchBalance();
+    }
+  }, []);
 
   // Effect to handle VNPay callback
   useEffect(() => {
-    const payment = searchParams.get("payment");
-    if (payment === "success") {
-      setShowSuccessModal(true);
-      // Optionally, show credited amount: searchParams.get("amount")
-      // Optionally, refresh balance here
-      router.replace("/applications/sm-rewards"); // Clean up URL
-    } else if (payment === "error") {
-      setShowErrorModal(true);
-      router.replace("/applications/sm-rewards");
+    const search = window.location.search;
+    const params = new URLSearchParams(search);
+
+    const vnp_ResponseCode = params.get("vnp_ResponseCode");
+    const vnp_TransactionStatus = params.get("vnp_TransactionStatus");
+    const vnp_Amount = params.get("vnp_Amount");
+    const vnp_OrderInfo = params.get("vnp_OrderInfo");
+
+    if (vnp_ResponseCode && vnp_TransactionStatus) {
+      if (vnp_ResponseCode === "00" && vnp_TransactionStatus === "00") {
+        skipInitialBalanceFetch.current = true; // Set flag to skip initial fetch
+        // Calculate coins to add
+        const coinsToAdd = Math.floor(Number(vnp_Amount) * 0.001 / 100);
+
+        // Update SM Points in the database
+        profilesService.addSMRewards(coinsToAdd).then((success) => {
+          if (success) {
+            setShowSuccessModal(true);
+            fetchBalance();
+          } else {
+            setShowErrorModal(true);
+          }
+        });
+      } else {
+        setShowErrorModal(true);
+      }
+      window.history.replaceState({}, document.title, window.location.pathname);
     }
-  }, [searchParams, router]);
+  }, []);
+
+  // Effect to fetch balance only if not skipped
+  useEffect(() => {
+    if (!skipInitialBalanceFetch.current) {
+      fetchBalance();
+    }
+  }, []);
 
   // Helper function to generate current date and time
   const getCurrentDateTime = () => {
@@ -1072,11 +1102,16 @@ export default function SMRewardsPage() {
 
       {/* Success Modal */}
       <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
+        <DialogTitle>Transaction Successful</DialogTitle>
         <DialogContent>
           <div className="text-center py-6">
             <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">Transaction Successful!</h3>
-            <p className="text-gray-600 mb-4">Your transaction has been completed successfully.</p>
+            <p className="text-gray-600 mb-4">
+              {modalAmount && `You have topped up ${(Number(modalAmount) / 100).toLocaleString()} VND.`}
+              {modalOrderInfo && <br />}
+              {modalOrderInfo && <span>({decodeURIComponent(modalOrderInfo)})</span>}
+            </p>
             <Button onClick={() => setShowSuccessModal(false)}>Close</Button>
           </div>
         </DialogContent>
