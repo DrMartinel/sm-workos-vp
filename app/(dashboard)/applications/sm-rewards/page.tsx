@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import { canteenProductsService, CanteenProduct } from "@/lib/utils/supabase/canteen-products"
+import { profilesService } from "@/lib/utils/supabase/profiles"
 import {
   TrendingUp,
   Gift,
@@ -123,7 +124,8 @@ const initialTransactions: Transaction[] = [
 
 export default function SMRewardsPage() {
   const [currentView, setCurrentView] = useState<"main" | "history">("main")
-  const [balance, setBalance] = useState(11205)
+  const [balance, setBalance] = useState(0)
+  const [isLoadingBalance, setIsLoadingBalance] = useState(true)
   const [transactions, setTransactions] = useState<Transaction[]>(initialTransactions)
 
   // Modal states for SM Rewards
@@ -154,6 +156,25 @@ export default function SMRewardsPage() {
 
   const vndBalance = balance * 1000
 
+  // Fetch user's SM rewards balance on component mount
+  useEffect(() => {
+    const fetchBalance = async () => {
+      try {
+        setIsLoadingBalance(true)
+        const userBalance = await profilesService.getSMRewardsBalance()
+        setBalance(userBalance)
+      } catch (error) {
+        console.error('Error fetching SM rewards balance:', error)
+        // Fallback to 0 if there's an error
+        setBalance(0)
+      } finally {
+        setIsLoadingBalance(false)
+      }
+    }
+
+    fetchBalance()
+  }, [])
+
   // Helper function to generate current date and time
   const getCurrentDateTime = () => {
     const now = new Date()
@@ -179,55 +200,86 @@ export default function SMRewardsPage() {
     setTransactions((prev) => [transaction, ...prev])
   }
 
-  const handleTopUp = () => {
+  const handleTopUp = async () => {
     if (topUpAmount && paymentMethod) {
       const amount = Number.parseInt(topUpAmount)
       const coinsToAdd = Math.floor(amount * 0.001)
 
-      // Update balance
-      setBalance((prev) => prev + coinsToAdd)
+      try {
+        // Update balance in database
+        const success = await profilesService.addSMRewards(coinsToAdd)
+        
+        if (success) {
+          // Update local state
+          setBalance((prev) => prev + coinsToAdd)
 
-      // Add transaction to history
-      addTransaction({
-        type: "topup",
-        amount: coinsToAdd,
-        description: `Top-up via ${paymentMethod === "bank" ? "Bank Transfer" : paymentMethod === "qr" ? "QR Code Payment" : "Credit Card"}`,
-      })
+          // Add transaction to history
+          addTransaction({
+            type: "topup",
+            amount: coinsToAdd,
+            description: `Top-up via ${paymentMethod === "bank" ? "Bank Transfer" : paymentMethod === "qr" ? "QR Code Payment" : "Credit Card"}`,
+          })
 
-      setShowTopUpModal(false)
-      setShowSuccessModal(true)
-      setTopUpAmount("")
-      setPaymentMethod("")
+          setShowTopUpModal(false)
+          setShowSuccessModal(true)
+          setTopUpAmount("")
+          setPaymentMethod("")
+        } else {
+          // Handle error
+          setShowTopUpModal(false)
+          setShowErrorModal(true)
+        }
+      } catch (error) {
+        console.error('Error updating SM rewards balance:', error)
+        setShowTopUpModal(false)
+        setShowErrorModal(true)
+      }
     }
   }
 
-  const handleTransfer = () => {
+  const handleTransfer = async () => {
     if (transferAmount && transferRecipient) {
       const amount = Number.parseInt(transferAmount)
       if (amount > balance) {
         setShowTransferModal(false)
         setShowErrorModal(true)
       } else {
-        // Update balance
-        setBalance((prev) => prev - amount)
+        try {
+          // Update balance in database
+          const success = await profilesService.deductSMRewards(amount)
+          
+          if (success) {
+            // Update local state
+            setBalance((prev) => prev - amount)
 
-        // Add transaction to history
-        const recipientName =
-          transferRecipient === "john.doe"
-            ? "John Doe"
-            : transferRecipient === "jane.smith"
-              ? "Jane Smith"
-              : "Mike Johnson"
-        addTransaction({
-          type: "transfer",
-          amount: amount,
-          description: `Transfer to ${recipientName}`,
-        })
+            // Add transaction to history
+            const recipientName =
+              transferRecipient === "john.doe"
+                ? "John Doe"
+                : transferRecipient === "jane.smith"
+                  ? "Jane Smith"
+                  : "Mike Johnson"
+            
+            addTransaction({
+              type: "transfer",
+              amount: amount,
+              description: `Transfer to ${recipientName}`,
+            })
 
-        setShowTransferModal(false)
-        setShowSuccessModal(true)
-        setTransferAmount("")
-        setTransferRecipient("")
+            setShowTransferModal(false)
+            setShowSuccessModal(true)
+            setTransferAmount("")
+            setTransferRecipient("")
+          } else {
+            // Handle error
+            setShowTransferModal(false)
+            setShowErrorModal(true)
+          }
+        } catch (error) {
+          console.error('Error updating SM rewards balance:', error)
+          setShowTransferModal(false)
+          setShowErrorModal(true)
+        }
       }
     }
   }
@@ -279,25 +331,40 @@ export default function SMRewardsPage() {
     // You can show a toast notification here if needed
   }
 
-  const handlePurchase = () => {
+  const handlePurchase = async () => {
     if (scannedProduct) {
       if (scannedProduct.price > balance) {
         setShowScanModal(false)
         setShowErrorModal(true)
       } else {
-        // Update balance
-        setBalance((prev) => prev - scannedProduct.price)
+        try {
+          // Update balance in database
+          const success = await profilesService.deductSMRewards(scannedProduct.price)
+          
+          if (success) {
+            // Update local state
+            setBalance((prev) => prev - scannedProduct.price)
 
-        // Add transaction to history
-        addTransaction({
-          type: "spend",
-          amount: scannedProduct.price,
-          description: `Purchase - ${scannedProduct.name}`,
-        })
+            // Add transaction to history
+            addTransaction({
+              type: "spend",
+              amount: scannedProduct.price,
+              description: `Purchase - ${scannedProduct.name}`,
+            })
 
-        setShowScanModal(false)
-        setShowSuccessModal(true)
-        setScannedProduct(null)
+            setShowScanModal(false)
+            setShowSuccessModal(true)
+            setScannedProduct(null)
+          } else {
+            // Handle error
+            setShowScanModal(false)
+            setShowErrorModal(true)
+          }
+        } catch (error) {
+          console.error('Error updating SM rewards balance:', error)
+          setShowScanModal(false)
+          setShowErrorModal(true)
+        }
       }
     }
   }
@@ -480,8 +547,19 @@ export default function SMRewardsPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            <div className="text-3xl font-bold text-white">{balance.toLocaleString()}</div>
-            <div className="text-sm text-blue-100">≈ {vndBalance.toLocaleString()} VND</div>
+                            <div className="text-3xl font-bold text-white">
+                  {isLoadingBalance ? (
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Loading...
+                    </div>
+                  ) : (
+                    balance.toLocaleString()
+                  )}
+                </div>
+                <div className="text-sm text-blue-100">
+                  {isLoadingBalance ? "Loading..." : `≈ ${vndBalance.toLocaleString()} VND`}
+                </div>
           </div>
         </CardContent>
       </Card>
