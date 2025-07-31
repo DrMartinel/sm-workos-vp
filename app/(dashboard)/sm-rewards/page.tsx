@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import { canteenProductsService, CanteenProduct } from "@/lib/utils/supabase/canteen-products"
+import { profilesService } from "@/lib/utils/supabase/profiles"
 import {
   TrendingUp,
   Gift,
@@ -31,6 +32,9 @@ import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
 import BarcodeScanner from "@/components/qr-scanner"
 import BarcodeGenerator from "@/components/qr-generator"
+import { VNPayService } from "@/app/shared-ui/lib/utils/vnpay"
+import { useRouter, useSearchParams } from "next/navigation";
+import { useToast } from "@/components/ui/use-toast";
 
 // Transaction interface
 interface Transaction {
@@ -123,7 +127,8 @@ const initialTransactions: Transaction[] = [
 
 export default function SMRewardsPage() {
   const [currentView, setCurrentView] = useState<"main" | "history">("main")
-  const [balance, setBalance] = useState(11205)
+  const [balance, setBalance] = useState(0)
+  const [isLoadingBalance, setIsLoadingBalance] = useState(true)
   const [transactions, setTransactions] = useState<Transaction[]>(initialTransactions)
 
   // Modal states for SM Rewards
@@ -151,8 +156,70 @@ export default function SMRewardsPage() {
   const [filterType, setFilterType] = useState("all")
   const [searchTransactionTerm, setSearchTransactionTerm] = useState("")
   const [showQRTesting, setShowQRTesting] = useState(false)
+  const [modalAmount, setModalAmount] = useState<string | null>(null);
+  const [modalOrderInfo, setModalOrderInfo] = useState<string | null>(null);
 
-  const vndBalance = balance * 1000
+
+
+  const skipInitialBalanceFetch = useRef(false);
+
+  // Fetch user's SM rewards balance on component mount
+  const fetchBalance = async () => {
+    try {
+      setIsLoadingBalance(true)
+      const userBalance = await profilesService.getSMRewardsBalance()
+      setBalance(userBalance)
+    } catch (error) {
+      console.error('Error fetching SM rewards balance:', error)
+      // Fallback to 0 if there's an error
+      setBalance(0)
+    } finally {
+      setIsLoadingBalance(false)
+    }
+  }
+
+  useEffect(() => {
+    if (!skipInitialBalanceFetch.current) {
+      fetchBalance();
+    }
+  }, []);
+
+  // Effect to handle VNPay callback
+  useEffect(() => {
+    const search = window.location.search;
+    if (!search) return;
+
+    // Call your API to verify the transaction
+    fetch(`/api/vnpay/callback${search}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          // Update balance on client side
+          profilesService.addSMRewards(data.amount).then((success) => {
+            if (success) {
+              setShowSuccessModal(true);
+              fetchBalance();
+            } else {
+              setShowErrorModal(true);
+            }
+          });
+        } else {
+          setShowErrorModal(true);
+        }
+        window.history.replaceState({}, document.title, window.location.pathname);
+      })
+      .catch(() => {
+        setShowErrorModal(true);
+        window.history.replaceState({}, document.title, window.location.pathname);
+      });
+  }, []);
+
+  // Effect to fetch balance only if not skipped
+  useEffect(() => {
+    if (!skipInitialBalanceFetch.current) {
+      fetchBalance();
+    }
+  }, []);
 
   // Helper function to generate current date and time
   const getCurrentDateTime = () => {
@@ -179,55 +246,101 @@ export default function SMRewardsPage() {
     setTransactions((prev) => [transaction, ...prev])
   }
 
-  const handleTopUp = () => {
+  const handleTopUp = async () => {
     if (topUpAmount && paymentMethod) {
-      const amount = Number.parseInt(topUpAmount)
-      const coinsToAdd = Math.floor(amount * 0.001)
+      const amount = Number.parseInt(topUpAmount);
 
-      // Update balance
-      setBalance((prev) => prev + coinsToAdd)
+      if (paymentMethod === "vnpay") {
+        // VNPay flow
+        const res = await VNPayService.createPayment({
+          amount,
+          language: "vn",
+        });
+        if (res.success && res.paymentUrl) {
+          VNPayService.redirectToPayment(res.paymentUrl);
+          return; // Stop further execution, redirecting
+        } else {
+          setShowTopUpModal(false);
+          setShowErrorModal(true);
+          return;
+        }
+      }
 
-      // Add transaction to history
-      addTransaction({
-        type: "topup",
-        amount: coinsToAdd,
-        description: `Top-up via ${paymentMethod === "bank" ? "Bank Transfer" : paymentMethod === "qr" ? "QR Code Payment" : "Credit Card"}`,
-      })
+      const coinsToAdd = Number(amount);
 
-      setShowTopUpModal(false)
-      setShowSuccessModal(true)
-      setTopUpAmount("")
-      setPaymentMethod("")
+      try {
+        // Update balance in database
+        const success = await profilesService.addSMRewards(coinsToAdd)
+        
+        if (success) {
+          setBalance((prev) => prev + coinsToAdd)
+
+          addTransaction({
+            type: "topup",
+            amount: coinsToAdd,
+            description: `Top-up via ${paymentMethod === "bank" ? "Bank Transfer" : paymentMethod === "qr" ? "QR Code Payment" : "Credit Card"}`,
+          })
+
+          setShowTopUpModal(false)
+          setShowSuccessModal(true)
+          setTopUpAmount("")
+          setPaymentMethod("")
+        } else {
+          // Handle error
+          setShowTopUpModal(false)
+          setShowErrorModal(true)
+        }
+      } catch (error) {
+        console.error('Error updating SM rewards balance:', error)
+        setShowTopUpModal(false)
+        setShowErrorModal(true)
+      }
     }
   }
 
-  const handleTransfer = () => {
+  const handleTransfer = async () => {
     if (transferAmount && transferRecipient) {
       const amount = Number.parseInt(transferAmount)
       if (amount > balance) {
         setShowTransferModal(false)
         setShowErrorModal(true)
       } else {
-        // Update balance
-        setBalance((prev) => prev - amount)
+        try {
+          // Update balance in database
+          const success = await profilesService.deductSMRewards(amount)
+          
+          if (success) {
+            // Update local state
+            setBalance((prev) => prev - amount)
 
-        // Add transaction to history
-        const recipientName =
-          transferRecipient === "john.doe"
-            ? "John Doe"
-            : transferRecipient === "jane.smith"
-              ? "Jane Smith"
-              : "Mike Johnson"
-        addTransaction({
-          type: "transfer",
-          amount: amount,
-          description: `Transfer to ${recipientName}`,
-        })
+            // Add transaction to history
+            const recipientName =
+              transferRecipient === "john.doe"
+                ? "John Doe"
+                : transferRecipient === "jane.smith"
+                  ? "Jane Smith"
+                  : "Mike Johnson"
+            
+            addTransaction({
+              type: "transfer",
+              amount: amount,
+              description: `Transfer to ${recipientName}`,
+            })
 
-        setShowTransferModal(false)
-        setShowSuccessModal(true)
-        setTransferAmount("")
-        setTransferRecipient("")
+            setShowTransferModal(false)
+            setShowSuccessModal(true)
+            setTransferAmount("")
+            setTransferRecipient("")
+          } else {
+            // Handle error
+            setShowTransferModal(false)
+            setShowErrorModal(true)
+          }
+        } catch (error) {
+          console.error('Error updating SM rewards balance:', error)
+          setShowTransferModal(false)
+          setShowErrorModal(true)
+        }
       }
     }
   }
@@ -279,25 +392,40 @@ export default function SMRewardsPage() {
     // You can show a toast notification here if needed
   }
 
-  const handlePurchase = () => {
+  const handlePurchase = async () => {
     if (scannedProduct) {
       if (scannedProduct.price > balance) {
         setShowScanModal(false)
         setShowErrorModal(true)
       } else {
-        // Update balance
-        setBalance((prev) => prev - scannedProduct.price)
+        try {
+          // Update balance in database
+          const success = await profilesService.deductSMRewards(scannedProduct.price)
+          
+          if (success) {
+            // Update local state
+            setBalance((prev) => prev - scannedProduct.price)
 
-        // Add transaction to history
-        addTransaction({
-          type: "spend",
-          amount: scannedProduct.price,
-          description: `Purchase - ${scannedProduct.name}`,
-        })
+            // Add transaction to history
+            addTransaction({
+              type: "spend",
+              amount: scannedProduct.price,
+              description: `Purchase - ${scannedProduct.name}`,
+            })
 
-        setShowScanModal(false)
-        setShowSuccessModal(true)
-        setScannedProduct(null)
+            setShowScanModal(false)
+            setShowSuccessModal(true)
+            setScannedProduct(null)
+          } else {
+            // Handle error
+            setShowScanModal(false)
+            setShowErrorModal(true)
+          }
+        } catch (error) {
+          console.error('Error updating SM rewards balance:', error)
+          setShowScanModal(false)
+          setShowErrorModal(true)
+        }
       }
     }
   }
@@ -480,8 +608,16 @@ export default function SMRewardsPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            <div className="text-3xl font-bold text-white">{balance.toLocaleString()}</div>
-            <div className="text-sm text-blue-100">≈ {vndBalance.toLocaleString()} VND</div>
+                            <div className="text-3xl font-bold text-white">
+                  {isLoadingBalance ? (
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Loading...
+                    </div>
+                  ) : (
+                    balance.toLocaleString()
+                  )}
+                </div>
           </div>
         </CardContent>
       </Card>
@@ -508,7 +644,7 @@ export default function SMRewardsPage() {
           </CardContent>
         </Card>
 
-        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => window.location.href = '/applications/sm-rewards/menu'}>
+        {/* <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => window.location.href = '/applications/sm-rewards/menu'}>
           <CardContent className="p-6 text-center">
             <div className="h-12 w-12 mx-auto mb-3 bg-purple-100 rounded-full flex items-center justify-center">
               <Gift className="h-6 w-6 text-purple-600" />
@@ -516,7 +652,7 @@ export default function SMRewardsPage() {
             <h3 className="font-medium text-gray-900">View Menu</h3>
             <p className="text-sm text-gray-500 mt-1">Browse products</p>
           </CardContent>
-        </Card>
+        </Card> */}
 
         <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setCurrentView("history")}>
           <CardContent className="p-6 text-center">
@@ -715,7 +851,7 @@ export default function SMRewardsPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span>Top-up: 1 VND = 0.001 SM Point</span>
+                  <span>Top-up: 1 VND = 1 Coin</span>
                 </div>
               </div>
             </div>
@@ -727,7 +863,7 @@ export default function SMRewardsPage() {
               <div className="space-y-2 text-sm text-gray-600">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  <span>Canteen purchases: 1 SM Point = 1,000 VND</span>
+                  <span>Canteen purchases: 1 SM Point = 1 VND</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
@@ -755,7 +891,7 @@ export default function SMRewardsPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                  <span>Minimum top-up: 50,000 VND</span>
+                  <span>Minimum top-up: 10,000 VND</span>
                 </div>
               </div>
             </div>
@@ -780,11 +916,6 @@ export default function SMRewardsPage() {
                 value={topUpAmount}
                 onChange={(e) => setTopUpAmount(e.target.value)}
               />
-              {topUpAmount && (
-                <p className="text-sm text-gray-500 mt-1 flex items-center gap-1">
-                  ≈ {Math.floor(Number.parseInt(topUpAmount) * 0.001)} <Coins className="h-3 w-3" />
-                </p>
-              )}
             </div>
             <div>
               <Label htmlFor="payment">Payment Method</Label>
@@ -796,6 +927,7 @@ export default function SMRewardsPage() {
                   <SelectItem value="bank">Bank Transfer</SelectItem>
                   <SelectItem value="qr">QR Code Payment</SelectItem>
                   <SelectItem value="card">Credit Card</SelectItem>
+                  <SelectItem value="vnpay">VNPay (ATM/Bank)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -856,7 +988,7 @@ export default function SMRewardsPage() {
                         {scannedProduct.price} <Coins className="h-6 w-6" />
                       </p>
                       <p className="text-sm text-gray-500">
-                        ≈ {(scannedProduct.price * 1000).toLocaleString()} VND
+                        ≈ {(scannedProduct.price).toLocaleString()} VND
                       </p>
                       <p className="text-xs text-gray-400 mt-1">
                         Stock: {scannedProduct.stock_quantity} available
@@ -936,11 +1068,6 @@ export default function SMRewardsPage() {
                 value={transferAmount}
                 onChange={(e) => setTransferAmount(e.target.value)}
               />
-              {transferAmount && (
-                <p className="text-sm text-gray-500 mt-1">
-                  ≈ {(Number.parseInt(transferAmount) * 1000).toLocaleString()} VND
-                </p>
-              )}
             </div>
             <div className="flex gap-2">
               <Button onClick={handleTransfer} className="flex-1">
@@ -957,11 +1084,16 @@ export default function SMRewardsPage() {
 
       {/* Success Modal */}
       <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
+        <DialogTitle>Transaction Successful</DialogTitle>
         <DialogContent>
           <div className="text-center py-6">
             <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">Transaction Successful!</h3>
-            <p className="text-gray-600 mb-4">Your transaction has been completed successfully.</p>
+            <p className="text-gray-600 mb-4">
+              {modalAmount && `You have topped up ${Number(modalAmount).toLocaleString()} Coins.`}
+              {modalOrderInfo && <br />}
+              {modalOrderInfo && <span>({decodeURIComponent(modalOrderInfo)})</span>}
+            </p>
             <Button onClick={() => setShowSuccessModal(false)}>Close</Button>
           </div>
         </DialogContent>

@@ -121,7 +121,7 @@ export default function MenuPage() {
                 <span className="text-xs text-gray-500">SM Points</span>
               </div>
               <span className="text-xs text-gray-500">
-                ≈ {(product.price_sm_rewards * 1000).toLocaleString()} VND
+                ≈ {(product.price_sm_rewards).toLocaleString()} VND
               </span>
             </div>
 
@@ -196,7 +196,7 @@ export default function MenuPage() {
                 <span className="text-sm text-gray-500">SM Points</span>
               </div>
               <span className="text-sm text-gray-500">
-                ≈ {(product.price_sm_rewards * 1000).toLocaleString()} VND
+                ≈ {(product.price_sm_rewards).toLocaleString()} VND
               </span>
             </div>
 

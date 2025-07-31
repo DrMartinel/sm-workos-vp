@@ -26,7 +26,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { cn } from "@/lib/utils"
+import { cn } from "@/app/shared-ui/lib/utils"
 
 // Custom Status Node Component with optimized design
 const StatusNode = ({ data, selected }: { data: any; selected: boolean }) => {
@@ -276,7 +276,7 @@ export default function WorkflowEditor() {
   const onEdgeClick = useCallback((event: React.MouseEvent, edge: Edge) => {
     setSelectedEdge(edge)
     setSelectedNode(null)
-    setEditTransitionName(edge.label || "")
+    setEditTransitionName(String(edge.label || ""))
     setEditTransitionFrom(edge.source)
     setEditTransitionTo(edge.target)
     setSidebarOpen(true)
@@ -507,7 +507,7 @@ export default function WorkflowEditor() {
             className="bg-gray-50"
             defaultViewport={{ x: 0, y: 0, zoom: 1 }}
             connectionLineStyle={{ stroke: "#3b82f6", strokeWidth: 2 }}
-            connectionLineType="smoothstep"
+            // connectionLineType="default"
           >
             <Background color="#e5e7eb" gap={20} />
             <Controls className="bg-white border border-gray-200 rounded-lg shadow-sm" />
