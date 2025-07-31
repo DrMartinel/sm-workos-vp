@@ -159,7 +159,6 @@ export default function SMRewardsPage() {
   const [modalAmount, setModalAmount] = useState<string | null>(null);
   const [modalOrderInfo, setModalOrderInfo] = useState<string | null>(null);
 
-  const vndBalance = balance * 1000
 
 
   const skipInitialBalanceFetch = useRef(false);
@@ -188,33 +187,31 @@ export default function SMRewardsPage() {
   // Effect to handle VNPay callback
   useEffect(() => {
     const search = window.location.search;
-    const params = new URLSearchParams(search);
+    if (!search) return;
 
-    const vnp_ResponseCode = params.get("vnp_ResponseCode");
-    const vnp_TransactionStatus = params.get("vnp_TransactionStatus");
-    const vnp_Amount = params.get("vnp_Amount");
-    const vnp_OrderInfo = params.get("vnp_OrderInfo");
-
-    if (vnp_ResponseCode && vnp_TransactionStatus) {
-      if (vnp_ResponseCode === "00" && vnp_TransactionStatus === "00") {
-        skipInitialBalanceFetch.current = true; // Set flag to skip initial fetch
-        // Calculate coins to add
-        const coinsToAdd = Math.floor(Number(vnp_Amount) * 0.001 / 100);
-
-        // Update SM Points in the database
-        profilesService.addSMRewards(coinsToAdd).then((success) => {
-          if (success) {
-            setShowSuccessModal(true);
-            fetchBalance();
-          } else {
-            setShowErrorModal(true);
-          }
-        });
-      } else {
+    // Call your API to verify the transaction
+    fetch(`/api/vnpay/callback${search}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          // Update balance on client side
+          profilesService.addSMRewards(data.amount).then((success) => {
+            if (success) {
+              setShowSuccessModal(true);
+              fetchBalance();
+            } else {
+              setShowErrorModal(true);
+            }
+          });
+        } else {
+          setShowErrorModal(true);
+        }
+        window.history.replaceState({}, document.title, window.location.pathname);
+      })
+      .catch(() => {
         setShowErrorModal(true);
-      }
-      window.history.replaceState({}, document.title, window.location.pathname);
-    }
+        window.history.replaceState({}, document.title, window.location.pathname);
+      });
   }, []);
 
   // Effect to fetch balance only if not skipped
@@ -269,17 +266,15 @@ export default function SMRewardsPage() {
         }
       }
 
-      const coinsToAdd = Math.floor(amount * 0.001)
+      const coinsToAdd = Number(amount);
 
       try {
         // Update balance in database
         const success = await profilesService.addSMRewards(coinsToAdd)
         
         if (success) {
-          // Update local state
           setBalance((prev) => prev + coinsToAdd)
 
-          // Add transaction to history
           addTransaction({
             type: "topup",
             amount: coinsToAdd,
@@ -623,9 +618,6 @@ export default function SMRewardsPage() {
                     balance.toLocaleString()
                   )}
                 </div>
-                <div className="text-sm text-blue-100">
-                  {isLoadingBalance ? "Loading..." : `≈ ${vndBalance.toLocaleString()} VND`}
-                </div>
           </div>
         </CardContent>
       </Card>
@@ -859,7 +851,7 @@ export default function SMRewardsPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span>Top-up: 1 VND = 0.001 SM Point</span>
+                  <span>Top-up: 1 VND = 1 Coin</span>
                 </div>
               </div>
             </div>
@@ -871,7 +863,7 @@ export default function SMRewardsPage() {
               <div className="space-y-2 text-sm text-gray-600">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  <span>Canteen purchases: 1 SM Point = 1,000 VND</span>
+                  <span>Canteen purchases: 1 SM Point = 1 VND</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
@@ -899,7 +891,7 @@ export default function SMRewardsPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                  <span>Minimum top-up: 50,000 VND</span>
+                  <span>Minimum top-up: 10,000 VND</span>
                 </div>
               </div>
             </div>
@@ -924,11 +916,6 @@ export default function SMRewardsPage() {
                 value={topUpAmount}
                 onChange={(e) => setTopUpAmount(e.target.value)}
               />
-              {topUpAmount && (
-                <p className="text-sm text-gray-500 mt-1 flex items-center gap-1">
-                  ≈ {Math.floor(Number.parseInt(topUpAmount) * 0.001)} <Coins className="h-3 w-3" />
-                </p>
-              )}
             </div>
             <div>
               <Label htmlFor="payment">Payment Method</Label>
@@ -1001,7 +988,7 @@ export default function SMRewardsPage() {
                         {scannedProduct.price} <Coins className="h-6 w-6" />
                       </p>
                       <p className="text-sm text-gray-500">
-                        ≈ {(scannedProduct.price * 1000).toLocaleString()} VND
+                        ≈ {(scannedProduct.price).toLocaleString()} VND
                       </p>
                       <p className="text-xs text-gray-400 mt-1">
                         Stock: {scannedProduct.stock_quantity} available
@@ -1081,11 +1068,6 @@ export default function SMRewardsPage() {
                 value={transferAmount}
                 onChange={(e) => setTransferAmount(e.target.value)}
               />
-              {transferAmount && (
-                <p className="text-sm text-gray-500 mt-1">
-                  ≈ {(Number.parseInt(transferAmount) * 1000).toLocaleString()} VND
-                </p>
-              )}
             </div>
             <div className="flex gap-2">
               <Button onClick={handleTransfer} className="flex-1">
@@ -1108,7 +1090,7 @@ export default function SMRewardsPage() {
             <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">Transaction Successful!</h3>
             <p className="text-gray-600 mb-4">
-              {modalAmount && `You have topped up ${(Number(modalAmount) / 100).toLocaleString()} VND.`}
+              {modalAmount && `You have topped up ${Number(modalAmount).toLocaleString()} Coins.`}
               {modalOrderInfo && <br />}
               {modalOrderInfo && <span>({decodeURIComponent(modalOrderInfo)})</span>}
             </p>

@@ -50,7 +50,6 @@ export async function GET(request: NextRequest) {
     const hmac = crypto.createHmac('sha512', VNP_HASH_SECRET)
     const signed = hmac.update(Buffer.from(signData, 'utf-8')).digest('hex')
 
-    // Verify signature
     if (secureHash === signed) {
       const responseCode = vnp_Params['vnp_ResponseCode']
       const orderId = vnp_Params['vnp_TxnRef']
@@ -58,37 +57,25 @@ export async function GET(request: NextRequest) {
       
       // Check if payment was successful (ResponseCode = '00' means success)
       if (responseCode === '00') {
-        try {
-          // Calculate SM Rewards coins (1 VND = 0.001 coins)
-          const coinsToAdd = Math.floor(amount * 0.001)
-          
-          // Update user's SM Rewards balance
-          const success = await profilesService.addSMRewards(coinsToAdd)
-          
-          if (success) {
-            // Redirect to success page
-            return NextResponse.redirect(new URL('/applications/sm-rewards?payment=success&amount=' + coinsToAdd, request.url))
-          } else {
-            // Redirect to error page
-            return NextResponse.redirect(new URL('/applications/sm-rewards?payment=error&message=database_error', request.url))
-          }
-        } catch (error) {
-          console.error('Error updating SM Rewards balance:', error)
-          return NextResponse.redirect(new URL('/applications/sm-rewards?payment=error&message=update_failed', request.url))
-        }
+        const coinsToAdd = Number(amount);
+        
+        return NextResponse.json({ 
+          success: true, 
+          amount: coinsToAdd,
+          orderInfo: vnp_Params['vnp_OrderInfo']
+        });
       } else {
         // Payment failed
         const errorMessage = getErrorMessage(responseCode)
-        return NextResponse.redirect(new URL('/applications/sm-rewards?payment=error&message=' + errorMessage, request.url))
+        return NextResponse.json({ success: false, error: errorMessage });
       }
     } else {
       // Invalid signature
-      return NextResponse.redirect(new URL('/applications/sm-rewards?payment=error&message=invalid_signature', request.url))
+      return NextResponse.json({ success: false, error: 'invalid_signature' });
     }
-
   } catch (error) {
     console.error('VNPay callback error:', error)
-    return NextResponse.redirect(new URL('/applications/sm-rewards?payment=error&message=callback_error', request.url))
+    return NextResponse.redirect(new URL('/sm-rewards?payment=error&message=callback_error', request.url))
   }
 }
 
