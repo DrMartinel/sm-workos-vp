@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
 import qs from 'qs'
 import { profilesService } from '@/lib/utils/supabase/profiles'
+import { transactionsService } from '@/lib/utils/supabase/transactions'
 
 // VNPay configuration
 const VNP_TMN_CODE = process.env.VNP_TMN_CODE || '2QXUI4J4'
@@ -58,15 +59,37 @@ export async function GET(request: NextRequest) {
       // Check if payment was successful (ResponseCode = '00' means success)
       if (responseCode === '00') {
         const coinsToAdd = Number(amount);
+        const orderInfo = vnp_Params['vnp_OrderInfo'];
+        
+        // Extract transaction ID from order info if it exists
+        const transactionIdMatch = orderInfo?.match(/transaction_id:(\d+)/);
+        const transactionId = transactionIdMatch ? parseInt(transactionIdMatch[1]) : null;
+        
+        // Update transaction status to completed if we have a transaction ID
+        if (transactionId) {
+          await transactionsService.updateTransactionStatus(transactionId, 'completed');
+        }
         
         return NextResponse.json({ 
           success: true, 
           amount: coinsToAdd,
-          orderInfo: vnp_Params['vnp_OrderInfo']
+          orderInfo: orderInfo,
+          transactionId: transactionId
         });
       } else {
         // Payment failed
         const errorMessage = getErrorMessage(responseCode)
+        
+        // Extract transaction ID from order info if it exists
+        const orderInfo = vnp_Params['vnp_OrderInfo'];
+        const transactionIdMatch = orderInfo?.match(/transaction_id:(\d+)/);
+        const transactionId = transactionIdMatch ? parseInt(transactionIdMatch[1]) : null;
+        
+        // Update transaction status to failed if we have a transaction ID
+        if (transactionId) {
+          await transactionsService.updateTransactionStatus(transactionId, 'failed');
+        }
+        
         return NextResponse.json({ success: false, error: errorMessage });
       }
     } else {

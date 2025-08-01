@@ -1,135 +1,142 @@
 # Project Changelog
 
-This document tracks ALL changes made to the sm-workos project. Each entry includes:
-- Date and time of change
-- What was changed
-- Why it was changed
-- Impact on the project
-- Technical details for future AI assistants
+## [Latest] - Transaction System Implementation for SM Rewards
 
-## Project Overview
-- **Project Name**: sm-workos
-- **Type**: Next.js workspace application with multiple submodules
-- **Current State**: Active development with HRM features, timekeeping, meeting booking, and internal announcements
-- **Architecture**: Monorepo with shared UI components and domain-specific applications
+### Overview
+Implemented a comprehensive transaction system for the SM Rewards feature, including database schema, API endpoints, and frontend integration.
 
-## Current Project Structure (as of latest commit 3f35254)
-```
-sm-workos/
-├── app/                    # Main Next.js application
-│   ├── (dashboard)/        # Dashboard routes
-│   │   ├── announcements/  # Internal announcements feature
-│   │   ├── applications/   # Applications management
-│   │   ├── hrm/           # HR Management features
-│   │   │   ├── meeting-booking/  # Room booking system
-│   │   │   └── timekeeping/      # Check-in/check-out system
-│   │   └── reports/       # Reporting functionality
-│   ├── admin/             # Admin panel
-│   ├── domain-apps/       # Domain-specific applications
-│   ├── shared-ui/         # Shared UI components
-│   └── workflow-editor/   # Workflow editing tool
-├── data-sources/          # Data source definitions
-├── contexts/              # React contexts
-└── hooks/                 # Custom React hooks
-```
+### Database Changes
 
-## Recent Git History (Last 10 Commits)
-1. **3f35254** (HEAD) - Merge branch 'master' of https://github.com/quangsmg/sm-workos
-2. **4ff28ba** - Thay title workspace
-3. **cf29fd8** - refactor: Integrate new feature with updated UI
-4. **5573ff8** - Merge branch 'master' of https://github.com/quangsmg/sm-workos into timekeeping_feature
-5. **a733371** - Shared-UI
-6. **c47407b** - feat: Room Booking
-7. **5a5919a** - Tạo trang thông báo nội bộ mới (#7) - [COMMIT TO BE REVIEWED]
-8. **89acc9e** - Merge pull request #6 from quangsmg/cursor/apply-meeting-booking-status-bar-design-to-timekeeping-dd03
-9. **6b335df** - Improve progress steps layout and styling in timekeeping page
-10. **85fba26** - Merge pull request #5 from quangsmg/cursor/vietnamese-localization-for-timekeeping-interface-1e48
+#### New Schema: `hrm.transactions`
+- **Table**: `hrm.transactions` - Stores all financial transactions for users
+- **Columns**:
+  - `id` (BIGINT, PRIMARY KEY, AUTO_INCREMENT)
+  - `user_id` (UUID, FOREIGN KEY to auth.users)
+  - `type` (ENUM: 'spend', 'earn', 'transfer', 'topup')
+  - `amount` (DECIMAL(10,2))
+  - `description` (TEXT)
+  - `date` (DATE)
+  - `time` (TIME)
+  - `status` (ENUM: 'completed', 'pending', 'failed', 'cancelled')
+  - `created_at` (TIMESTAMPTZ)
+  - `updated_at` (TIMESTAMPTZ)
 
-## Key Features Currently Implemented
-1. **Timekeeping System** - Check-in/check-out functionality with Vietnamese localization
-2. **Meeting Booking** - Room booking system with status bar design
-3. **Internal Announcements** - Internal communication system
-4. **Applications Management** - Application tracking with Vietnamese UI
-5. **Admin Panel** - User and data access management
-6. **Shared UI Components** - Reusable component library
-7. **Workflow Editor** - Visual workflow creation tool
+#### Database Functions
+- **`public.create_transaction()`** - Creates new transactions for authenticated users
+- **`hrm.handle_updated_at()`** - Auto-updates `updated_at` timestamp on row changes
 
-## Technical Stack
-- **Framework**: Next.js 14+ with App Router
-- **Styling**: Tailwind CSS
-- **UI Components**: Custom component library with shadcn/ui patterns
-- **State Management**: React Context + React Query
-- **Database**: Supabase (client and server configurations present)
-- **Package Manager**: pnpm with workspace configuration
-- **PWA Support**: Service worker and manifest files present
+#### Security & Access Control
+- **Row-Level Security (RLS)** enabled on `hrm.transactions`
+- **Policies**:
+  - Users can only read their own transactions
+  - Users can only insert transactions for themselves
+  - Users can only update their own transactions
+  - Users can only delete their own transactions
 
-## Development Environment
-- **OS**: Linux 6.14.0-24-generic
-- **Shell**: /usr/bin/bash
-- **Workspace Path**: /home/drmartinel/Desktop/sm-workos
-- **Node Version**: (to be determined)
-- **Package Manager**: pnpm
+#### Views
+- **`public.my_transactions`** - Secure view for users to access their transactions
 
-## Pending Actions
-- **Commit Review**: User wants to review commit 5a5919a ("Tạo trang thông báo nội bộ mới (#7)") without losing current commits
-- **Documentation**: This changelog is being created to ensure future AI assistants have complete project context
+### New Files Created
 
-## Notes for Future AI Assistants
-- This is a Vietnamese-localized HR management system
-- The project uses a monorepo structure with shared components
-- All UI text should be in Vietnamese unless specified otherwise
-- The project has PWA capabilities and service worker implementation
-- There are multiple submodules and workspace configurations
-- The user prefers comprehensive documentation of all changes
+#### 1. Transaction Service (`app/shared-ui/lib/utils/supabase/transactions.ts`)
+- **Interface**: `Transaction` - TypeScript interface for transaction data
+- **Functions**:
+  - `getMyTransactions()` - Fetch all transactions for current user
+  - `createTransaction()` - Create new transaction with specified parameters
+  - `updateTransactionStatus()` - Update transaction status (pending → completed/failed)
+  - `getTransactionById()` - Get specific transaction by ID
+
+### Modified Files
+
+#### 1. VNPay Service (`app/shared-ui/lib/utils/vnpay.ts`)
+- **Added**: `orderInfo?: string` to `VNPayPaymentRequest` interface
+- **Purpose**: Allow passing transaction ID in order info for callback tracking
+
+#### 2. VNPay Create Payment API (`app/api/vnpay/create-payment/route.ts`)
+- **Added**: Support for `orderInfo` parameter in request body
+- **Modified**: `vnp_OrderInfo` now uses provided `orderInfo` or falls back to default
+
+#### 3. VNPay Callback API (`app/api/vnpay/callback/route.ts`)
+- **Added**: Import for `transactionsService`
+- **Enhanced**: Transaction status update logic
+  - Extracts transaction ID from `orderInfo` using regex pattern `transaction_id:(\d+)`
+  - Updates transaction status to 'completed' on successful payment
+  - Updates transaction status to 'failed' on payment failure
+- **Modified**: Response includes `transactionId` for debugging
+
+#### 4. SM Rewards Page (`app/(dashboard)/sm-rewards/page.tsx`)
+- **Added**: Import for `transactionsService` and `Transaction as DBTransaction`
+- **Modified**: Transaction interface to include 'cancelled' status
+- **Added**: State management for transaction loading (`isLoadingTransactions`)
+- **Added**: `fetchTransactions()` function to load transactions from database
+- **Enhanced**: `useEffect` to fetch both balance and transactions on mount
+- **Modified**: `handleTopUp()` function:
+  - Creates pending transaction before VNPay redirect
+  - Includes transaction ID in VNPay order info
+  - Updates transaction status on payment failure
+  - Refreshes transactions after successful payment
+- **Modified**: `handleTransfer()` function:
+  - Creates completed transaction in database
+  - Refreshes transaction list after successful transfer
+- **Modified**: `handlePurchase()` function:
+  - Creates completed transaction in database
+  - Refreshes transaction list after successful purchase
+- **Enhanced**: VNPay callback handling to refresh transactions
+- **Added**: Loading states for transaction history and recent transactions
+- **Removed**: Old `addTransaction()` function and mock transaction data
+
+### Transaction Flow Implementation
+
+#### 1. Top-up via VNPay
+1. User enters amount and selects VNPay payment method
+2. System creates pending transaction in database
+3. VNPay payment URL is generated with transaction ID in order info
+4. User is redirected to VNPay for payment
+5. On callback:
+   - If successful: Transaction status updated to 'completed', balance updated
+   - If failed: Transaction status updated to 'failed'
+6. Transaction list is refreshed to show updated status
+
+#### 2. Other Transactions (Transfer, Purchase, Non-VNPay Top-up)
+1. User performs action (transfer, purchase, etc.)
+2. System updates balance in database
+3. System creates completed transaction in database
+4. Transaction list is refreshed to show new transaction
+
+#### 3. Transaction History
+1. Transactions are fetched from database on page load
+2. Loading states are shown during fetch operations
+3. Transactions are displayed with proper icons, colors, and status indicators
+4. Filtering and search functionality works with real database data
+
+### Security Features
+- **Row-Level Security**: Users can only access their own transactions
+- **Authentication**: All transaction operations require user authentication
+- **Input Validation**: Transaction amounts and types are validated
+- **Error Handling**: Comprehensive error handling for all transaction operations
+
+### Performance Optimizations
+- **Efficient Queries**: Uses database views for optimized transaction fetching
+- **Loading States**: Prevents UI blocking during data operations
+- **Selective Updates**: Only refreshes transaction list when necessary
+
+### Testing Considerations
+- **Mock Data**: SQL script includes optional mock data insertion
+- **Error Scenarios**: Handles payment failures, network errors, and database errors
+- **Edge Cases**: Manages insufficient balance, invalid transaction IDs, etc.
+
+### Future Enhancements
+- **Transaction Export**: Add functionality to export transaction history
+- **Advanced Filtering**: Add date range filters and transaction type combinations
+- **Real-time Updates**: Implement WebSocket connections for live transaction updates
+- **Transaction Analytics**: Add charts and statistics for transaction patterns
 
 ---
 
-## Change Log Entries
+## Previous Changes
 
-### [2024-12-19] - Initial Documentation Setup
-**What Changed**: Created PROJECT_CHANGELOG.md
-**Why**: User requested comprehensive documentation of all changes for future AI assistants
-**Impact**: Establishes baseline documentation system
-**Technical Details**: 
-- Document created at project root level
-- Captures current project state, structure, and recent git history
-- Includes technical stack, development environment, and pending actions
-- Designed to be updated with every change made to the project
-
-### [2024-12-19] - Added Routing Functionality to Applications Page
-**What Changed**: Added click-to-navigate functionality to application cards in the applications page
-**Why**: User requested that each teamData application should have its own specified path, with sm-rewards having a working route and others having placeholder empty strings
-**Impact**: 
-- sm-rewards application now navigates to `/applications/sm-rewards` when clicked
-- All other applications are clickable but don't navigate (placeholder behavior as requested)
-- Maintains existing folder structure without creating new files
-**Technical Details**: 
-- Added `useRouter` import from `next/navigation`
-- Created `handleCardClick` function in ApplicationCard component
-- Implemented `routingPaths` object to map application IDs to their routes
-- Currently only sm-rewards has a defined path: `/applications/sm-rewards`
-- Other applications have empty string placeholders as requested
-- Added onClick handler to Card component
-- Preserved existing favorite toggle functionality with event.stopPropagation()
-- Maintained Vietnamese localization and existing UI styling
-
-### [2024-12-19] - Integrated Canteen Products Database with SM Rewards System
-**What Changed**: Created comprehensive integration between Supabase canteen_products table and SM Rewards QR payment system
-**Why**: User created a canteen_products table in Supabase and wanted to use it to fetch and populate product data across the menu system
-**Impact**: 
-- Real product data now populates the SM Rewards system from Supabase database
-- Enhanced QR code scanning with actual product information
-- Created dedicated menu page to browse all available products
-- Improved product display with stock information and descriptions
-- Added balance validation and stock checking in purchase flow
-**Technical Details**: 
-- Created `canteenProductsService` in `app/shared-ui/lib/utils/supabase/canteen-products.ts`
-- Implemented TypeScript interfaces for `CanteenProduct` matching database schema
-- Added methods for fetching all products, single products, and QR code parsing
-- Created new menu page at `/applications/sm-rewards/menu` with search, filtering, and sorting
-- Enhanced SM Rewards scan modal to show product descriptions, stock levels, and balance validation
-- Updated scan functionality to fetch real product data from database
-- Added "View Menu" button to SM Rewards main page
-- Implemented QR code generation and parsing utilities
-- Added proper error handling and fallback to mock data
-- Maintained Vietnamese localization throughout the interface 
+### [Initial Setup] - Project Foundation
+- Basic Next.js application structure
+- Authentication system with Supabase
+- UI components with shadcn/ui
+- Basic routing and layout 

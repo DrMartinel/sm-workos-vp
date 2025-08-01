@@ -28,7 +28,7 @@ function sortObject(obj: any) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { amount, bankCode, language = 'vn' } = body
+    const { amount, bankCode, language = 'vn', orderInfo } = body
 
     if (!amount || amount <= 0) {
       return NextResponse.json(
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
       vnp_Locale: language,
       vnp_CurrCode: currCode,
       vnp_TxnRef: orderId,
-      vnp_OrderInfo: 'Thanh toan SM Rewards topup cho ma GD:' + orderId,
+      vnp_OrderInfo: orderInfo || 'Thanh toan SM Rewards topup cho ma GD:' + orderId,
       vnp_OrderType: 'other',
       vnp_Amount: amount * 100, // Convert to smallest currency unit
       vnp_ReturnUrl: VNP_RETURN_URL,

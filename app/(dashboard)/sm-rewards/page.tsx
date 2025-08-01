@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import { canteenProductsService, CanteenProduct } from "@/lib/utils/supabase/canteen-products"
 import { profilesService } from "@/lib/utils/supabase/profiles"
+import { transactionsService, Transaction as DBTransaction } from "@/lib/utils/supabase/transactions"
 import {
   TrendingUp,
   Gift,
@@ -36,7 +37,7 @@ import { VNPayService } from "@/app/shared-ui/lib/utils/vnpay"
 import { useRouter, useSearchParams } from "next/navigation";
 import { useToast } from "@/components/ui/use-toast";
 
-// Transaction interface
+// Transaction interface for UI display
 interface Transaction {
   id: string
   type: "spend" | "earn" | "transfer" | "topup"
@@ -44,7 +45,7 @@ interface Transaction {
   description: string
   date: string
   time: string
-  status: "completed" | "pending" | "failed"
+  status: "completed" | "pending" | "failed" | "cancelled"
 }
 
 // Initial mock transaction data for SM Rewards
@@ -129,7 +130,8 @@ export default function SMRewardsPage() {
   const [currentView, setCurrentView] = useState<"main" | "history">("main")
   const [balance, setBalance] = useState(0)
   const [isLoadingBalance, setIsLoadingBalance] = useState(true)
-  const [transactions, setTransactions] = useState<Transaction[]>(initialTransactions)
+  const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [isLoadingTransactions, setIsLoadingTransactions] = useState(true)
 
   // Modal states for SM Rewards
   const [showTopUpModal, setShowTopUpModal] = useState(false)
@@ -178,9 +180,37 @@ export default function SMRewardsPage() {
     }
   }
 
+  // Fetch user's transactions on component mount
+  const fetchTransactions = async () => {
+    try {
+      setIsLoadingTransactions(true)
+      const dbTransactions = await transactionsService.getMyTransactions()
+      
+      // Convert DB transactions to UI format
+      const uiTransactions: Transaction[] = dbTransactions.map(dbTrans => ({
+        id: dbTrans.id.toString(),
+        type: dbTrans.type,
+        amount: dbTrans.amount,
+        description: dbTrans.description || '',
+        date: dbTrans.date,
+        time: dbTrans.time,
+        status: dbTrans.status
+      }))
+      
+      setTransactions(uiTransactions)
+    } catch (error) {
+      console.error('Error fetching transactions:', error)
+      // Fallback to empty array if there's an error
+      setTransactions([])
+    } finally {
+      setIsLoadingTransactions(false)
+    }
+  }
+
   useEffect(() => {
     if (!skipInitialBalanceFetch.current) {
       fetchBalance();
+      fetchTransactions();
     }
   }, []);
 
@@ -199,6 +229,7 @@ export default function SMRewardsPage() {
             if (success) {
               setShowSuccessModal(true);
               fetchBalance();
+              fetchTransactions(); // Refresh transactions to show the completed transaction
             } else {
               setShowErrorModal(true);
             }
@@ -214,12 +245,7 @@ export default function SMRewardsPage() {
       });
   }, []);
 
-  // Effect to fetch balance only if not skipped
-  useEffect(() => {
-    if (!skipInitialBalanceFetch.current) {
-      fetchBalance();
-    }
-  }, []);
+
 
   // Helper function to generate current date and time
   const getCurrentDateTime = () => {
@@ -233,33 +259,45 @@ export default function SMRewardsPage() {
     return { date, time }
   }
 
-  // Helper function to add new transaction
-  const addTransaction = (newTransaction: Omit<Transaction, "id" | "date" | "time" | "status">) => {
-    const { date, time } = getCurrentDateTime()
-    const transaction: Transaction = {
-      ...newTransaction,
-      id: Date.now().toString(),
-      date,
-      time,
-      status: "completed",
-    }
-    setTransactions((prev) => [transaction, ...prev])
-  }
+
 
   const handleTopUp = async () => {
     if (topUpAmount && paymentMethod) {
       const amount = Number.parseInt(topUpAmount);
 
       if (paymentMethod === "vnpay") {
-        // VNPay flow
+        // Create a pending transaction first
+        const { date, time } = getCurrentDateTime();
+        const transaction = await transactionsService.createTransaction(
+          'topup',
+          amount,
+          `Top-up via VNPay - ${amount.toLocaleString()} VND`,
+          date,
+          time,
+          'pending'
+        );
+
+        if (!transaction) {
+          setShowTopUpModal(false);
+          setShowErrorModal(true);
+          return;
+        }
+
+        // VNPay flow with transaction ID in order info
         const res = await VNPayService.createPayment({
           amount,
           language: "vn",
+          orderInfo: `SM Rewards Top-up - transaction_id:${transaction.id}`
         });
+        
         if (res.success && res.paymentUrl) {
+          // Refresh transactions to show the pending transaction
+          fetchTransactions();
           VNPayService.redirectToPayment(res.paymentUrl);
           return; // Stop further execution, redirecting
         } else {
+          // If payment creation failed, update transaction status to failed
+          await transactionsService.updateTransactionStatus(transaction.id, 'failed');
           setShowTopUpModal(false);
           setShowErrorModal(true);
           return;
@@ -275,11 +313,19 @@ export default function SMRewardsPage() {
         if (success) {
           setBalance((prev) => prev + coinsToAdd)
 
-          addTransaction({
-            type: "topup",
-            amount: coinsToAdd,
-            description: `Top-up via ${paymentMethod === "bank" ? "Bank Transfer" : paymentMethod === "qr" ? "QR Code Payment" : "Credit Card"}`,
-          })
+          // Create transaction in database
+          const { date, time } = getCurrentDateTime();
+          await transactionsService.createTransaction(
+            'topup',
+            coinsToAdd,
+            `Top-up via ${paymentMethod === "bank" ? "Bank Transfer" : paymentMethod === "qr" ? "QR Code Payment" : "Credit Card"}`,
+            date,
+            time,
+            'completed'
+          );
+
+          // Refresh transactions
+          fetchTransactions();
 
           setShowTopUpModal(false)
           setShowSuccessModal(true)
@@ -313,7 +359,8 @@ export default function SMRewardsPage() {
             // Update local state
             setBalance((prev) => prev - amount)
 
-            // Add transaction to history
+            // Create transaction in database
+            const { date, time } = getCurrentDateTime();
             const recipientName =
               transferRecipient === "john.doe"
                 ? "John Doe"
@@ -321,11 +368,17 @@ export default function SMRewardsPage() {
                   ? "Jane Smith"
                   : "Mike Johnson"
             
-            addTransaction({
-              type: "transfer",
-              amount: amount,
-              description: `Transfer to ${recipientName}`,
-            })
+            await transactionsService.createTransaction(
+              'transfer',
+              amount,
+              `Transfer to ${recipientName}`,
+              date,
+              time,
+              'completed'
+            );
+
+            // Refresh transactions
+            fetchTransactions();
 
             setShowTransferModal(false)
             setShowSuccessModal(true)
@@ -406,12 +459,19 @@ export default function SMRewardsPage() {
             // Update local state
             setBalance((prev) => prev - scannedProduct.price)
 
-            // Add transaction to history
-            addTransaction({
-              type: "spend",
-              amount: scannedProduct.price,
-              description: `Purchase - ${scannedProduct.name}`,
-            })
+            // Create transaction in database
+            const { date, time } = getCurrentDateTime();
+            await transactionsService.createTransaction(
+              'spend',
+              scannedProduct.price,
+              `Purchase - ${scannedProduct.name}`,
+              date,
+              time,
+              'completed'
+            );
+
+            // Refresh transactions
+            fetchTransactions();
 
             setShowScanModal(false)
             setShowSuccessModal(true)
@@ -534,7 +594,12 @@ export default function SMRewardsPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {filteredTransactions.length > 0 ? (
+            {isLoadingTransactions ? (
+              <div className="text-center py-12">
+                <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                <p className="text-gray-500">Loading transactions...</p>
+              </div>
+            ) : filteredTransactions.length > 0 ? (
               filteredTransactions.map((transaction) => (
                 <div
                   key={transaction.id}
@@ -782,26 +847,38 @@ export default function SMRewardsPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {transactions.slice(0, 5).map((transaction) => (
-              <div key={transaction.id} className="flex items-center justify-between p-3 rounded-lg border">
-                <div className="flex items-center gap-3">
-                  {getTransactionIcon(transaction.type)}
-                  <div>
-                    <p className="font-medium text-gray-900">{transaction.description}</p>
-                    <p className="text-sm text-gray-500">
-                      {transaction.date} • {transaction.time}
+            {isLoadingTransactions ? (
+              <div className="text-center py-8">
+                <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                <p className="text-gray-500 text-sm">Loading transactions...</p>
+              </div>
+            ) : transactions.length > 0 ? (
+              transactions.slice(0, 5).map((transaction) => (
+                <div key={transaction.id} className="flex items-center justify-between p-3 rounded-lg border">
+                  <div className="flex items-center gap-3">
+                    {getTransactionIcon(transaction.type)}
+                    <div>
+                      <p className="font-medium text-gray-900">{transaction.description}</p>
+                      <p className="text-sm text-gray-500">
+                        {transaction.date} • {transaction.time}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className={cn("font-medium flex items-center gap-1", getTransactionColor(transaction.type))}>
+                      {transaction.type === "earn" || transaction.type === "topup" ? "+" : "-"}
+                      {transaction.amount}
+                      <Coins className="h-4 w-4" />
                     </p>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className={cn("font-medium flex items-center gap-1", getTransactionColor(transaction.type))}>
-                    {transaction.type === "earn" || transaction.type === "topup" ? "+" : "-"}
-                    {transaction.amount}
-                    <Coins className="h-4 w-4" />
-                  </p>
-                </div>
+              ))
+            ) : (
+              <div className="text-center py-8">
+                <History className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                <p className="text-gray-500 text-sm">No recent transactions</p>
               </div>
-            ))}
+            )}
           </div>
         </CardContent>
       </Card>
