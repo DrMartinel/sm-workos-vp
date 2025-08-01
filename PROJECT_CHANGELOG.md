@@ -23,6 +23,9 @@ Implemented a comprehensive transaction system for the SM Rewards feature, inclu
 
 #### Database Functions
 - **`public.create_transaction()`** - Creates new transactions for authenticated users
+- **`public.create_transaction_for_user()`** - Creates new transactions for specified users (SERVICE ROLE only)
+- **`public.add_sm_rewards_to_user()`** - Adds SM rewards to specific user balance (bypasses RLS)
+- **`public.deduct_sm_rewards_from_user()`** - Deducts SM rewards from specific user balance (bypasses RLS)
 - **`hrm.handle_updated_at()`** - Auto-updates `updated_at` timestamp on row changes
 
 #### Security & Access Control
@@ -45,18 +48,44 @@ Implemented a comprehensive transaction system for the SM Rewards feature, inclu
   - `createTransaction()` - Create new transaction with specified parameters
   - `updateTransactionStatus()` - Update transaction status (pending → completed/failed)
   - `getTransactionById()` - Get specific transaction by ID
+  - `createTransactionForUser()` - Create transaction for a specific user using database function (for transfers)
+
+#### 2. Enhanced Profiles Service (`app/shared-ui/lib/utils/supabase/profiles.ts`)
+- **Added**: `getProfilesForTransfer()` function
+  - Fetches all user profiles except the current user
+  - Excludes profiles without usernames
+  - Sorts profiles alphabetically by username
+  - Returns profiles with balance information for transfer selection
+- **Added**: `addSMRewardsToUser()` function
+  - Adds SM rewards to a specific user's balance
+  - Used for transfer operations to update recipient's balance
+  - Includes proper error handling and balance validation
 
 ### Modified Files
 
-#### 1. VNPay Service (`app/shared-ui/lib/utils/vnpay.ts`)
+#### 1. Enhanced Profiles Service (`app/shared-ui/lib/utils/supabase/profiles.ts`)
+- **Added**: `getProfilesForTransfer()` function for fetching transfer recipients
+- **Added**: `addSMRewardsToUser()` function for updating recipient balances
+- **Purpose**: Provides real user data for point transfer functionality
+
+#### 2. Enhanced Transaction Service (`app/shared-ui/lib/utils/supabase/transactions.ts`)
+- **Updated**: `createTransactionForUser()` function to use database function instead of direct table access
+- **Purpose**: Improved security by using database function with SERVICE ROLE controls
+
+#### 3. Enhanced Profiles Service (`app/shared-ui/lib/utils/supabase/profiles.ts`)
+- **Updated**: `addSMRewardsToUser()` function to use database function instead of direct table access
+- **Updated**: `deductSMRewards()` function to use database function for consistency
+- **Purpose**: Bypass RLS policies for balance updates during transfers
+
+#### 4. VNPay Service (`app/shared-ui/lib/utils/vnpay.ts`)
 - **Added**: `orderInfo?: string` to `VNPayPaymentRequest` interface
 - **Purpose**: Allow passing transaction ID in order info for callback tracking
 
-#### 2. VNPay Create Payment API (`app/api/vnpay/create-payment/route.ts`)
+#### 5. VNPay Create Payment API (`app/api/vnpay/create-payment/route.ts`)
 - **Added**: Support for `orderInfo` parameter in request body
 - **Modified**: `vnp_OrderInfo` now uses provided `orderInfo` or falls back to default
 
-#### 3. VNPay Callback API (`app/api/vnpay/callback/route.ts`)
+#### 6. VNPay Callback API (`app/api/vnpay/callback/route.ts`)
 - **Added**: Import for `transactionsService`
 - **Enhanced**: Transaction status update logic
   - Extracts transaction ID from `orderInfo` using regex pattern `transaction_id:(\d+)`
@@ -64,25 +93,34 @@ Implemented a comprehensive transaction system for the SM Rewards feature, inclu
   - Updates transaction status to 'failed' on payment failure
 - **Modified**: Response includes `transactionId` for debugging
 
-#### 4. SM Rewards Page (`app/(dashboard)/sm-rewards/page.tsx`)
+#### 7. SM Rewards Page (`app/(dashboard)/sm-rewards/page.tsx`)
 - **Added**: Import for `transactionsService` and `Transaction as DBTransaction`
+- **Added**: Import for `UserProfile` from profiles service
 - **Modified**: Transaction interface to include 'cancelled' status
 - **Added**: State management for transaction loading (`isLoadingTransactions`)
+- **Added**: State management for transfer profiles (`transferProfiles`, `isLoadingTransferProfiles`)
 - **Added**: `fetchTransactions()` function to load transactions from database
-- **Enhanced**: `useEffect` to fetch both balance and transactions on mount
+- **Added**: `fetchTransferProfiles()` function to load available recipients
+- **Enhanced**: `useEffect` to fetch balance, transactions, and transfer profiles on mount
 - **Modified**: `handleTopUp()` function:
   - Creates pending transaction before VNPay redirect
   - Includes transaction ID in VNPay order info
   - Updates transaction status on payment failure
   - Refreshes transactions after successful payment
 - **Modified**: `handleTransfer()` function:
-  - Creates completed transaction in database
+  - Uses real profile data instead of hardcoded recipients
+  - Implements complete transfer flow with both sender and recipient updates
+  - Creates transactions for both sender (outgoing) and recipient (incoming)
+  - Includes rollback mechanism if recipient update fails
   - Refreshes transaction list after successful transfer
 - **Modified**: `handlePurchase()` function:
   - Creates completed transaction in database
   - Refreshes transaction list after successful purchase
 - **Enhanced**: VNPay callback handling to refresh transactions
 - **Added**: Loading states for transaction history and recent transactions
+- **Enhanced**: Transfer modal to show real user profiles with balance information
+- **Fixed**: Select component error when profiles are loading (empty string values)
+- **Added**: Proper loading states and validation for transfer modal
 - **Removed**: Old `addTransaction()` function and mock transaction data
 
 ### Transaction Flow Implementation
@@ -103,7 +141,16 @@ Implemented a comprehensive transaction system for the SM Rewards feature, inclu
 3. System creates completed transaction in database
 4. Transaction list is refreshed to show new transaction
 
-#### 3. Transaction History
+#### 3. Point Transfer Flow (Enhanced)
+1. User selects recipient and enters transfer amount
+2. System deducts points from sender's balance
+3. System adds points to recipient's balance
+4. System creates outgoing transaction for sender
+5. System creates incoming transaction for recipient
+6. If any step fails, system rolls back changes
+7. Transaction lists are refreshed for both users
+
+#### 4. Transaction History
 1. Transactions are fetched from database on page load
 2. Loading states are shown during fetch operations
 3. Transactions are displayed with proper icons, colors, and status indicators

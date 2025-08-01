@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import { canteenProductsService, CanteenProduct } from "@/lib/utils/supabase/canteen-products"
-import { profilesService } from "@/lib/utils/supabase/profiles"
+import { profilesService, UserProfile } from "@/lib/utils/supabase/profiles"
 import { transactionsService, Transaction as DBTransaction } from "@/lib/utils/supabase/transactions"
 import {
   TrendingUp,
@@ -144,6 +144,8 @@ export default function SMRewardsPage() {
   const [paymentMethod, setPaymentMethod] = useState("")
   const [transferAmount, setTransferAmount] = useState("")
   const [transferRecipient, setTransferRecipient] = useState("")
+  const [transferProfiles, setTransferProfiles] = useState<UserProfile[]>([])
+  const [isLoadingTransferProfiles, setIsLoadingTransferProfiles] = useState(false)
   const [scannedProduct, setScannedProduct] = useState<{
     id: number
     name: string
@@ -207,10 +209,25 @@ export default function SMRewardsPage() {
     }
   }
 
+  // Fetch profiles for transfer
+  const fetchTransferProfiles = async () => {
+    try {
+      setIsLoadingTransferProfiles(true)
+      const profiles = await profilesService.getProfilesForTransfer()
+      setTransferProfiles(profiles)
+    } catch (error) {
+      console.error('Error fetching transfer profiles:', error)
+      setTransferProfiles([])
+    } finally {
+      setIsLoadingTransferProfiles(false)
+    }
+  }
+
   useEffect(() => {
     if (!skipInitialBalanceFetch.current) {
       fetchBalance();
       fetchTransactions();
+      fetchTransferProfiles();
     }
   }, []);
 
@@ -345,52 +362,74 @@ export default function SMRewardsPage() {
   }
 
   const handleTransfer = async () => {
-    if (transferAmount && transferRecipient) {
+    if (transferAmount && transferRecipient && transferRecipient !== "loading" && transferRecipient !== "no-recipients") {
       const amount = Number.parseInt(transferAmount)
       if (amount > balance) {
         setShowTransferModal(false)
         setShowErrorModal(true)
       } else {
         try {
-          // Update balance in database
-          const success = await profilesService.deductSMRewards(amount)
+          // Get recipient profile for transaction details
+          const recipientProfile = transferProfiles.find(profile => profile.id === transferRecipient);
+          const recipientName = recipientProfile?.username || 'Unknown User';
           
-          if (success) {
-            // Update local state
-            setBalance((prev) => prev - amount)
+          // Get current user profile for sender details
+          const currentUserProfile = await profilesService.getCurrentUserProfile();
+          const senderName = currentUserProfile?.username || 'Unknown User';
+          
+          // Step 1: Deduct from sender's balance
+          const deductSuccess = await profilesService.deductSMRewards(amount)
+          
+          if (deductSuccess) {
+                      // Step 2: Add to recipient's balance
+          const addSuccess = await profilesService.addSMRewardsToUser(transferRecipient, amount)
+          
+          if (addSuccess) {
+              // Update local state
+              setBalance((prev) => prev - amount)
 
-            // Create transaction in database
-            const { date, time } = getCurrentDateTime();
-            const recipientName =
-              transferRecipient === "john.doe"
-                ? "John Doe"
-                : transferRecipient === "jane.smith"
-                  ? "Jane Smith"
-                  : "Mike Johnson"
-            
-            await transactionsService.createTransaction(
-              'transfer',
-              amount,
-              `Transfer to ${recipientName}`,
-              date,
-              time,
-              'completed'
-            );
+              // Step 3: Create transaction for sender (outgoing transfer)
+              const { date, time } = getCurrentDateTime();
+              await transactionsService.createTransaction(
+                'transfer',
+                amount,
+                `Transfer to ${recipientName}`,
+                date,
+                time,
+                'completed'
+              );
 
-            // Refresh transactions
-            fetchTransactions();
+              // Step 4: Create transaction for recipient (incoming transfer)
+              await transactionsService.createTransactionForUser(
+                transferRecipient,
+                'transfer',
+                amount,
+                `Transfer from ${senderName}`,
+                date,
+                time,
+                'completed'
+              );
 
-            setShowTransferModal(false)
-            setShowSuccessModal(true)
-            setTransferAmount("")
-            setTransferRecipient("")
+              // Refresh transactions
+              fetchTransactions();
+
+              setShowTransferModal(false)
+              setShowSuccessModal(true)
+              setTransferAmount("")
+              setTransferRecipient("")
+            } else {
+              // If adding to recipient failed, revert sender's deduction
+              await profilesService.addSMRewards(amount)
+              setShowTransferModal(false)
+              setShowErrorModal(true)
+            }
           } else {
             // Handle error
             setShowTransferModal(false)
             setShowErrorModal(true)
           }
         } catch (error) {
-          console.error('Error updating SM rewards balance:', error)
+          console.error('Error processing transfer:', error)
           setShowTransferModal(false)
           setShowErrorModal(true)
         }
@@ -1123,16 +1162,35 @@ export default function SMRewardsPage() {
             <DialogDescription>Send SM Points to another employee</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div>
-              <Label htmlFor="recipient">Recipient</Label>
-              <Select value={transferRecipient} onValueChange={setTransferRecipient}>
+            {isLoadingTransferProfiles && transferProfiles.length === 0 ? (
+              <div className="text-center py-8">
+                <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                <p className="text-gray-500">Loading recipients...</p>
+              </div>
+            ) : (
+              <>
+                <div>
+                  <Label htmlFor="recipient">Recipient</Label>
+                  <Select value={transferRecipient} onValueChange={setTransferRecipient}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select recipient" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="john.doe">John Doe - Marketing</SelectItem>
-                  <SelectItem value="jane.smith">Jane Smith - HR</SelectItem>
-                  <SelectItem value="mike.johnson">Mike Johnson - IT</SelectItem>
+                  {isLoadingTransferProfiles ? (
+                    <SelectItem value="loading" disabled>
+                      Loading recipients...
+                    </SelectItem>
+                  ) : transferProfiles.length > 0 ? (
+                    transferProfiles.map((profile) => (
+                      <SelectItem key={profile.id} value={profile.id}>
+                        {profile.username} - {profile.sm_rewards_balance} points
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="no-recipients" disabled>
+                      No recipients available
+                    </SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -1147,7 +1205,11 @@ export default function SMRewardsPage() {
               />
             </div>
             <div className="flex gap-2">
-              <Button onClick={handleTransfer} className="flex-1">
+              <Button 
+                onClick={handleTransfer} 
+                className="flex-1"
+                disabled={isLoadingTransferProfiles || transferProfiles.length === 0 || !transferRecipient || transferRecipient === "loading" || transferRecipient === "no-recipients"}
+              >
                 <Send className="h-4 w-4 mr-2" />
                 Send Transfer
               </Button>
@@ -1155,6 +1217,8 @@ export default function SMRewardsPage() {
                 Cancel
               </Button>
             </div>
+              </>
+            )}
           </div>
         </DialogContent>
       </Dialog>
