@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { canteenProductsService, CanteenProduct } from "@/lib/utils/supabase/canteen-products"
 import { profilesService, UserProfile } from "@/lib/utils/supabase/profiles"
 import { transactionsService, Transaction as DBTransaction } from "@/lib/utils/supabase/transactions"
+import { useAuth } from "@/store/hooks/useAuth"
 import {
   TrendingUp,
   Gift,
@@ -127,9 +128,8 @@ const initialTransactions: Transaction[] = [
 
 
 export default function SMRewardsPage() {
+  const { smRewardsBalance, smRewardsLoading, refreshSMRewardsBalance } = useAuth()
   const [currentView, setCurrentView] = useState<"main" | "history">("main")
-  const [balance, setBalance] = useState(0)
-  const [isLoadingBalance, setIsLoadingBalance] = useState(true)
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [isLoadingTransactions, setIsLoadingTransactions] = useState(true)
 
@@ -167,19 +167,9 @@ export default function SMRewardsPage() {
 
   const skipInitialBalanceFetch = useRef(false);
 
-  // Fetch user's SM rewards balance on component mount
-  const fetchBalance = async () => {
-    try {
-      setIsLoadingBalance(true)
-      const userBalance = await profilesService.getSMRewardsBalance()
-      setBalance(userBalance)
-    } catch (error) {
-      console.error('Error fetching SM rewards balance:', error)
-      // Fallback to 0 if there's an error
-      setBalance(0)
-    } finally {
-      setIsLoadingBalance(false)
-    }
+  // Refresh SM rewards balance from Redux
+  const refreshBalance = async () => {
+    await refreshSMRewardsBalance()
   }
 
   // Fetch user's transactions on component mount
@@ -225,7 +215,7 @@ export default function SMRewardsPage() {
 
   useEffect(() => {
     if (!skipInitialBalanceFetch.current) {
-      fetchBalance();
+      refreshBalance();
       fetchTransactions();
       fetchTransferProfiles();
     }
@@ -236,26 +226,26 @@ export default function SMRewardsPage() {
     const search = window.location.search;
     if (!search) return;
 
-    // Call your API to verify the transaction
-    fetch(`/api/vnpay/callback${search}`)
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          // Update balance on client side
-          profilesService.addSMRewards(data.amount).then((success) => {
-            if (success) {
-              setShowSuccessModal(true);
-              fetchBalance();
-              fetchTransactions(); // Refresh transactions to show the completed transaction
+            // Call your API to verify the transaction
+        fetch(`/api/vnpay/callback${search}`)
+          .then(res => res.json())
+          .then(data => {
+            if (data.success) {
+              // Update balance on client side
+              profilesService.addSMRewards(data.amount).then((success) => {
+                if (success) {
+                  setShowSuccessModal(true);
+                  refreshBalance();
+                  fetchTransactions(); // Refresh transactions to show the completed transaction
+                } else {
+                  setShowErrorModal(true);
+                }
+              });
             } else {
               setShowErrorModal(true);
             }
-          });
-        } else {
-          setShowErrorModal(true);
-        }
-        window.history.replaceState({}, document.title, window.location.pathname);
-      })
+            window.history.replaceState({}, document.title, window.location.pathname);
+          })
       .catch(() => {
         setShowErrorModal(true);
         window.history.replaceState({}, document.title, window.location.pathname);
@@ -328,7 +318,7 @@ export default function SMRewardsPage() {
         const success = await profilesService.addSMRewards(coinsToAdd)
         
         if (success) {
-          setBalance((prev) => prev + coinsToAdd)
+          refreshBalance()
 
           // Create transaction in database
           const { date, time } = getCurrentDateTime();
@@ -364,7 +354,7 @@ export default function SMRewardsPage() {
   const handleTransfer = async () => {
     if (transferAmount && transferRecipient && transferRecipient !== "loading" && transferRecipient !== "no-recipients") {
       const amount = Number.parseInt(transferAmount)
-      if (amount > balance) {
+      if (amount > smRewardsBalance) {
         setShowTransferModal(false)
         setShowErrorModal(true)
       } else {
@@ -385,8 +375,8 @@ export default function SMRewardsPage() {
           const addSuccess = await profilesService.addSMRewardsToUser(transferRecipient, amount)
           
           if (addSuccess) {
-              // Update local state
-              setBalance((prev) => prev - amount)
+              // Update Redux state
+              refreshBalance()
 
               // Step 3: Create transaction for sender (outgoing transfer)
               const { date, time } = getCurrentDateTime();
@@ -486,7 +476,7 @@ export default function SMRewardsPage() {
 
   const handlePurchase = async () => {
     if (scannedProduct) {
-      if (scannedProduct.price > balance) {
+      if (scannedProduct.price > smRewardsBalance) {
         setShowScanModal(false)
         setShowErrorModal(true)
       } else {
@@ -495,8 +485,8 @@ export default function SMRewardsPage() {
           const success = await profilesService.deductSMRewards(scannedProduct.price)
           
           if (success) {
-            // Update local state
-            setBalance((prev) => prev - scannedProduct.price)
+            // Update Redux state
+            refreshBalance()
 
             // Create transaction in database
             const { date, time } = getCurrentDateTime();
@@ -713,13 +703,13 @@ export default function SMRewardsPage() {
         <CardContent>
           <div className="space-y-2">
                             <div className="text-3xl font-bold text-white">
-                  {isLoadingBalance ? (
+                  {smRewardsLoading ? (
                     <div className="flex items-center gap-2">
                       <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                       Loading...
                     </div>
                   ) : (
-                    balance.toLocaleString()
+                    smRewardsBalance.toLocaleString()
                   )}
                 </div>
           </div>
@@ -1114,10 +1104,10 @@ export default function SMRewardsPage() {
                 </div>
                 
                 {/* Balance check */}
-                {!scannedProduct.notFound && !scannedProduct.error && scannedProduct.price > balance && (
+                {!scannedProduct.notFound && !scannedProduct.error && scannedProduct.price > smRewardsBalance && (
                   <div className="bg-red-50 border border-red-200 rounded-lg p-3">
                     <p className="text-red-700 text-sm">
-                      Insufficient balance. You need {scannedProduct.price - balance} more SM Points.
+                      Insufficient balance. You need {scannedProduct.price - smRewardsBalance} more SM Points.
                     </p>
                   </div>
                 )}
@@ -1126,7 +1116,7 @@ export default function SMRewardsPage() {
                   <Button 
                     onClick={handlePurchase} 
                     className="flex-1"
-                    disabled={scannedProduct.notFound || scannedProduct.error || scannedProduct.price > balance || scannedProduct.stock_quantity <= 0}
+                    disabled={scannedProduct.notFound || scannedProduct.error || scannedProduct.price > smRewardsBalance || scannedProduct.stock_quantity <= 0}
                   >
                     {scannedProduct.notFound || scannedProduct.error ? 'Cannot Purchase' : 'Confirm Purchase'}
                   </Button>

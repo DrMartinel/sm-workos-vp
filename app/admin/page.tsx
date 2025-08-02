@@ -118,7 +118,7 @@ export default function AdminDashboard() {
                       className={`text-xs ${
                         stat.changeType === "positive"
                           ? "text-green-600"
-                          : stat.changeType === "negative"
+                          : stat.changeType === "neutral"
                             ? "text-red-600"
                             : "text-gray-600"
                       }`}

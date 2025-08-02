@@ -1,6 +1,6 @@
 "use client"
 import { useState } from "react"
-import { Users, UserPlus, Search, MoreHorizontal, Edit, Trash2, Mail, Phone, Calendar } from "lucide-react"
+import { Users, UserPlus, Search, MoreHorizontal, Edit, Trash2, Mail, Phone, Calendar, Shield } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -19,15 +19,17 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { CanManageUsers } from "@/app/shared-ui/components/role-based-access"
+import { SYSTEM_ROLES, SystemRole } from "@/app/shared-ui/lib/utils/supabase/roles"
 
-// Mock data
+// Mock data with roles
 const users = [
   {
     id: 1,
     name: "John Doe",
     email: "john.doe@company.com",
     phone: "+1 234 567 8900",
-    role: "Admin",
+    roles: ["admin"],
     department: "IT",
     status: "Active",
     avatar: "/placeholder.svg?height=40&width=40",
@@ -38,7 +40,7 @@ const users = [
     name: "Jane Smith",
     email: "jane.smith@company.com",
     phone: "+1 234 567 8901",
-    role: "Manager",
+    roles: ["manager"],
     department: "Marketing",
     status: "Active",
     avatar: "/placeholder.svg?height=40&width=40",
@@ -49,7 +51,7 @@ const users = [
     name: "Mike Johnson",
     email: "mike.johnson@company.com",
     phone: "+1 234 567 8902",
-    role: "User",
+    roles: ["employee"],
     department: "Sales",
     status: "Inactive",
     avatar: "/placeholder.svg?height=40&width=40",
@@ -60,7 +62,7 @@ const users = [
     name: "Sarah Wilson",
     email: "sarah.wilson@company.com",
     phone: "+1 234 567 8903",
-    role: "User",
+    roles: ["hr_manager"],
     department: "HR",
     status: "Active",
     avatar: "/placeholder.svg?height=40&width=40",
@@ -89,13 +91,28 @@ export default function UsersPage() {
       user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesStatus = selectedStatus === "all" || user.status.toLowerCase() === selectedStatus
-    const matchesRole = selectedRole === "all" || user.role.toLowerCase() === selectedRole
+    const matchesRole = selectedRole === "all" || user.roles.some(role => role.toLowerCase() === selectedRole)
 
     return matchesSearch && matchesStatus && matchesRole
   })
 
   return (
-    <div className="p-6 space-y-6">
+    <CanManageUsers 
+      fallback={
+        <div className="p-6">
+          <Card>
+            <CardContent className="p-6">
+              <div className="text-center">
+                <Shield className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <h2 className="text-xl font-semibold text-gray-900 mb-2">Access Denied</h2>
+                <p className="text-gray-500">You don't have permission to manage users.</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      }
+    >
+      <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -284,7 +301,13 @@ export default function UsersPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={user.role === "Admin" ? "default" : "secondary"}>{user.role}</Badge>
+                      <div className="flex flex-wrap gap-1">
+                        {user.roles.map((role, index) => (
+                          <Badge key={index} variant={role === "admin" ? "default" : "secondary"}>
+                            {role}
+                          </Badge>
+                        ))}
+                      </div>
                     </TableCell>
                     <TableCell>{user.department}</TableCell>
                     <TableCell>
@@ -423,6 +446,7 @@ export default function UsersPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
+    </CanManageUsers>
   )
 }
