@@ -50,7 +50,6 @@ The user slice manages all user-related state including:
 - **Optimistic Updates**: Local state updates for better UX
 - **Error Handling**: Comprehensive error management
 - **Type Safety**: Full TypeScript support with proper typing
-- **Smart Object Comparison**: Prevents unnecessary re-renders by comparing key properties
 
 #### Actions:
 
@@ -92,46 +91,6 @@ A comprehensive hook that:
 - Provides all user state and actions
 - Handles automatic data refresh
 
-#### Key Features:
-
-- **Simplified Logic**: Clean, straightforward useEffect dependencies
-- **Smart Fetching**: Only fetches data when needed and not already loading
-- **Console Logging**: Detailed logs for debugging fetch operations
-- **Refresh Functions**: Manual refresh capabilities for all data types
-- **Error Handling**: Comprehensive error state management
-
-#### Data Flow:
-
-```typescript
-// 1. Check authentication on mount
-useEffect(() => {
-  if (!isAuthenticated) {
-    dispatch(checkAuthStatus())
-  }
-}, [dispatch])
-
-// 2. Fetch profile when authenticated
-useEffect(() => {
-  if (isAuthenticated && user?.id && !profile?.id && !profileLoading) {
-    dispatch(fetchUserProfile())
-  }
-}, [isAuthenticated, user?.id, profile?.id, profileLoading])
-
-// 3. Fetch roles when profile is loaded
-useEffect(() => {
-  if (profile?.id && roles.length === 0 && !rolesLoading) {
-    dispatch(fetchUserRoles())
-  }
-}, [profile?.id, roles.length, rolesLoading])
-
-// 4. Fetch SM rewards when profile is loaded
-useEffect(() => {
-  if (profile?.id && smRewardsBalance === 0 && !smRewardsLoading) {
-    dispatch(fetchSMRewardsBalance())
-  }
-}, [profile?.id, smRewardsBalance, smRewardsLoading])
-```
-
 ### 6. Role Access Hook (`store/hooks/useRoleAccess.ts`)
 
 A specialized hook for flexible role-based access control that provides:
@@ -141,20 +100,21 @@ A specialized hook for flexible role-based access control that provides:
 - Specific role checks (`isAdmin`, `isManager`, `isHRManager`, etc.)
 - Permission-based checks (`canManageUsers`, `canViewReports`, etc.)
 - Utility methods for getting current roles and permissions
+- Specific permission checks (`canManageUsers`, `canViewReports`, etc.)
+- Data access methods for roles and permissions
 
 ### 7. Login Hook (`store/hooks/useLogin.ts`)
 
-Encapsulates login functionality with:
+Handles login functionality with:
 
 - Form validation
 - Supabase authentication
-- Redux state updates
-- Error handling
-- Loading states
+- Redux state updates after successful login
+- Error handling and user feedback
 
 ### 8. Role Management Service (`app/shared-ui/lib/utils/supabase/roles.ts`)
 
-Comprehensive service for role and permission management:
+Comprehensive role and permission management service that provides:
 
 - **System Roles**: Predefined roles (admin, manager, employee, etc.)
 - **Role Permissions**: Granular permission system
@@ -268,25 +228,29 @@ function LoginPage() {
 
   return (
     <form onSubmit={onSubmit}>
-      <input
-        type="email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        placeholder="Email"
-        required
-      />
-      <input
-        type="password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        placeholder="Password"
-        required
-      />
-      <button type="submit" disabled={isLoading}>
-        {isLoading ? 'Logging in...' : 'Login'}
-      </button>
-      {errors && <div className="error">{errors}</div>}
+      {/* form fields */}
     </form>
+  )
+}
+```
+
+### Manual State Updates
+
+```tsx
+import { useAppDispatch } from '@/store/hooks'
+import { updateSMRewardsBalance } from '@/store/slices/userSlice'
+
+function UpdateBalance() {
+  const dispatch = useAppDispatch()
+
+  const handleBalanceUpdate = (newBalance: number) => {
+    dispatch(updateSMRewardsBalance(newBalance))
+  }
+
+  return (
+    <button onClick={() => handleBalanceUpdate(1000)}>
+      Update Balance
+    </button>
   )
 }
 ```
@@ -339,14 +303,12 @@ function LoginPage() {
 - **Eliminates Redundant API Calls**: User data is fetched once and cached in Redux
 - **Reduced Network Requests**: Components share the same data source
 - **Faster Component Rendering**: No loading states for already-fetched data
-- **Smart Object Comparison**: Prevents unnecessary re-renders
 
 ### 2. Better User Experience
 
 - **Consistent State**: All components show the same user information
 - **Real-time Updates**: Changes in one component reflect everywhere
 - **Persistent State**: User data persists across component unmounts/remounts
-- **Smooth Loading**: Intelligent loading states prevent UI flicker
 
 ### 3. Developer Experience
 
@@ -357,14 +319,12 @@ function LoginPage() {
 - **Flexible Role-Based Access Control**: Easy implementation of any role/permission combination
 - **Reusable Components**: Pre-built components for common access patterns
 - **Custom Access Logic**: Support for complex access requirements
-- **Simplified Logic**: Clean, maintainable useEffect dependencies
 
 ### 4. Maintainability
 
 - **Separation of Concerns**: UI logic separated from data fetching
 - **Reusable Logic**: Hooks can be used across multiple components
 - **Easy Testing**: Redux actions and reducers are easily testable
-- **Clear Data Flow**: Predictable state updates and data fetching
 
 ## State Flow
 
@@ -392,7 +352,6 @@ The implementation includes comprehensive error handling:
 - **Authentication Errors**: Clear error messages for login issues
 - **Loading States**: Proper loading indicators during data fetching
 - **Error Recovery**: Ability to retry failed operations
-- **Console Logging**: Detailed logs for debugging
 
 ## Testing and Examples
 
@@ -516,4 +475,4 @@ import { AdminOnly, CanManageUsers, RoleProtection } from '@/app/shared-ui/compo
 
 ## Conclusion
 
-This Redux implementation provides a robust, scalable solution for user state management with simplified logic and enhanced performance. It eliminates redundant API calls, improves performance, and provides a better developer experience while maintaining type safety and comprehensive error handling. The flexible role-based access control system supports any role or permission combination, making it suitable for complex enterprise applications. 
+This Redux implementation provides a robust, scalable solution for user state management. It eliminates redundant API calls, improves performance, and provides a better developer experience while maintaining type safety and error handling. 

@@ -36,9 +36,9 @@ export default function RootLayout({
     <html lang="vi" suppressHydrationWarning>
       <body className={inter.className}>
         <ReduxProvider>
-          <ThemeProvider attribute="class" forcedTheme="light">
-            <ReactQueryProvider>{children}</ReactQueryProvider>
-          </ThemeProvider>
+        <ThemeProvider attribute="class" forcedTheme="light">
+          <ReactQueryProvider>{children}</ReactQueryProvider>
+        </ThemeProvider>
         </ReduxProvider>
         <Toaster />
       </body>

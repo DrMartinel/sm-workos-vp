@@ -50,7 +50,7 @@ const initialState: UserState = {
   rolesLoading: false,
   rolesError: null,
   smRewardsBalance: 0,
-  smRewardsLoading: false,
+  smRewardsLoading: true,
   smRewardsError: null,
 }
 
@@ -196,12 +196,26 @@ const userSlice = createSlice({
       .addCase(checkAuthStatus.fulfilled, (state, action) => {
         state.isLoading = false
         state.isAuthenticated = !!action.payload
-        state.user = action.payload ? {
-          id: action.payload.id || null,
-          email: action.payload.email || null,
-          created_at: action.payload.created_at || null,
-          updated_at: action.payload.updated_at || null,
-        } : null
+        
+        // Only update user if it's different or doesn't exist
+        if (action.payload) {
+          const newUser = {
+            id: action.payload.id || null,
+            email: action.payload.email || null,
+            created_at: action.payload.created_at || null,
+            updated_at: action.payload.updated_at || null,
+          }
+          
+          // Check if user data has actually changed
+          if (!state.user || 
+              state.user.id !== newUser.id ||
+              state.user.email !== newUser.email) {
+            state.user = newUser
+          }
+        } else {
+          state.user = null
+        }
+        
         state.error = null
       })
       .addCase(checkAuthStatus.rejected, (state, action) => {
@@ -219,7 +233,14 @@ const userSlice = createSlice({
       })
       .addCase(fetchUserProfile.fulfilled, (state, action) => {
         state.profileLoading = false
-        state.profile = action.payload
+        
+        // Only update profile if it's different or doesn't exist
+        if (!state.profile || 
+            state.profile.id !== action.payload?.id ||
+            state.profile.username !== action.payload?.username) {
+          state.profile = action.payload
+        }
+        
         state.profileError = null
       })
       .addCase(fetchUserProfile.rejected, (state, action) => {

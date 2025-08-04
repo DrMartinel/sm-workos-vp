@@ -225,7 +225,6 @@ export default function SMRewardsPage() {
   useEffect(() => {
     const search = window.location.search;
     if (!search) return;
-
             // Call your API to verify the transaction
         fetch(`/api/vnpay/callback${search}`)
           .then(res => res.json())

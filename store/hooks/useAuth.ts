@@ -1,4 +1,3 @@
-import { useEffect } from 'react'
 import { useAppDispatch, useAppSelector } from '../hooks'
 import {
   selectUser,
@@ -15,7 +14,6 @@ import {
   selectSMRewardsBalance,
   selectSMRewardsLoading,
   selectSMRewardsError,
-  checkAuthStatus,
   fetchUserProfile,
   fetchUserRoles,
   fetchSMRewardsBalance,
@@ -23,6 +21,11 @@ import {
   clearError,
 } from '../slices/userSlice'
 
+/**
+ * Hook for reading authentication state and performing auth-related actions.
+ * This hook does NOT trigger any initial fetching - use useAuthInitializer for that.
+ * Use this hook in components that need to read auth data or perform auth actions.
+ */
 export function useAuth() {
   const dispatch = useAppDispatch()
   
@@ -42,32 +45,6 @@ export function useAuth() {
   const smRewardsLoading = useAppSelector(selectSMRewardsLoading)
   const smRewardsError = useAppSelector(selectSMRewardsError)
 
-  // Check authentication status on mount
-  useEffect(() => {
-    dispatch(checkAuthStatus())
-  }, [dispatch])
-
-  // Fetch user profile when authenticated
-  useEffect(() => {
-    if (isAuthenticated && user && !profile) {
-      dispatch(fetchUserProfile())
-    }
-  }, [isAuthenticated, user, profile, dispatch])
-
-  // Fetch user roles when profile is loaded
-  useEffect(() => {
-    if (profile && roles.length === 0) {
-      dispatch(fetchUserRoles())
-    }
-  }, [profile, roles, dispatch])
-
-  // Fetch SM rewards balance when profile is loaded
-  useEffect(() => {
-    if (profile && smRewardsBalance === 0) {
-      dispatch(fetchSMRewardsBalance())
-    }
-  }, [profile, smRewardsBalance, dispatch])
-
   // Actions
   const handleSignOut = async () => {
     await dispatch(signOut())
@@ -78,19 +55,19 @@ export function useAuth() {
   }
 
   const refreshUserProfile = () => {
-    if (isAuthenticated) {
+    if (isAuthenticated && user?.id) {
       dispatch(fetchUserProfile())
     }
   }
 
   const refreshUserRoles = () => {
-    if (isAuthenticated) {
+    if (isAuthenticated && profile?.id) {
       dispatch(fetchUserRoles())
     }
   }
 
   const refreshSMRewardsBalance = () => {
-    if (isAuthenticated) {
+    if (isAuthenticated && profile?.id) {
       dispatch(fetchSMRewardsBalance())
     }
   }

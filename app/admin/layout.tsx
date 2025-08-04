@@ -16,10 +16,13 @@ import {
   Menu,
   X,
   LogOut,
+  AlertTriangle,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { cn } from "@/app/shared-ui/lib/utils"
+import { useAuth } from "@/store/hooks/useAuth"
+import { AdminOnly } from "@/app/shared-ui/components/role-protection"
 
 const navigation = [
   { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
@@ -38,8 +41,10 @@ export default function AdminLayout({
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const pathname = usePathname()
+  const { user, profile } = useAuth()
 
   return (
+    <AdminOnly>
     <div className="flex h-screen bg-gray-50">
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
@@ -99,16 +104,27 @@ export default function AdminLayout({
           <div className="border-t border-gray-200 p-4">
             <div className="flex items-center space-x-3">
               <Avatar className="h-10 w-10">
-                <AvatarImage src="/placeholder.svg?height=40&width=40" />
-                <AvatarFallback className="bg-blue-100 text-blue-700">AD</AvatarFallback>
+                <AvatarImage src={profile?.avatar_url || "/placeholder.svg?height=40&width=40"} />
+                <AvatarFallback className="bg-blue-100 text-blue-700">
+                  {profile?.username?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || 'A'}
+                </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">Admin User</p>
-                <p className="text-xs text-gray-500 truncate">admin@company.com</p>
+                <p className="text-sm font-medium text-gray-900 truncate">
+                  {profile?.username || user?.email || 'Admin User'}
+                </p>
+                <p className="text-xs text-gray-500 truncate">
+                  {user?.email || 'admin@company.com'}
+                </p>
+                <p className="text-xs text-blue-600 font-medium">
+                  Administrator
+                </p>
               </div>
+              <Link href="/">
               <Button variant="ghost" size="sm" className="text-gray-400 hover:text-gray-600">
                 <LogOut className="h-4 w-4" />
               </Button>
+              </Link>
             </div>
           </div>
         </div>
@@ -131,5 +147,6 @@ export default function AdminLayout({
         <main className="flex-1 overflow-auto">{children}</main>
       </div>
     </div>
+    </AdminOnly>
   )
 }

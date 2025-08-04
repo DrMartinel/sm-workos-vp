@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { CanManageUsers } from "@/app/shared-ui/components/role-based-access"
+import { CanManageUsers } from "@/app/shared-ui/components/role-protection"
 import { SYSTEM_ROLES, SystemRole } from "@/app/shared-ui/lib/utils/supabase/roles"
 
 // Mock data with roles
@@ -112,7 +112,7 @@ export default function UsersPage() {
         </div>
       }
     >
-      <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -446,7 +446,7 @@ export default function UsersPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      </div>
+    </div>
     </CanManageUsers>
   )
 }
