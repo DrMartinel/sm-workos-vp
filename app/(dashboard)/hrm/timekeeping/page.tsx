@@ -10,8 +10,10 @@ import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/utils/supabase/client"
 import dataURLtoBlob from "./utils/dataURLtoBlob"
 import TimekeepingLoading from "./loading"
+import { useAuth } from "@/store/hooks/useAuth"
 
 export default function TimekeepingPage() {
+  const { user } = useAuth()
   const [currentStep, setCurrentStep] = useState(1)
   const [locationStatus, setLocationStatus] = useState<"checking" | "approved" | "denied" | null>(null)
   const [capturedImage, setCapturedImage] = useState<string | null>(null)
@@ -182,8 +184,7 @@ export default function TimekeepingPage() {
   const handleComplete = async () => {
     const supabase = createClient();
 
-    // Get the current user
-    const { data: { user } } = await supabase.auth.getUser();
+    // Get the current user from Redux
     if (!user) {
       alert("Người dùng chưa xác thực");
       return;

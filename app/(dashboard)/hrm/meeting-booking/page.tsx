@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/utils/supabase/client"
 import { formatDateTime } from "./utils/formatDateTime"
 import { useToast, toast } from "@/hooks/use-toast"
+import { useAuth } from "@/store/hooks/useAuth"
 import MeetingBookingLoading from "./loading"
 import {
   Dialog,
@@ -43,6 +44,7 @@ interface Meeting {
 }
 
 export default function MeetingBookingPage() {
+  const { user } = useAuth()
   const [currentStep, setCurrentStep] = useState(1)
   const [selectedRoom, setSelectedRoom] = useState<MeetingRoom | null>(null)
   const [meetingRooms, setMeetingRooms] = useState<MeetingRoom[]>([])
@@ -53,10 +55,9 @@ export default function MeetingBookingPage() {
     title: "",
     startTime: "",
     endTime: "",
-    organizer_id: "Current User",
+    organizer_id: user?.id || "Current User",
     status: "Scheduled",
   })
-  const [user, setUser] = useState<any>(null);
   const [editing, setEditing] = useState(false);
   const [editingMeetingId, setEditingMeetingId] = useState<string | null>(null);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
@@ -65,17 +66,6 @@ export default function MeetingBookingPage() {
   useEffect(() => {
     fetchData()
   }, [])
-  
-  useEffect(() => {
-    const fetchUser = async () => {
-      const supabase = createClient();
-      const { data, error } = await supabase.auth.getUser();
-      if (data?.user) {
-        setUser(data.user);
-      }
-    };
-    fetchUser();
-  }, []);
 
   const handleRoomSelect = (room: MeetingRoom) => {
     setSelectedRoom(room)

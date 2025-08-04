@@ -51,7 +51,7 @@ export function useAuthInitializer() {
 
   // Fetch user roles when profile is loaded
   useEffect(() => {
-    if (profile?.id && roles.length === 0 && !rolesLoading) {
+    if (profile?.id && roles.length === 0 && rolesLoading) {
       console.log('🔑 Fetching roles for profile:', profile.id)
       dispatch(fetchUserRoles())
     }

@@ -128,7 +128,7 @@ const initialTransactions: Transaction[] = [
 
 
 export default function SMRewardsPage() {
-  const { smRewardsBalance, smRewardsLoading, refreshSMRewardsBalance } = useAuth()
+  const { smRewardsBalance, smRewardsLoading, refreshSMRewardsBalance, profile } = useAuth()
   const [currentView, setCurrentView] = useState<"main" | "history">("main")
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [isLoadingTransactions, setIsLoadingTransactions] = useState(true)
@@ -163,13 +163,16 @@ export default function SMRewardsPage() {
   const [modalAmount, setModalAmount] = useState<string | null>(null);
   const [modalOrderInfo, setModalOrderInfo] = useState<string | null>(null);
 
-
-
   const skipInitialBalanceFetch = useRef(false);
 
   // Refresh SM rewards balance from Redux
   const refreshBalance = async () => {
     await refreshSMRewardsBalance()
+  }
+
+  // Get current user profile from Redux
+  const getCurrentUserProfile = () => {
+    return profile
   }
 
   // Fetch user's transactions on component mount
@@ -215,7 +218,6 @@ export default function SMRewardsPage() {
 
   useEffect(() => {
     if (!skipInitialBalanceFetch.current) {
-      refreshBalance();
       fetchTransactions();
       fetchTransferProfiles();
     }
@@ -363,7 +365,7 @@ export default function SMRewardsPage() {
           const recipientName = recipientProfile?.username || 'Unknown User';
           
           // Get current user profile for sender details
-          const currentUserProfile = await profilesService.getCurrentUserProfile();
+          const currentUserProfile = getCurrentUserProfile();
           const senderName = currentUserProfile?.username || 'Unknown User';
           
           // Step 1: Deduct from sender's balance

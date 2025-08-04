@@ -47,7 +47,7 @@ const initialState: UserState = {
   profileError: null,
   roles: [],
   permissions: [],
-  rolesLoading: false,
+  rolesLoading: true,
   rolesError: null,
   smRewardsBalance: 0,
   smRewardsLoading: true,

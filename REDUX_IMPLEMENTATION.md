@@ -307,6 +307,8 @@ function LoginPage() {
    - Uses Redux for SM rewards balance
    - Eliminates local state management for balance
    - Automatic balance refresh after transactions
+   - Uses Redux for current user profile data
+   - Maintains direct service calls for balance modifications (write operations)
 
 4. **Admin Users Page** (`app/admin/users/page.tsx`)
    - Protected with flexible role-based access control
@@ -331,6 +333,91 @@ function LoginPage() {
    - Enhanced with admin access testing
    - Shows authentication and role state
    - Includes render counter for debugging
+
+9. **Logout Button** (`app/shared-ui/components/auth/logout-button.tsx`)
+   - Now uses Redux `signOut` action
+   - Removed direct Supabase client usage
+
+10. **Timekeeping Page** (`app/(dashboard)/hrm/timekeeping/page.tsx`)
+    - Uses Redux for user authentication data
+    - Removed direct `supabase.auth.getUser()` call
+    - Maintains direct service calls for timekeeping operations
+
+11. **Meeting Booking Page** (`app/(dashboard)/hrm/meeting-booking/page.tsx`)
+    - Uses Redux for user authentication data
+    - Removed direct `supabase.auth.getUser()` call
+    - Removed local user state management
+    - Maintains direct service calls for meeting operations
+
+## Migration Summary
+
+### ✅ **Completed Migrations**
+
+1. **User Authentication Data**
+   - All components now use `useAuth()` hook for user data
+   - Removed direct `supabase.auth.getUser()` calls from components
+   - Centralized authentication state management
+
+2. **User Profile Data**
+   - Components use Redux state for current user profile
+   - Eliminated redundant profile fetching
+   - Smart caching prevents unnecessary API calls
+
+3. **SM Rewards Balance**
+   - Components use Redux state for balance display
+   - Automatic balance refresh after transactions
+   - Maintained direct service calls for balance modifications
+
+4. **Logout Functionality**
+   - All logout operations use Redux `signOut` action
+   - Consistent logout behavior across the application
+
+5. **Role and Permission Data**
+   - Components use Redux state for roles and permissions
+   - Eliminated redundant role fetching
+   - Centralized role-based access control
+
+### 🔄 **Maintained Direct Service Calls**
+
+The following operations still use direct service calls as they are write operations or fetch data for other users:
+
+1. **Balance Modifications** (`profilesService.addSMRewards`, `profilesService.deductSMRewards`)
+   - These are write operations that modify the database
+   - Redux state is updated after successful operations
+
+2. **Transfer Profile Fetching** (`profilesService.getProfilesForTransfer`)
+   - Fetches other users' profiles for transfer functionality
+   - Not current user data, so not cached in Redux
+
+3. **Database Operations** (timekeeping, meeting booking, transactions)
+   - These are application-specific operations
+   - Not user authentication/profile data
+
+4. **Service Layer** (profiles.ts, roles.ts, transactions.ts, etc.)
+   - These files contain the actual API calls
+   - Redux uses these services for data fetching
+
+### 📁 **Files Updated**
+
+1. **Components Updated:**
+   - `app/(dashboard)/sm-rewards/page.tsx`
+   - `app/shared-ui/components/auth/logout-button.tsx`
+   - `app/(dashboard)/hrm/timekeeping/page.tsx`
+   - `app/(dashboard)/hrm/meeting-booking/page.tsx`
+
+2. **Files Already Using Redux:**
+   - `app/shared-ui/components/auth/user-profile-dropdown.tsx`
+   - `app/login/page.tsx`
+   - `app/admin/users/page.tsx`
+   - `app/shared-ui/components/user-info-display.tsx`
+   - `app/layout.tsx`
+   - `app/admin/layout.tsx`
+
+3. **Service Files (Unchanged):**
+   - `app/shared-ui/lib/utils/supabase/profiles.ts`
+   - `app/shared-ui/lib/utils/supabase/roles.ts`
+   - `app/shared-ui/lib/utils/supabase/transactions.ts`
+   - `app/shared-ui/lib/utils/supabase/canteen-products.ts`
 
 ## Benefits
 
@@ -516,4 +603,6 @@ import { AdminOnly, CanManageUsers, RoleProtection } from '@/app/shared-ui/compo
 
 ## Conclusion
 
-This Redux implementation provides a robust, scalable solution for user state management with simplified logic and enhanced performance. It eliminates redundant API calls, improves performance, and provides a better developer experience while maintaining type safety and comprehensive error handling. The flexible role-based access control system supports any role or permission combination, making it suitable for complex enterprise applications. 
+This Redux implementation provides a robust, scalable solution for user state management with simplified logic and enhanced performance. It eliminates redundant API calls, improves performance, and provides a better developer experience while maintaining type safety and comprehensive error handling. The flexible role-based access control system supports any role or permission combination, making it suitable for complex enterprise applications.
+
+The migration has been completed successfully, with all user-related and profile-related database fetching now using the Redux hooks. The implementation maintains a clear separation between read operations (handled by Redux) and write operations (handled by direct service calls), ensuring optimal performance and data consistency. 
