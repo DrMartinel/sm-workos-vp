@@ -620,11 +620,11 @@ export default function TimekeepingPage() {
     )
   } else if (isCheckedIn && isCheckedOut) {
     // Show summary
-    const workingHours = checkInTime
-      ? Math.floor((currentTime.getTime() - checkInTime.getTime()) / (1000 * 60 * 60))
+    const workingHours = checkInTime && checkOutTime
+      ? Math.floor((checkOutTime.getTime() - checkInTime.getTime()) / (1000 * 60 * 60))
       : 0
-    const workingMinutes = checkInTime
-      ? Math.floor(((currentTime.getTime() - checkInTime.getTime()) % (1000 * 60 * 60)) / (1000 * 60))
+    const workingMinutes = checkInTime && checkOutTime
+      ? Math.floor(((checkOutTime.getTime() - checkInTime.getTime()) % (1000 * 60 * 60)) / (1000 * 60))
       : 0
 
     return (
