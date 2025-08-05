@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 import ReactQueryProvider from "@/components/react-query-provider"
 import { ReduxProvider } from "@/store/provider"
 import { Toaster } from "@/components/ui/toaster"
+import { AuthInitializer } from "@/app/shared-ui/components/auth/auth-initializer"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -36,9 +37,10 @@ export default function RootLayout({
     <html lang="vi" suppressHydrationWarning>
       <body className={inter.className}>
         <ReduxProvider>
-        <ThemeProvider attribute="class" forcedTheme="light">
-          <ReactQueryProvider>{children}</ReactQueryProvider>
-        </ThemeProvider>
+          <AuthInitializer />
+          <ThemeProvider attribute="class" forcedTheme="light">
+            <ReactQueryProvider>{children}</ReactQueryProvider>
+          </ThemeProvider>
         </ReduxProvider>
         <Toaster />
       </body>

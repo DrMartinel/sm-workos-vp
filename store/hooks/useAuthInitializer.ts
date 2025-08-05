@@ -45,7 +45,7 @@ export function useAuthInitializer() {
   useEffect(() => {
     if (isAuthenticated && user?.id && !profile?.id && !profileLoading) {
       console.log('👤 Fetching profile for user:', user.id)
-      dispatch(fetchUserProfile())
+      dispatch(fetchUserProfile(user.id))
     }
   }, [isAuthenticated, user?.id, profile?.id, profileLoading, dispatch])
 
@@ -53,7 +53,7 @@ export function useAuthInitializer() {
   useEffect(() => {
     if (profile?.id && roles.length === 0 && rolesLoading) {
       console.log('🔑 Fetching roles for profile:', profile.id)
-      dispatch(fetchUserRoles())
+      dispatch(fetchUserRoles(profile.id))
     }
   }, [profile?.id, roles.length, rolesLoading, dispatch])
 
@@ -61,7 +61,7 @@ export function useAuthInitializer() {
   useEffect(() => {
     if (profile?.id && smRewardsBalance === 0 && smRewardsLoading) {
       console.log('💰 Fetching SM rewards balance for profile:', profile.id)
-      dispatch(fetchSMRewardsBalance())
+      dispatch(fetchSMRewardsBalance(profile.id))
     }
   }, [profile?.id, smRewardsBalance, smRewardsLoading, dispatch])
 

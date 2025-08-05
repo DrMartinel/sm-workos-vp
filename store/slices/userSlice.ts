@@ -74,11 +74,11 @@ export const checkAuthStatus = createAsyncThunk<User | null, void, { rejectValue
 )
 
 // Async thunk to fetch user profile
-export const fetchUserProfile = createAsyncThunk<UserProfile, void, { rejectValue: string }>(
+export const fetchUserProfile = createAsyncThunk<UserProfile, string, { rejectValue: string }>(
   'user/fetchUserProfile',
-  async (_, { rejectWithValue }) => {
+  async (userId, { rejectWithValue }) => {
     try {
-      const profile = await profilesService.getCurrentUserProfile()
+      const profile = await profilesService.getProfileById(userId)
       if (!profile) {
         return rejectWithValue('Failed to fetch user profile')
       }
@@ -90,12 +90,12 @@ export const fetchUserProfile = createAsyncThunk<UserProfile, void, { rejectValu
 )
 
 // Async thunk to fetch user roles and permissions
-export const fetchUserRoles = createAsyncThunk<{ roles: string[], permissions: string[] }, void, { rejectValue: string }>(
+export const fetchUserRoles = createAsyncThunk<{ roles: string[], permissions: string[] }, string, { rejectValue: string }>(
   'user/fetchUserRoles',
-  async (_, { rejectWithValue }) => {
+  async (userId, { rejectWithValue }) => {
     try {
-      const roles = await rolesService.getCurrentUserRoles()
-      const permissions = await rolesService.getCurrentUserPermissions()
+      const roles = await rolesService.getUserRolesById(userId)
+      const permissions = await rolesService.getUserPermissionsById(userId)
       return { roles, permissions }
     } catch (error) {
       return rejectWithValue('Failed to fetch user roles')
@@ -104,11 +104,11 @@ export const fetchUserRoles = createAsyncThunk<{ roles: string[], permissions: s
 )
 
 // Async thunk to fetch SM rewards balance
-export const fetchSMRewardsBalance = createAsyncThunk<number, void, { rejectValue: string }>(
+export const fetchSMRewardsBalance = createAsyncThunk<number, string, { rejectValue: string }>(
   'user/fetchSMRewardsBalance',
-  async (_, { rejectWithValue }) => {
+  async (userId, { rejectWithValue }) => {
     try {
-      const balance = await profilesService.getSMRewardsBalance()
+      const balance = await profilesService.getSMRewardsBalanceById(userId)
       return balance
     } catch (error) {
       return rejectWithValue('Failed to fetch SM rewards balance')

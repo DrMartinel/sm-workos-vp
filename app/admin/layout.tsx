@@ -22,7 +22,6 @@ import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { cn } from "@/app/shared-ui/lib/utils"
 import { useAuth } from "@/store/hooks/useAuth"
-import { useAuthInitializer } from "@/store/hooks/useAuthInitializer"
 import { AdminOnly } from "@/app/shared-ui/components/role-protection"
 
 const navigation = [
@@ -40,8 +39,6 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode
 }) {
-  useAuthInitializer()
-
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const pathname = usePathname()
   const { user, profile } = useAuth()

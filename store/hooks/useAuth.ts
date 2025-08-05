@@ -56,19 +56,19 @@ export function useAuth() {
 
   const refreshUserProfile = () => {
     if (isAuthenticated && user?.id) {
-      dispatch(fetchUserProfile())
+      dispatch(fetchUserProfile(user.id))
     }
   }
 
   const refreshUserRoles = () => {
     if (isAuthenticated && profile?.id) {
-      dispatch(fetchUserRoles())
+      dispatch(fetchUserRoles(profile.id))
     }
   }
 
   const refreshSMRewardsBalance = () => {
     if (isAuthenticated && profile?.id) {
-      dispatch(fetchSMRewardsBalance())
+      dispatch(fetchSMRewardsBalance(profile.id))
     }
   }
 
