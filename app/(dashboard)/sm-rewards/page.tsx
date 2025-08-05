@@ -227,26 +227,26 @@ export default function SMRewardsPage() {
   useEffect(() => {
     const search = window.location.search;
     if (!search) return;
-            // Call your API to verify the transaction
-        fetch(`/api/vnpay/callback${search}`)
-          .then(res => res.json())
-          .then(data => {
-            if (data.success) {
-              // Update balance on client side
-              profilesService.addSMRewards(data.amount).then((success) => {
-                if (success) {
-                  setShowSuccessModal(true);
+    // Call your API to verify the transaction
+    fetch(`/api/vnpay/callback${search}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          // Update balance on client side
+          profilesService.addSMRewards(data.amount).then((success) => {
+            if (success) {
+              setShowSuccessModal(true);
                   refreshBalance();
-                  fetchTransactions(); // Refresh transactions to show the completed transaction
-                } else {
-                  setShowErrorModal(true);
-                }
-              });
+              fetchTransactions(); // Refresh transactions to show the completed transaction
             } else {
               setShowErrorModal(true);
             }
-            window.history.replaceState({}, document.title, window.location.pathname);
-          })
+          });
+        } else {
+          setShowErrorModal(true);
+        }
+        window.history.replaceState({}, document.title, window.location.pathname);
+      })
       .catch(() => {
         setShowErrorModal(true);
         window.history.replaceState({}, document.title, window.location.pathname);

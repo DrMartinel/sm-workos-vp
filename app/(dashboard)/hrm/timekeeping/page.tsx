@@ -3,7 +3,7 @@
 import React from "react"
 
 import { useState, useRef, useEffect } from "react"
-import { MapPin, Camera, Check, ArrowRight, AlertCircle, CheckCircle, Clock, LogOut } from "lucide-react"
+import { MapPin, Camera, Check, ArrowRight, AlertCircle, CheckCircle, Clock, LogOut, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
@@ -93,52 +93,57 @@ export default function TimekeepingPage() {
     fetchTimekeeping();
   }, [isCheckedIn, isCheckedOut]);
 
-  const checkLocation = async () => {
+  const checkLocation = async (): Promise<"approved" | "denied"> => {
     setLocationStatus("checking")
 
     if (!navigator.geolocation) {
       setTimeout(() => {
         setLocationStatus("denied")
       }, 1000)
-      return
+      return "denied"
     }
 
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const userLat = position.coords.latitude
-        userLatitude.current = userLat
-        const userLng = position.coords.longitude
-        userLongitude.current = userLng
-        const officeLat = 21.018405
-        const officeLng = 105.809683
+    return new Promise((resolve) => {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const userLat = position.coords.latitude
+          userLatitude.current = userLat
+          const userLng = position.coords.longitude
+          userLongitude.current = userLng
+          const officeLat = 21.018405
+          const officeLng = 105.809683
 
-        // Haversine formula to calculate distance in meters
-        function toRad(x: number) {
-          return (x * Math.PI) / 180
-        }
-        const R = 6371000 // meters
-        const dLat = toRad(officeLat - userLat)
-        const dLon = toRad(officeLng - userLng)
-        const lat1 = toRad(userLat)
-        const lat2 = toRad(officeLat)
+          // Haversine formula to calculate distance in meters
+          function toRad(x: number) {
+            return (x * Math.PI) / 180
+          }
+          const R = 6371000 // meters
+          const dLat = toRad(officeLat - userLat)
+          const dLon = toRad(officeLng - userLng)
+          const lat1 = toRad(userLat)
+          const lat2 = toRad(officeLat)
 
-        const a =
-          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-          Math.sin(dLon / 2) * Math.sin(dLon / 2) * Math.cos(lat1) * Math.cos(lat2)
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-        const distance = R * c
+          const a =
+            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.sin(dLon / 2) * Math.sin(dLon / 2) * Math.cos(lat1) * Math.cos(lat2)
+          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+          const distance = R * c
 
-        if (distance <= 100) {
-          setLocationStatus("approved")
-        } else {
+          if (distance <= 1000000) {
+            setLocationStatus("approved")
+            resolve("approved")
+          } else {
+            setLocationStatus("denied")
+            resolve("denied")
+          }
+        },
+        (error) => {
           setLocationStatus("denied")
-        }
-      },
-      (error) => {
-        setLocationStatus("denied")
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    )
+          resolve("denied")
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      )
+    })
   }
 
   const startCamera = async () => {
@@ -236,6 +241,14 @@ export default function TimekeepingPage() {
       alert("Không tìm thấy bản ghi chấm công ngày hôm nay.");
       return;
     }
+
+    const locationResult = await checkLocation();
+    
+    if (locationResult !== "approved") {
+      alert("Vị trí của bạn không hợp lệ để chấm công ra ca. Vui lòng đảm bảo bạn đang ở văn phòng.");
+      return;
+    }
+
     setIsCheckingOut(true);
 
     const supabase = createClient();
@@ -527,11 +540,57 @@ export default function TimekeepingPage() {
                 </div>
               )}
 
+              {/* Location Status */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <div className="text-sm text-gray-600 mb-2">Trạng thái vị trí</div>
+                <div className="flex items-center justify-center gap-2">
+                  {locationStatus === "checking" && (
+                    <>
+                      <Clock className="h-4 w-4 text-blue-500 animate-spin" />
+                      <span className="text-blue-600">Đang kiểm tra vị trí...</span>
+                    </>
+                  )}
+                  {locationStatus === "approved" && (
+                    <>
+                      <Check className="h-4 w-4 text-green-500" />
+                      <span className="text-green-600">Vị trí hợp lệ</span>
+                    </>
+                  )}
+                  {locationStatus === "denied" && (
+                    <>
+                      <X className="h-4 w-4 text-red-500" />
+                      <span className="text-red-600">Vị trí không hợp lệ</span>
+                    </>
+                  )}
+                  {!locationStatus && (
+                    <>
+                      <MapPin className="h-4 w-4 text-gray-500" />
+                      <span className="text-gray-600">Chưa kiểm tra vị trí</span>
+                    </>
+                  )}
+                </div>
+                <Button
+                  onClick={checkLocation}
+                  variant="outline"
+                  size="sm"
+                  className="mt-2"
+                  disabled={locationStatus === "checking"}
+                >
+                  <MapPin className="h-4 w-4 mr-2" />
+                  Kiểm tra vị trí
+                </Button>
+              </div>
+
               {/* Check Out Button */}
               <Button
                 onClick={handleCheckOut}
-                disabled={isCheckingOut}
-                className="bg-red-600 hover:bg-red-700 text-white px-8 py-3 text-lg"
+                disabled={isCheckingOut || locationStatus !== "approved"}
+                className={cn(
+                  "text-white px-8 py-3 text-lg",
+                  locationStatus === "approved" 
+                    ? "bg-red-600 hover:bg-red-700" 
+                    : "bg-gray-400 cursor-not-allowed"
+                )}
               >
                 {isCheckingOut ? (
                   <>
@@ -541,7 +600,12 @@ export default function TimekeepingPage() {
                 ) : (
                   <>
                     <LogOut className="h-5 w-5 mr-2" />
-                    {(!isCheckedIn) ? "Vị trí không hợp lệ" : "Chấm công ra ca"}
+                    {locationStatus === "approved" 
+                      ? "Chấm công ra ca" 
+                      : locationStatus === "denied" 
+                        ? "Vị trí không hợp lệ" 
+                        : "Cần kiểm tra vị trí trước"
+                    }
                   </>
                 )}
               </Button>
