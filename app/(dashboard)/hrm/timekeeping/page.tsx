@@ -20,6 +20,7 @@ export default function TimekeepingPage() {
   const [currentTime, setCurrentTime] = useState(new Date())
   const [isCheckedIn, setIsCheckedIn] = useState(false)
   const [checkInTime, setCheckInTime] = useState<Date | null>(null)
+  const [checkOutTime, setCheckOutTime] = useState<Date | null>(null)
   const [isCheckingOut, setIsCheckingOut] = useState(false)
   const [isCheckedOut, setIsCheckedOut] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -77,16 +78,19 @@ export default function TimekeepingPage() {
         setIsCheckedIn(false);
         setIsCheckedOut(false);
         setCheckInTime(null);
+        setCheckOutTime(null);
       } else if (data && data.length > 0) {
         setTodayTimekeeping(data[0]);
         setIsCheckedIn(true);
         setIsCheckedOut(!!data[0].check_out_time);
         setCheckInTime(data[0].check_in_time ? new Date(data[0].check_in_time) : null);
+        setCheckOutTime(data[0].check_out_time ? new Date(data[0].check_out_time) : null);
       } else {
         setTodayTimekeeping(null);
         setIsCheckedIn(false);
         setIsCheckedOut(false);
         setCheckInTime(null);
+        setCheckOutTime(null);
       }
       setLoading(false);
     };
@@ -648,7 +652,7 @@ export default function TimekeepingPage() {
                       <div className="flex justify-between items-center">
                         <span className="text-xs text-red-600">Ra ca</span>
                         <span className="text-sm font-bold text-red-900">
-                          {currentTime.toLocaleTimeString("vi-VN", {
+                          {checkOutTime?.toLocaleTimeString("vi-VN", {
                             hour: "2-digit",
                             minute: "2-digit",
                           })}
