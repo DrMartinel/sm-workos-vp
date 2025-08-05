@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { ArrowLeft, Calendar, Clock, Users, MapPin, Plus, Edit, Trash2 } from "lucide-react"
+import { ArrowLeft, Calendar, Clock, Users, MapPin, Plus, Edit, Trash2, AlertCircle, Lock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -12,6 +12,7 @@ import { createClient } from "@/lib/utils/supabase/client"
 import { formatDateTime } from "./utils/formatDateTime"
 import { useToast, toast } from "@/hooks/use-toast"
 import { useAuth } from "@/store/hooks/useAuth"
+import { useRoleAccess } from "@/store/hooks/useRoleAccess"
 import MeetingBookingLoading from "./loading"
 import {
   Dialog,
@@ -45,6 +46,8 @@ interface Meeting {
 
 export default function MeetingBookingPage() {
   const { user } = useAuth()
+  const { hasRole } = useRoleAccess()
+  const canCreateMeetings = hasRole('department_head')
   const [currentStep, setCurrentStep] = useState(1)
   const [selectedRoom, setSelectedRoom] = useState<MeetingRoom | null>(null)
   const [meetingRooms, setMeetingRooms] = useState<MeetingRoom[]>([])
@@ -142,6 +145,33 @@ export default function MeetingBookingPage() {
       return;
     }
     
+    // Send Telegram notification
+    try {
+      const notificationData = {
+        title: newMeeting.title,
+        startTime: startUTC,
+        endTime: endUTC,
+        roomName: selectedRoom.name,
+        organizerName: user?.email || 'Unknown User',
+        roomLocation: selectedRoom.location,
+        roomCapacity: selectedRoom.capacity,
+      };
+
+      await fetch('/api/telegram/notify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          type: 'meeting_created',
+          meetingData: notificationData,
+        }),
+      });
+    } catch (notificationError) {
+      console.error('Failed to send Telegram notification:', notificationError);
+      // Don't fail the meeting creation if notification fails
+    }
+    
     // Optionally, refetch meetings from Supabase or append the new one
     fetchData()
     
@@ -165,6 +195,18 @@ export default function MeetingBookingPage() {
     if (!meetingToCancel) return;
     setLoading(true);
     const supabase = createClient();
+    
+    // Get meeting details before cancellation for notification
+    const { data: meetingData, error: fetchError } = await supabase
+      .from('meetings')
+      .select('title, start_time, end_time, organizer_name, room_id')
+      .eq('id', meetingToCancel)
+      .single();
+    
+    if (fetchError) {
+      console.error('Failed to fetch meeting data for notification:', fetchError);
+    }
+    
     const { error } = await supabase.rpc('cancel_meeting', { p_meeting_id: meetingToCancel });
     if (error) {
       toast({
@@ -177,6 +219,37 @@ export default function MeetingBookingPage() {
       setMeetingToCancel(null);
       return;
     }
+    
+    // Send Telegram notification for cancellation
+    if (meetingData) {
+      try {
+        const room = meetingRooms.find(r => r.id === meetingData.room_id);
+        const notificationData = {
+          title: meetingData.title,
+          startTime: meetingData.start_time,
+          endTime: meetingData.end_time,
+          roomName: room?.name || 'Unknown Room',
+          organizerName: meetingData.organizer_name || user?.email || 'Unknown User',
+          roomLocation: room?.location || 'Unknown Location',
+          roomCapacity: room?.capacity || 0,
+        };
+
+        await fetch('/api/telegram/notify', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            type: 'meeting_cancelled',
+            meetingData: notificationData,
+          }),
+        });
+      } catch (notificationError) {
+        console.error('Failed to send Telegram cancellation notification:', notificationError);
+        // Don't fail the cancellation if notification fails
+      }
+    }
+    
     toast({
       title: 'Đã hủy cuộc họp',
       description: 'Cuộc họp đã được hủy thành công.',
@@ -381,9 +454,26 @@ export default function MeetingBookingPage() {
                   <ArrowLeft className="h-4 w-4 mr-2" />
                   Quay lại
                 </Button>
-                <Button onClick={() => setCurrentStep(3)} className="bg-blue-600 hover:bg-blue-700">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Cuộc Họp Mới
+                <Button 
+                  onClick={() => setCurrentStep(3)} 
+                  disabled={!canCreateMeetings}
+                  className={cn(
+                    canCreateMeetings 
+                      ? "bg-blue-600 hover:bg-blue-700" 
+                      : "bg-gray-400 cursor-not-allowed"
+                  )}
+                >
+                  {canCreateMeetings ? (
+                    <>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Cuộc Họp Mới
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="h-4 w-4 mr-2" />
+                      Không Có Quyền
+                    </>
+                  )}
                 </Button>
               </div>
             </div>
@@ -481,6 +571,20 @@ export default function MeetingBookingPage() {
 
         {/* Step 3: Create Meeting */}
         {currentStep === 3 && selectedRoom && (
+          <>
+            {!canCreateMeetings && !editing ? (
+              <div className="text-center py-12">
+                <AlertCircle className="h-16 w-16 text-amber-500 mx-auto mb-4" />
+                <h2 className="text-xl font-semibold text-gray-900 mb-2">Không có quyền tạo cuộc họp</h2>
+                <p className="text-gray-600 mb-4">
+                  Chỉ trưởng phòng mới có thể tạo cuộc họp mới. Vui lòng liên hệ trưởng phòng của bạn.
+                </p>
+                <Button variant="outline" onClick={() => setCurrentStep(2)}>
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Quay lại
+                </Button>
+              </div>
+            ) : (
           <div>
             <div className="flex items-center justify-between mb-6">
               <div>
@@ -563,6 +667,8 @@ export default function MeetingBookingPage() {
               </CardContent>
             </Card>
           </div>
+            )}
+          </>
         )}
       </div>
     </div>

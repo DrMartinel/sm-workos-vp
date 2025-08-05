@@ -1,6 +1,133 @@
 # Project Changelog
 
-## [Latest] - Transaction System Implementation for SM Rewards
+## [Latest] - Telegram Bot Integration for Meeting Notifications
+
+### Overview
+Implemented a comprehensive Telegram bot integration system that automatically sends notifications to a Telegram chat when meetings are created or cancelled in the meeting booking system. This provides real-time updates to team members about meeting schedule changes.
+
+### Features Implemented
+
+#### 1. Telegram Bot Integration
+- **Meeting Creation Notifications**: Sends detailed notifications when new meetings are created
+- **Meeting Cancellation Notifications**: Sends notifications when meetings are cancelled
+- **Rich Message Formatting**: Uses HTML formatting with emojis for better readability
+- **Vietnamese Localization**: Messages are formatted in Vietnamese to match the application's language
+- **Error Handling**: Graceful handling of notification failures without affecting meeting operations
+- **Environment-based Configuration**: Uses environment variables for secure configuration
+
+### New Files Created
+
+#### 1. Telegram Utilities (`app/shared-ui/lib/utils/telegram.ts`)
+- **Interface**: `TelegramMessage` - TypeScript interface for Telegram message structure
+- **Interface**: `MeetingNotificationData` - TypeScript interface for meeting notification data
+- **Functions**:
+  - `sendTelegramMessage()` - Core function to send messages via Telegram Bot API
+  - `formatMeetingNotification()` - Formats meeting data into readable messages
+  - `sendMeetingCreationNotification()` - Sends creation notifications
+  - `sendMeetingCancellationNotification()` - Sends cancellation notifications
+
+#### 2. Telegram API Endpoint (`app/api/telegram/notify/route.ts`)
+- **Endpoint**: `POST /api/telegram/notify`
+- **Features**:
+  - Handles both meeting creation and cancellation notifications
+  - Input validation for request body
+  - Error handling and response formatting
+  - Support for different notification types
+
+#### 3. Documentation (`documentation/TELEGRAM_BOT_INTEGRATION.md`)
+- **Comprehensive documentation** covering:
+  - Setup instructions for Telegram bot
+  - Configuration requirements
+  - Implementation details
+  - Usage examples
+  - Troubleshooting guide
+  - Security considerations
+  - Future enhancement possibilities
+
+### Modified Files
+
+#### 1. Meeting Booking Page (`app/(dashboard)/hrm/meeting-booking/page.tsx`)
+- **Enhanced**: `handleCreateMeeting()` function
+  - Added Telegram notification after successful meeting creation
+  - Non-blocking notification: meeting creation succeeds even if notification fails
+  - Includes meeting data, room information, and organizer details
+- **Enhanced**: `handleCancelMeeting()` function
+  - Added meeting data fetching before cancellation for notification
+  - Added Telegram notification after successful meeting cancellation
+  - Non-blocking notification: cancellation succeeds even if notification fails
+  - Includes comprehensive meeting and room information
+
+### Configuration Requirements
+
+#### Environment Variables
+Add the following environment variables to your `.env` file:
+```env
+TELEGRAM_BOT_TOKEN=your_telegram_bot_token_here
+TELEGRAM_CHAT_ID=your_telegram_chat_id_here
+```
+
+#### Telegram Bot Setup
+1. **Create a Bot**: Message [@BotFather](https://t.me/botfather) on Telegram
+2. **Get Chat ID**: Add bot to target chat and retrieve chat ID from API
+3. **Configure Environment**: Add bot token and chat ID to environment variables
+
+### Message Format Examples
+
+#### Meeting Creation Notification
+```html
+📅 <b>Cuộc Họp Mới Được Tạo</b>
+
+🏢 <b>Tiêu đề:</b> Weekly Team Meeting
+👤 <b>Người tổ chức:</b> john.doe@company.com
+🏠 <b>Phòng:</b> Conference Room A
+📍 <b>Vị trí:</b> Floor 2
+👥 <b>Sức chứa:</b> 12 người
+⏰ <b>Thời gian:</b> 15/01/2024, 09:00 - 10:00
+
+✅ Cuộc họp đã được đặt thành công!
+```
+
+#### Meeting Cancellation Notification
+```html
+❌ <b>Cuộc Họp Đã Bị Hủy</b>
+
+🏢 <b>Tiêu đề:</b> Weekly Team Meeting
+👤 <b>Người tổ chức:</b> john.doe@company.com
+🏠 <b>Phòng:</b> Conference Room A
+⏰ <b>Thời gian dự kiến:</b> 15/01/2024, 09:00
+
+🚫 Cuộc họp đã được hủy bỏ.
+```
+
+### Security & Error Handling
+
+#### Security Features
+- **Environment Variables**: Bot token and chat ID stored securely
+- **No Client Exposure**: Sensitive configuration not exposed to client
+- **API Validation**: Input validation on API endpoint
+- **Error Sanitization**: Error messages don't expose sensitive information
+
+#### Error Handling
+- **Graceful Degradation**: Meeting operations succeed even if notifications fail
+- **Error Logging**: All errors logged to console for debugging
+- **Non-blocking**: User experience unaffected by notification failures
+- **API Error Handling**: Comprehensive error handling for Telegram API calls
+
+### Testing & Maintenance
+
+#### Testing
+- **Manual Testing**: Create/cancel meetings and verify Telegram notifications
+- **API Testing**: Direct API endpoint testing with curl commands
+- **Error Testing**: Test with invalid bot token or chat ID
+
+#### Maintenance
+- **Monitoring**: Telegram API rate limits and failed notifications
+- **Updates**: Bot token rotation and chat ID updates as needed
+- **Debugging**: Console logging for troubleshooting
+
+---
+
+## [Previous] - Transaction System Implementation for SM Rewards
 
 ### Overview
 Implemented a comprehensive transaction system for the SM Rewards feature, including database schema, API endpoints, and frontend integration.
