@@ -63,9 +63,34 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-   // if user is signed in and the current path is /login, redirect the user to /reports/overview
+   // if user is signed in and the current path is /login, redirect the user to /
   if (user && request.nextUrl.pathname === '/login') {
     return NextResponse.redirect(new URL('/', request.url))
+  }
+
+  // Check admin permissions for admin API routes
+  if (user && request.nextUrl.pathname.startsWith('/api/admin/')) {
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+
+      // Check if profile exists and has roles, and if roles array includes 'admin'
+      if (!profile || !profile.role || !Array.isArray(profile.role) || !profile.role.includes('admin')) {
+        return NextResponse.json(
+          { error: 'Insufficient permissions' },
+          { status: 403 }
+        )
+      }
+    } catch (error) {
+      console.error('Error checking admin permissions:', error)
+      return NextResponse.json(
+        { error: 'Failed to verify permissions' },
+        { status: 500 }
+      )
+    }
   }
 
   return response
