@@ -6,7 +6,7 @@ import qs from 'qs'
 const VNP_TMN_CODE = process.env.VNP_TMN_CODE || ''
 const VNP_HASH_SECRET = process.env.VNP_HASH_SECRET || ''
 const VNP_URL = process.env.VNP_URL || 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html'
-const VNP_RETURN_URL = process.env.VNP_RETURN_URL || 'http://localhost:3000/api/vnpay/callback'
+const VNP_RETURN_URL = process.env.VNP_RETURN_URL || 'https://sm-workos-pink.vercel.app/api/vnpay/callback'
 
 // Helper function to sort object keys
 function sortObject(obj: any) {

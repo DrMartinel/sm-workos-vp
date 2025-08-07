@@ -35,8 +35,6 @@ import { cn } from "@/lib/utils"
 import BarcodeScanner from "@/components/qr-scanner"
 import BarcodeGenerator from "@/components/qr-generator"
 import { VNPayService } from "@/app/shared-ui/lib/utils/vnpay"
-import { useRouter, useSearchParams } from "next/navigation";
-import { useToast } from "@/components/ui/use-toast";
 
 // Transaction interface for UI display
 interface Transaction {
@@ -48,84 +46,6 @@ interface Transaction {
   time: string
   status: "completed" | "pending" | "failed" | "cancelled"
 }
-
-// Initial mock transaction data for SM Rewards
-const initialTransactions: Transaction[] = [
-  {
-    id: "1",
-    type: "spend",
-    amount: 25,
-    description: "Lunch - Chicken Rice",
-    date: "2024-01-25",
-    time: "12:30 PM",
-    status: "completed",
-  },
-  {
-    id: "2",
-    type: "earn",
-    amount: 500,
-    description: "Monthly Allowance",
-    date: "2024-01-24",
-    time: "09:00 AM",
-    status: "completed",
-  },
-  {
-    id: "3",
-    type: "spend",
-    amount: 8,
-    description: "Coffee - Americano",
-    date: "2024-01-24",
-    time: "02:15 PM",
-    status: "completed",
-  },
-  {
-    id: "4",
-    type: "transfer",
-    amount: 50,
-    description: "Transfer to John Doe",
-    date: "2024-01-23",
-    time: "11:45 AM",
-    status: "completed",
-  },
-  {
-    id: "5",
-    type: "topup",
-    amount: 200,
-    description: "Top-up via Bank Transfer",
-    date: "2024-01-22",
-    time: "04:20 PM",
-    status: "completed",
-  },
-  {
-    id: "6",
-    type: "spend",
-    amount: 15,
-    description: "Snack - Sandwich",
-    date: "2024-01-21",
-    time: "03:45 PM",
-    status: "completed",
-  },
-  {
-    id: "7",
-    type: "transfer",
-    amount: 30,
-    description: "Transfer to Jane Smith",
-    date: "2024-01-20",
-    time: "11:20 AM",
-    status: "completed",
-  },
-  {
-    id: "8",
-    type: "earn",
-    amount: 100,
-    description: "Performance Bonus",
-    date: "2024-01-19",
-    time: "09:15 AM",
-    status: "completed",
-  },
-]
-
-
 
 export default function SMRewardsPage() {
   const { smRewardsBalance, smRewardsLoading, refreshSMRewardsBalance, profile } = useAuth()
@@ -292,11 +212,12 @@ export default function SMRewardsPage() {
         }
 
         // VNPay flow with transaction ID in order info
-        const res = await VNPayService.createPayment({
+        const paymentRequest = {
           amount,
           language: "vn",
           orderInfo: `SM Rewards Top-up - transaction_id:${transaction.id}`
-        });
+        };
+        const res = await VNPayService.createPayment(paymentRequest);
         
         if (res.success && res.paymentUrl) {
           // Refresh transactions to show the pending transaction
