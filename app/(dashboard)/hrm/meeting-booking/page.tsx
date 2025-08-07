@@ -591,7 +591,15 @@ export default function MeetingBookingPage() {
                 <h2 className="text-xl font-semibold">{editing ? 'Chỉnh Sửa Cuộc Họp' : 'Tạo Cuộc Họp Mới'}</h2>
                 <p className="text-gray-500">{editing ? `Chỉnh sửa cuộc họp của bạn tại ${selectedRoom.name}` : `Đặt ${selectedRoom.name} cho cuộc họp của bạn`}</p>
               </div>
-              <Button variant="outline" onClick={() => { setCurrentStep(2); setEditing(false); setEditingMeetingId(null); }}>
+              <Button variant="outline" onClick={() => { setCurrentStep(2); setEditing(false); setEditingMeetingId(null); setNewMeeting(
+                {
+                  title: "",
+                  startTime: "",
+                  endTime: "",
+                  organizer_id: user?.id || "Current User",
+                  status: "Scheduled",
+                }
+              ); }}>
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Quay lại
               </Button>
