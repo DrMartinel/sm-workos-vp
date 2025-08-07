@@ -529,6 +529,21 @@ export default function SMRewardsPage() {
                       <p className="text-sm text-gray-500">
                         {transaction.date} • {transaction.time}
                       </p>
+                      <p className="text-xs mt-1">
+                        <span
+                          className={
+                            transaction.status === "completed"
+                              ? "text-green-600"
+                              : transaction.status === "pending"
+                              ? "text-yellow-600"
+                              : transaction.status === "failed" || transaction.status === "cancelled"
+                              ? "text-red-600"
+                              : "text-gray-500"
+                          }
+                        >
+                          {transaction.status.charAt(0).toUpperCase() + transaction.status.slice(1)}
+                        </span>
+                      </p>
                     </div>
                   </div>
                   <div className="text-right">
@@ -778,6 +793,21 @@ export default function SMRewardsPage() {
                       <p className="font-medium text-gray-900">{transaction.description}</p>
                       <p className="text-sm text-gray-500">
                         {transaction.date} • {transaction.time}
+                      </p>
+                      <p className="text-xs mt-1">
+                        <span
+                          className={
+                            transaction.status === "completed"
+                              ? "text-green-600"
+                              : transaction.status === "pending"
+                              ? "text-yellow-600"
+                              : transaction.status === "failed" || transaction.status === "cancelled"
+                              ? "text-red-600"
+                              : "text-gray-500"
+                          }
+                        >
+                          {transaction.status.charAt(0).toUpperCase() + transaction.status.slice(1)}
+                        </span>
                       </p>
                     </div>
                   </div>
