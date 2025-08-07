@@ -143,38 +143,6 @@ export default function SMRewardsPage() {
     }
   }, []);
 
-  // Effect to handle VNPay callback
-  useEffect(() => {
-    const search = window.location.search;
-    if (!search) return;
-    // Call your API to verify the transaction
-    fetch(`/api/vnpay/callback${search}`)
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          // Update balance on client side
-          profilesService.addSMRewards(data.amount).then((success) => {
-            if (success) {
-              setShowSuccessModal(true);
-                  refreshBalance();
-              fetchTransactions(); // Refresh transactions to show the completed transaction
-            } else {
-              setShowErrorModal(true);
-            }
-          });
-        } else {
-          setShowErrorModal(true);
-        }
-        window.history.replaceState({}, document.title, window.location.pathname);
-      })
-      .catch(() => {
-        setShowErrorModal(true);
-        window.history.replaceState({}, document.title, window.location.pathname);
-      });
-  }, []);
-
-
-
   // Helper function to generate current date and time
   const getCurrentDateTime = () => {
     const now = new Date()
@@ -186,8 +154,6 @@ export default function SMRewardsPage() {
     })
     return { date, time }
   }
-
-
 
   const handleTopUp = async () => {
     if (topUpAmount && paymentMethod) {
@@ -231,44 +197,44 @@ export default function SMRewardsPage() {
           setShowErrorModal(true);
           return;
         }
-      }
-
-      const coinsToAdd = Number(amount);
-
-      try {
-        // Update balance in database
-        const success = await profilesService.addSMRewards(coinsToAdd)
-        
-        if (success) {
-          refreshBalance()
-
-          // Create transaction in database
-          const { date, time } = getCurrentDateTime();
-          await transactionsService.createTransaction(
-            'topup',
-            coinsToAdd,
-            `Top-up via ${paymentMethod === "bank" ? "Bank Transfer" : paymentMethod === "qr" ? "QR Code Payment" : "Credit Card"}`,
-            date,
-            time,
-            'completed'
-          );
-
-          // Refresh transactions
-          fetchTransactions();
-
-          setShowTopUpModal(false)
-          setShowSuccessModal(true)
-          setTopUpAmount("")
-          setPaymentMethod("")
-        } else {
-          // Handle error
+      } else {
+        const coinsToAdd = Number(amount);
+  
+        try {
+          // Update balance in database
+          const success = await profilesService.addSMRewards(coinsToAdd)
+          
+          if (success) {
+            refreshBalance()
+  
+            // Create transaction in database
+            const { date, time } = getCurrentDateTime();
+            await transactionsService.createTransaction(
+              'topup',
+              coinsToAdd,
+              `Top-up via ${paymentMethod === "bank" ? "Bank Transfer" : paymentMethod === "qr" ? "QR Code Payment" : "Credit Card"}`,
+              date,
+              time,
+              'completed'
+            );
+  
+            // Refresh transactions
+            fetchTransactions();
+  
+            setShowTopUpModal(false)
+            setShowSuccessModal(true)
+            setTopUpAmount("")
+            setPaymentMethod("")
+          } else {
+            // Handle error
+            setShowTopUpModal(false)
+            setShowErrorModal(true)
+          }
+        } catch (error) {
+          console.error('Error updating SM rewards balance:', error)
           setShowTopUpModal(false)
           setShowErrorModal(true)
         }
-      } catch (error) {
-        console.error('Error updating SM rewards balance:', error)
-        setShowTopUpModal(false)
-        setShowErrorModal(true)
       }
     }
   }

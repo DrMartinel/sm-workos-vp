@@ -5,8 +5,7 @@ import { profilesService } from '@/lib/utils/supabase/profiles'
 import { transactionsService } from '@/lib/utils/supabase/transactions'
 
 // VNPay configuration
-const VNP_TMN_CODE = process.env.VNP_TMN_CODE || '2QXUI4J4'
-const VNP_HASH_SECRET = process.env.VNP_HASH_SECRET || 'KARPEBEMHBEHTWPA'
+const VNP_HASH_SECRET = process.env.VNP_HASH_SECRET || ''
 
 // Helper function to sort object keys
 function sortObject(obj: any) {
@@ -27,6 +26,7 @@ function sortObject(obj: any) {
 
 export async function GET(request: NextRequest) {
   try {
+    console.log('VNPay callback GET handler triggered');
     const { searchParams } = new URL(request.url)
     const vnp_Params: any = {}
     
@@ -64,18 +64,24 @@ export async function GET(request: NextRequest) {
         // Extract transaction ID from order info if it exists
         const transactionIdMatch = orderInfo?.match(/transaction_id:(\d+)/);
         const transactionId = transactionIdMatch ? parseInt(transactionIdMatch[1]) : null;
+        let userId = null;
         
         // Update transaction status to completed if we have a transaction ID
         if (transactionId) {
           await transactionsService.updateTransactionStatus(transactionId, 'completed');
+          const transaction = await transactionsService.getTransactionById(transactionId);
+          userId = transaction?.user_id;
+          if (userId) {
+            const addResult = await profilesService.addSMRewardsToUser(userId, coinsToAdd);
+            console.log('addSMRewardsToUser result:', addResult);
+          } else {
+            console.error('Cannot add SM rewards: userId is undefined');
+          }
         }
         
-        return NextResponse.json({ 
-          success: true, 
-          amount: coinsToAdd,
-          orderInfo: orderInfo,
-          transactionId: transactionId
-        });
+        // Instead of returning JSON, redirect to /sm-rewards
+        const redirectUrl = new URL('/sm-rewards', request.url);
+        return NextResponse.redirect(redirectUrl);
       } else {
         // Payment failed
         const errorMessage = getErrorMessage(responseCode)
@@ -97,8 +103,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'invalid_signature' });
     }
   } catch (error) {
-    console.error('VNPay callback error:', error)
-    return NextResponse.redirect(new URL('/sm-rewards?payment=error&message=callback_error', request.url))
+    console.error('VNPay callback error:', error);
+    throw error;
   }
 }
 
