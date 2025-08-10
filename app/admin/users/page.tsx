@@ -20,7 +20,7 @@ import {
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
-import { useToast } from "@/hooks/use-toast"
+import { useToast } from "@/app/shared-ui/components/ui/use-toast"
 import { CanManageUsers } from "@/app/shared-ui/components/role-protection"
 import { SYSTEM_ROLES, SystemRole, rolesService } from "@/app/shared-ui/lib/utils/supabase/roles"
 import { profilesService, UserProfile, CreateUserData } from "@/app/shared-ui/lib/utils/supabase/profiles"

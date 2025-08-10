@@ -11,9 +11,11 @@ import { createClient } from "@/lib/utils/supabase/client"
 import dataURLtoBlob from "./utils/dataURLtoBlob"
 import TimekeepingLoading from "./loading"
 import { useAuth } from "@/store/hooks/useAuth"
+import { useToast } from "@/app/shared-ui/components/ui/use-toast"
 
 export default function TimekeepingPage() {
   const { user } = useAuth()
+  const { toast } = useToast()
   const [currentStep, setCurrentStep] = useState(1)
   const [locationStatus, setLocationStatus] = useState<"checking" | "approved" | "denied" | null>(null)
   const [capturedImage, setCapturedImage] = useState<string | null>(null)
@@ -160,7 +162,11 @@ export default function TimekeepingPage() {
       setIsCameraActive(true)
     } catch (error) {
       console.error("Error accessing camera:", error)
-      alert("Không thể truy cập camera. Vui lòng kiểm tra quyền truy cập.")
+      toast({
+        title: "Lỗi truy cập camera",
+        description: "Không thể truy cập camera. Vui lòng kiểm tra quyền truy cập.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -195,7 +201,11 @@ export default function TimekeepingPage() {
 
     // Get the current user from Redux
     if (!user) {
-      alert("Người dùng chưa xác thực");
+      toast({
+        title: "Lỗi xác thực",
+        description: "Người dùng chưa xác thực",
+        variant: "destructive",
+      })
       return;
     }
 
@@ -213,7 +223,11 @@ export default function TimekeepingPage() {
 
       if (uploadError) {
         console.error(uploadError);
-        alert("Tải lên hình ảnh thất bại: " + uploadError.message);
+        toast({
+          title: "Lỗi tải lên",
+          description: "Tải lên hình ảnh thất bại: " + uploadError.message,
+          variant: "destructive",
+        })
         return;
       }
 
@@ -230,11 +244,18 @@ export default function TimekeepingPage() {
     console.log("Insert response:", { data, error });
 
     if (error) {
-      alert("Lưu dữ liệu chấm công thất bại: " + (error as any).message || JSON.stringify(error));
+      toast({
+        title: "Lỗi lưu dữ liệu",
+        description: "Lưu dữ liệu chấm công thất bại: " + (error as any).message || JSON.stringify(error),
+        variant: "destructive",
+      })
       return;
     }
 
-    alert("Chấm công vào ca thành công!");
+    toast({
+      title: "Chấm công thành công",
+      description: "Chấm công vào ca thành công!",
+    })
     setIsCheckedIn(true);
     setIsCheckedOut(false);
     // 
@@ -242,14 +263,22 @@ export default function TimekeepingPage() {
 
   const handleCheckOut = async () => {
     if (!todayTimekeeping || !todayTimekeeping.id) {
-      alert("Không tìm thấy bản ghi chấm công ngày hôm nay.");
+      toast({
+        title: "Lỗi dữ liệu",
+        description: "Không tìm thấy bản ghi chấm công ngày hôm nay.",
+        variant: "destructive",
+      })
       return;
     }
 
     const locationResult = await checkLocation();
     
     if (locationResult !== "approved") {
-      alert("Vị trí của bạn không hợp lệ để chấm công ra ca. Vui lòng đảm bảo bạn đang ở văn phòng.");
+      toast({
+        title: "Vị trí không hợp lệ",
+        description: "Vị trí của bạn không hợp lệ để chấm công ra ca. Vui lòng đảm bảo bạn đang ở văn phòng.",
+        variant: "destructive",
+      })
       return;
     }
 
@@ -263,10 +292,18 @@ export default function TimekeepingPage() {
     setIsCheckingOut(false);
 
     if (error) {
-      alert("Chấm công ra ca thất bại: " + (error as any).message || JSON.stringify(error));
+      toast({
+        title: "Lỗi chấm công",
+        description: "Chấm công ra ca thất bại: " + (error as any).message || JSON.stringify(error),
+        variant: "destructive",
+      })
       return;
     }
 
+    toast({
+      title: "Chấm công thành công",
+      description: "Chấm công ra ca thành công!",
+    })
     setIsCheckedOut(true);
     // Optionally, refetch today's timekeeping to update UI with new check_out_time
   };
