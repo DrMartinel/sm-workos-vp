@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { canteenProductsService, CanteenProduct } from "@/lib/utils/supabase/canteen-products"
 import { profilesService, UserProfile } from "@/lib/utils/supabase/profiles"
 import { transactionsService, Transaction as DBTransaction } from "@/lib/utils/supabase/transactions"
-import { useAuth } from "@/store/hooks/useAuth"
+import { useAuth } from "@/src/store/hooks/useAuth"
 import {
   TrendingUp,
   Gift,

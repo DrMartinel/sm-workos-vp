@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { cn } from "@/lib/utils"
 import { toast } from "@/components/ui/use-toast"
 import { Separator } from "@/components/ui/separator"
-import { useLogin } from "@/store/hooks/useLogin"
+import { useLogin } from "@/src/store/hooks/useLogin"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")

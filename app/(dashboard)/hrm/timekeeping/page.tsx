@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { useAuth } from "@/store/hooks/useAuth"
+import { useAuth } from "@/src/store/hooks/useAuth"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/utils/supabase/client"
@@ -136,7 +136,7 @@ export default function TimekeepingPage() {
   const [checkOutTime, setCheckOutTime] = useState<Date | null>(null)
   const [isCheckingOut, setIsCheckingOut] = useState(false)
   const [isCheckedOut, setIsCheckedOut] = useState(false)
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [todayTimekeeping, setTodayTimekeeping] = useState<any | null>(null);
   const [showCheckInFlow, setShowCheckInFlow] = useState(false)
   const [currentPage, setCurrentPage] = useState<"main" | "checkin" | "checkout">("main")
@@ -898,15 +898,15 @@ const renderCalendar = () => {
     { number: 3, title: "Confirm", icon: Check },
   ]
 
-  if (loading) {
-    return <TimekeepingLoading />
-  }
-
   useEffect(() => {
     if (currentPage === "checkin" && !isCheckedIn) {
       setCurrentStep(1);
     }
   }, [currentPage, isCheckedIn]);
+
+  if (loading) {
+    return <TimekeepingLoading />
+  }
 
   // Check-in Page
   if (currentPage === "checkin") {
@@ -1648,160 +1648,160 @@ const renderCalendar = () => {
 
 
         {/* Create Request Dialog */}
-<Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-  <DialogContent className="sm:max-w-[425px]">
-    <DialogHeader>
-      <DialogTitle>Create request</DialogTitle>
-      <DialogDescription>
-        Day: <span className="font-semibold">{selectedDay?.date}</span>
-      </DialogDescription>
-    </DialogHeader>
-    <form onSubmit={e => { e.preventDefault(); handleSubmit(); }}>
-      <div className="grid gap-4 py-4">
-        <div className="grid items-center grid-cols-4 gap-4">
-          <Label htmlFor="type" className="text-right">
-            Request Type
-          </Label>
-          <Select onValueChange={value => setFormData(prev => ({ ...prev, type: value }))} value={formData.type}>
-            <SelectTrigger id="type" className="col-span-3">
-              <SelectValue placeholder="Select request type" />
-            </SelectTrigger>
-            <SelectContent>
-              {requestTypes.map(type => (
-                <SelectItem key={type.value} value={type.value}>
-                  {type.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {formErrors.type && <p className="col-start-2 col-span-3 text-sm text-red-500">{formErrors.type}</p>}
-        </div>
-        
-        {/* Bỏ trường startDate và endDate ở đây */}
-        
-        <div className="grid items-center grid-cols-4 gap-4">
-          <Label htmlFor="description" className="text-right">
-            Description
-          </Label>
-          <Textarea
-            id="description"
-            value={formData.description}
-            onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
-            className="col-span-3"
-          />
-          {formErrors.description && <p className="col-start-2 col-span-3 text-sm text-red-500">{formErrors.description}</p>}
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="grid items-center grid-cols-4 col-span-1 gap-4">
-            <Label htmlFor="startTime" className="text-right">
-              Start Time
-            </Label>
-            <Input
-              id="startTime"
-              type="time"
-              value={formData.startTime}
-              onChange={e => setFormData(prev => ({ ...prev, startTime: e.target.value }))}
-              className="col-span-3"
-            />
-          </div>
-          <div className="grid items-center grid-cols-4 col-span-1 gap-4">
-            <Label htmlFor="endTime" className="text-right">
-              End Time
-            </Label>
-            <Input
-              id="endTime"
-              type="time"
-              value={formData.endTime}
-              onChange={e => setFormData(prev => ({ ...prev, endTime: e.target.value }))}
-              className="col-span-3"
-            />
-          </div>
-        </div>
-      </div>
-      <DialogFooter>
-        <Button type="submit">Send</Button>
-      </DialogFooter>
-    </form>
-  </DialogContent>
-</Dialog>
+        <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Create request</DialogTitle>
+              <DialogDescription>
+                Day: <span className="font-semibold">{selectedDay?.date}</span>
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={e => { e.preventDefault(); handleSubmit(); }}>
+              <div className="grid gap-4 py-4">
+                <div className="grid items-center grid-cols-4 gap-4">
+                  <Label htmlFor="type" className="text-right">
+                    Request Type
+                  </Label>
+                  <Select onValueChange={value => setFormData(prev => ({ ...prev, type: value }))} value={formData.type}>
+                    <SelectTrigger id="type" className="col-span-3">
+                      <SelectValue placeholder="Select request type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {requestTypes.map(type => (
+                        <SelectItem key={type.value} value={type.value}>
+                          {type.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {formErrors.type && <p className="col-start-2 col-span-3 text-sm text-red-500">{formErrors.type}</p>}
+                </div>
+                
+                {/* Bỏ trường startDate và endDate ở đây */}
+                
+                <div className="grid items-center grid-cols-4 gap-4">
+                  <Label htmlFor="description" className="text-right">
+                    Description
+                  </Label>
+                  <Textarea
+                    id="description"
+                    value={formData.description}
+                    onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                    className="col-span-3"
+                  />
+                  {formErrors.description && <p className="col-start-2 col-span-3 text-sm text-red-500">{formErrors.description}</p>}
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid items-center grid-cols-4 col-span-1 gap-4">
+                    <Label htmlFor="startTime" className="text-right">
+                      Start Time
+                    </Label>
+                    <Input
+                      id="startTime"
+                      type="time"
+                      value={formData.startTime}
+                      onChange={e => setFormData(prev => ({ ...prev, startTime: e.target.value }))}
+                      className="col-span-3"
+                    />
+                  </div>
+                  <div className="grid items-center grid-cols-4 col-span-1 gap-4">
+                    <Label htmlFor="endTime" className="text-right">
+                      End Time
+                    </Label>
+                    <Input
+                      id="endTime"
+                      type="time"
+                      value={formData.endTime}
+                      onChange={e => setFormData(prev => ({ ...prev, endTime: e.target.value }))}
+                      className="col-span-3"
+                    />
+                  </div>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button type="submit">Send</Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
 
-{/* Edit Request Dialog */}
-<Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-  <DialogContent className="sm:max-w-[425px]">
-    <DialogHeader>
-      <DialogTitle>Edit Request</DialogTitle>
-    </DialogHeader>
-    <form onSubmit={e => { e.preventDefault(); handleSubmit(); }}>
-      <div className="grid gap-4 py-4">
-        <div className="grid items-center grid-cols-4 gap-4">
-          <Label htmlFor="type" className="text-right">
-            Request Type
-          </Label>
-          <Select onValueChange={value => setFormData(prev => ({ ...prev, type: value }))} value={formData.type}>
-            <SelectTrigger id="type" className="col-span-3">
-              <SelectValue placeholder="Select request type" />
-            </SelectTrigger>
-            <SelectContent>
-              {requestTypes.map(type => (
-                <SelectItem key={type.value} value={type.value}>
-                  {type.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {formErrors.type && <p className="col-start-2 col-span-3 text-sm text-red-500">{formErrors.type}</p>}
-        </div>
+        {/* Edit Request Dialog */}
+        <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Edit Request</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={e => { e.preventDefault(); handleSubmit(); }}>
+              <div className="grid gap-4 py-4">
+                <div className="grid items-center grid-cols-4 gap-4">
+                  <Label htmlFor="type" className="text-right">
+                    Request Type
+                  </Label>
+                  <Select onValueChange={value => setFormData(prev => ({ ...prev, type: value }))} value={formData.type}>
+                    <SelectTrigger id="type" className="col-span-3">
+                      <SelectValue placeholder="Select request type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {requestTypes.map(type => (
+                        <SelectItem key={type.value} value={type.value}>
+                          {type.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {formErrors.type && <p className="col-start-2 col-span-3 text-sm text-red-500">{formErrors.type}</p>}
+                </div>
 
-        {/* Bỏ trường startDate và endDate ở đây */}
+                {/* Bỏ trường startDate và endDate ở đây */}
 
-        <div className="grid items-center grid-cols-4 gap-4">
-          <Label htmlFor="description" className="text-right">
-            Description
-          </Label>
-          <Textarea
-            id="description"
-            value={formData.description}
-            onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
-            className="col-span-3"
-          />
-          {formErrors.description && <p className="col-start-2 col-span-3 text-sm text-red-500">{formErrors.description}</p>}
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="grid items-center grid-cols-4 col-span-1 gap-4">
-            <Label htmlFor="startTime" className="text-right">
-              Start Time
-            </Label>
-            <Input
-              id="startTime"
-              type="time"
-              value={formData.startTime}
-              onChange={e => setFormData(prev => ({ ...prev, startTime: e.target.value }))}
-              className="col-span-3"
-            />
-          </div>
-          <div className="grid items-center grid-cols-4 col-span-1 gap-4">
-            <Label htmlFor="endTime" className="text-right">
-              End Time
-            </Label>
-            <Input
-              id="endTime"
-              type="time"
-              value={formData.endTime}
-              onChange={e => setFormData(prev => ({ ...prev, endTime: e.target.value }))}
-              className="col-span-3"
-            />
-          </div>
-        </div>
-      </div>
-      <DialogFooter>
-        <Button type="submit">Update</Button>
-      </DialogFooter>
-    </form>
-  </DialogContent>
-</Dialog>
+                <div className="grid items-center grid-cols-4 gap-4">
+                  <Label htmlFor="description" className="text-right">
+                    Description
+                  </Label>
+                  <Textarea
+                    id="description"
+                    value={formData.description}
+                    onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                    className="col-span-3"
+                  />
+                  {formErrors.description && <p className="col-start-2 col-span-3 text-sm text-red-500">{formErrors.description}</p>}
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid items-center grid-cols-4 col-span-1 gap-4">
+                    <Label htmlFor="startTime" className="text-right">
+                      Start Time
+                    </Label>
+                    <Input
+                      id="startTime"
+                      type="time"
+                      value={formData.startTime}
+                      onChange={e => setFormData(prev => ({ ...prev, startTime: e.target.value }))}
+                      className="col-span-3"
+                    />
+                  </div>
+                  <div className="grid items-center grid-cols-4 col-span-1 gap-4">
+                    <Label htmlFor="endTime" className="text-right">
+                      End Time
+                    </Label>
+                    <Input
+                      id="endTime"
+                      type="time"
+                      value={formData.endTime}
+                      onChange={e => setFormData(prev => ({ ...prev, endTime: e.target.value }))}
+                      className="col-span-3"
+                    />
+                  </div>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button type="submit">Update</Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
 
         {/* Edit Request Modal */}
-        <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+        {/* <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>Edit Request</DialogTitle>
@@ -1901,7 +1901,7 @@ const renderCalendar = () => {
               <Button onClick={handleSubmit}>Update Request</Button>
             </DialogFooter>
           </DialogContent>
-        </Dialog>
+        </Dialog> */}
       </div>
     </div>
   )
