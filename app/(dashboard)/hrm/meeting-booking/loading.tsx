@@ -1,3 +1,8 @@
-import { MeetingBookingLoading } from "@/app/shared-ui/components/loading"
+import React from "react";
+import LoadingSpinner from "@/app/shared-ui/components/LoadingSpinner";
 
-export default MeetingBookingLoading
+function MeetingBookingLoading() {
+  return <LoadingSpinner message="Đang tải" size="lg" />;
+}
+
+export default MeetingBookingLoading;
