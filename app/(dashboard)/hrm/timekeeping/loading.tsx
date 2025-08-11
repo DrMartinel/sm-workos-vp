@@ -1,17 +1,66 @@
-import React from "react";
-
-function TimekeepingLoading() {
+export default function TimekeepingLoading() {
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] w-full">
-      <svg className="animate-spin h-16 w-16 text-blue-600 mb-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-      </svg>
-      <div className="text-xl font-semibold text-blue-700 animate-pulse tracking-wide">
-        Đang tải<span className="inline-block animate-bounce">...</span>
+    <div className="p-6 space-y-6 bg-gray-50 min-h-screen animate-pulse">
+      {/* Header */}
+      <div className="space-y-1">
+        <div className="h-8 bg-gray-200 rounded w-48"></div>
+      </div>
+
+      {/* Attendance Status Banner */}
+      <div className="bg-gray-200 rounded-lg p-4 h-20"></div>
+
+      {/* Tabs */}
+      <div className="w-full">
+        <div className="grid w-full grid-cols-2 h-12 bg-gray-200 rounded"></div>
+        
+        <div className="mt-6">
+          {/* Monthly Summary Card */}
+          <div className="mb-6 bg-gray-200 rounded-lg h-48"></div>
+
+          {/* Calendar Card */}
+          <div className="bg-gray-200 rounded-lg">
+            <div className="p-6">
+              {/* Calendar Header */}
+              <div className="flex items-center justify-between mb-4">
+                <div className="h-6 bg-gray-300 rounded w-32"></div>
+                <div className="flex gap-3">
+                  <div className="h-8 bg-gray-300 rounded w-24"></div>
+                  <div className="h-8 bg-gray-300 rounded w-24"></div>
+                  <div className="h-8 bg-gray-300 rounded w-8"></div>
+                  <div className="h-8 bg-gray-300 rounded w-8"></div>
+                </div>
+              </div>
+              
+              {/* Calendar Grid */}
+              <div className="mb-6">
+                <div className="grid grid-cols-7 gap-3 mb-4">
+                  {Array.from({ length: 7 }).map((_, i) => (
+                    <div key={i} className="h-6 bg-gray-300 rounded"></div>
+                  ))}
+                </div>
+                <div className="grid grid-cols-7 gap-3">
+                  {Array.from({ length: 35 }).map((_, i) => (
+                    <div key={i} className="aspect-square bg-gray-300 rounded-lg"></div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Legend */}
+              <div className="border-t pt-4">
+                <div className="h-4 bg-gray-300 rounded w-16 mb-3"></div>
+                <div className="grid grid-cols-2 gap-x-8 gap-y-2">
+                  {Array.from({ length: 8 }).map((_, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <div className="w-3 h-3 bg-gray-300 rounded-sm"></div>
+                      <div className="h-3 bg-gray-300 rounded w-20"></div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
-  );
+  )
 }
-
-export default TimekeepingLoading;
