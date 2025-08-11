@@ -21,7 +21,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { cn } from "@/app/shared-ui/lib/utils"
-import { useAuth } from "@/src/store/hooks/useAuth"
+import { useAuth } from "@/store/hooks/useAuth"
 import { AdminOnly } from "@/app/shared-ui/components/role-protection"
 
 const navigation = [

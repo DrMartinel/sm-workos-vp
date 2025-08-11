@@ -20,8 +20,8 @@ import {
   CanManageReports,
   CanManageSystem
 } from '@/app/shared-ui/components/role-protection'
-import { useAuth } from '@/src/store/hooks/useAuth'
-import { useRoleAccess } from '@/src/store/hooks/useRoleAccess'
+import { useAuth } from '@/store/hooks/useAuth'
+import { useRoleAccess } from '@/store/hooks/useRoleAccess'
 
 export default function RoleExamplesPage() {
   const { user, profile, isAuthenticated } = useAuth()

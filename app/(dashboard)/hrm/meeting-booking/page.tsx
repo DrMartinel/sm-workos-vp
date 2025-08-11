@@ -11,8 +11,8 @@ import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/utils/supabase/client"
 import { formatDateTime } from "./utils/formatDateTime"
 import { useToast, toast } from "@/components/ui/use-toast"
-import { useAuth } from "@/src/store/hooks/useAuth"
-import { useRoleAccess } from "@/src/store/hooks/useRoleAccess"
+import { useAuth } from "@/store/hooks/useAuth"
+import { useRoleAccess } from "@/store/hooks/useRoleAccess"
 import MeetingBookingLoading from "./loading"
 import {
   Dialog,

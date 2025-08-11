@@ -4,7 +4,7 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import ReactQueryProvider from "@/components/react-query-provider"
-import { ReduxProvider } from "@/src/store/provider"
+import { ReduxProvider } from "@/store/provider"
 import { Toaster } from "@/app/shared-ui/components/ui/toaster"
 import { AuthInitializer } from "@/app/shared-ui/components/auth/auth-initializer"
 
