@@ -6,32 +6,32 @@ export function useRoleAccess() {
 
   // Check if user has a specific role
   const hasRole = (role: SystemRole): boolean => {
-    return roles.includes(role)
+    return Array.isArray(roles) && roles.includes(role)
   }
 
   // Check if user has any of the specified roles
   const hasAnyRole = (requiredRoles: SystemRole[]): boolean => {
-    return requiredRoles.some(role => roles.includes(role))
+    return Array.isArray(roles) && requiredRoles.some(role => roles.includes(role))
   }
 
   // Check if user has all of the specified roles
   const hasAllRoles = (requiredRoles: SystemRole[]): boolean => {
-    return requiredRoles.every(role => roles.includes(role))
+    return Array.isArray(roles) && requiredRoles.every(role => roles.includes(role))
   }
 
   // Check if user has a specific permission
   const hasPermission = (permission: string): boolean => {
-    return permissions.includes(permission)
+    return Array.isArray(permissions) && permissions.includes(permission)
   }
 
   // Check if user has any of the specified permissions
   const hasAnyPermission = (requiredPermissions: string[]): boolean => {
-    return requiredPermissions.some(permission => permissions.includes(permission))
+    return Array.isArray(permissions) && requiredPermissions.some(permission => permissions.includes(permission))
   }
 
   // Check if user has all of the specified permissions
   const hasAllPermissions = (requiredPermissions: string[]): boolean => {
-    return requiredPermissions.every(permission => permissions.includes(permission))
+    return Array.isArray(permissions) && requiredPermissions.every(permission => permissions.includes(permission))
   }
 
   // Check if user is an admin
@@ -101,17 +101,17 @@ export function useRoleAccess() {
 
   // Get user's primary role (first role in the array)
   const getPrimaryRole = (): SystemRole | null => {
-    return roles.length > 0 ? (roles[0] as SystemRole) : null
+    return Array.isArray(roles) && roles.length > 0 ? (roles[0] as SystemRole) : null
   }
 
   // Get all user roles as SystemRole array
   const getUserRoles = (): SystemRole[] => {
-    return roles as SystemRole[]
+    return Array.isArray(roles) ? (roles as SystemRole[]) : []
   }
 
   // Get all user permissions
   const getUserPermissions = (): string[] => {
-    return [...permissions]
+    return Array.isArray(permissions) ? [...permissions] : []
   }
 
   return {

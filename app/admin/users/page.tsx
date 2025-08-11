@@ -1,6 +1,6 @@
 "use client"
-import { useState } from "react"
-import { Users, UserPlus, Search, MoreHorizontal, Edit, Trash2, Mail, Phone, Calendar, Shield } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Users, UserPlus, Search, MoreHorizontal, Edit, Trash2, Mail, Calendar, Shield, Eye, EyeOff } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -19,82 +19,300 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Checkbox } from "@/components/ui/checkbox"
+import { useToast } from "@/app/shared-ui/components/ui/use-toast"
 import { CanManageUsers } from "@/app/shared-ui/components/role-protection"
-import { SYSTEM_ROLES, SystemRole } from "@/app/shared-ui/lib/utils/supabase/roles"
+import { SYSTEM_ROLES, SystemRole, rolesService } from "@/app/shared-ui/lib/utils/supabase/roles"
+import { profilesService, UserProfile, CreateUserData } from "@/app/shared-ui/lib/utils/supabase/profiles"
 
-// Mock data with roles
-const users = [
-  {
-    id: 1,
-    name: "John Doe",
-    email: "john.doe@company.com",
-    phone: "+1 234 567 8900",
-    roles: ["admin"],
-    department: "IT",
-    status: "Active",
-    avatar: "/placeholder.svg?height=40&width=40",
-    joinDate: "2023-01-15",
-  },
-  {
-    id: 2,
-    name: "Jane Smith",
-    email: "jane.smith@company.com",
-    phone: "+1 234 567 8901",
-    roles: ["manager"],
-    department: "Marketing",
-    status: "Active",
-    avatar: "/placeholder.svg?height=40&width=40",
-    joinDate: "2023-02-20",
-  },
-  {
-    id: 3,
-    name: "Mike Johnson",
-    email: "mike.johnson@company.com",
-    phone: "+1 234 567 8902",
-    roles: ["employee"],
-    department: "Sales",
-    status: "Inactive",
-    avatar: "/placeholder.svg?height=40&width=40",
-    joinDate: "2023-03-10",
-  },
-  {
-    id: 4,
-    name: "Sarah Wilson",
-    email: "sarah.wilson@company.com",
-    phone: "+1 234 567 8903",
-    roles: ["hr_manager"],
-    department: "HR",
-    status: "Active",
-    avatar: "/placeholder.svg?height=40&width=40",
-    joinDate: "2023-04-05",
-  },
-]
+interface UserWithProfile extends UserProfile {
+  email?: string
+  status?: string
+  joinDate?: string
+}
 
 export default function UsersPage() {
+  const { toast } = useToast()
+  const [users, setUsers] = useState<UserWithProfile[]>([])
+  const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedStatus, setSelectedStatus] = useState("all")
   const [selectedRole, setSelectedRole] = useState("all")
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
-  const [selectedUser, setSelectedUser] = useState<any>(null)
+  const [selectedUser, setSelectedUser] = useState<UserWithProfile | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Form states
+  const [createForm, setCreateForm] = useState({
+    username: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+    roles: [] as SystemRole[]
+  })
+  const [editForm, setEditForm] = useState({
+    username: "",
+    roles: [] as SystemRole[]
+  })
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   const stats = [
-    { title: "Total Users", value: "2,847", icon: Users, color: "blue" },
-    { title: "Active Users", value: "2,234", icon: Users, color: "green" },
-    { title: "Inactive Users", value: "613", icon: Users, color: "gray" },
-    { title: "Admins", value: "24", icon: Users, color: "purple" },
+    { title: "Total Users", value: users.length.toString(), icon: Users, color: "blue" },
+    { title: "Active Users", value: users.filter(u => u.status !== "Inactive").length.toString(), icon: Users, color: "green" },
+    { title: "Inactive Users", value: users.filter(u => u.status === "Inactive").length.toString(), icon: Users, color: "gray" },
+    { title: "Admins", value: users.filter(u => Array.isArray(u.role) && u.role.includes("admin")).length.toString(), icon: Users, color: "purple" },
   ]
+
+  // Load users on component mount
+  useEffect(() => {
+    loadUsers()
+  }, [])
+
+  const loadUsers = async () => {
+    setLoading(true)
+    try {
+      const usersData = await rolesService.getAllUsersWithRolesAndEmails()
+      setUsers(usersData.map(user => ({
+        ...user,
+        status: "Active", // Default status since we don't have this field in the current schema
+        joinDate: user.updated_at ? new Date(user.updated_at).toLocaleDateString() : "N/A"
+      })))
+    } catch (error) {
+      console.error("Error loading users:", error)
+      toast({
+        title: "Error",
+        description: "Failed to load users",
+        variant: "destructive"
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const filteredUsers = users.filter((user) => {
     const matchesSearch =
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = selectedStatus === "all" || user.status.toLowerCase() === selectedStatus
-    const matchesRole = selectedRole === "all" || user.roles.some(role => role.toLowerCase() === selectedRole)
+      user.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email?.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesStatus = selectedStatus === "all" || user.status?.toLowerCase() === selectedStatus
+    const matchesRole = selectedRole === "all" || (Array.isArray(user.role) && user.role.some(role => role.toLowerCase() === selectedRole))
 
     return matchesSearch && matchesStatus && matchesRole
   })
+
+  const handleCreateUser = async () => {
+    if (!validateCreateForm()) return
+
+    setIsSubmitting(true)
+    try {
+      const userData: CreateUserData = {
+        email: createForm.email,
+        password: createForm.password,
+        username: createForm.username,
+        roles: createForm.roles
+      }
+
+      const result = await profilesService.createUser(userData)
+
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: "User created successfully",
+        })
+        setIsCreateModalOpen(false)
+        resetCreateForm()
+        loadUsers() // Reload users list
+      } else {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to create user",
+          variant: "destructive"
+        })
+      }
+    } catch (error) {
+      console.error("Error creating user:", error)
+      toast({
+        title: "Error",
+        description: "Failed to create user",
+        variant: "destructive"
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleEditUser = async () => {
+    if (!selectedUser || !validateEditForm()) return
+
+    setIsSubmitting(true)
+    try {
+      const success = await profilesService.updateUserProfile(selectedUser.id, {
+        username: editForm.username,
+        role: editForm.roles
+      })
+
+      if (success) {
+        toast({
+          title: "Success",
+          description: "User updated successfully",
+        })
+        setIsEditModalOpen(false)
+        loadUsers() // Reload users list
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to update user",
+          variant: "destructive"
+        })
+      }
+    } catch (error) {
+      console.error("Error updating user:", error)
+      toast({
+        title: "Error",
+        description: "Failed to update user",
+        variant: "destructive"
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleDeleteUser = async () => {
+    if (!selectedUser) return
+
+    setIsSubmitting(true)
+    try {
+      const success = await profilesService.deleteUser(selectedUser.id)
+
+      if (success) {
+        toast({
+          title: "Success",
+          description: "User deleted successfully",
+        })
+        setIsDeleteModalOpen(false)
+        loadUsers() // Reload users list
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to delete user",
+          variant: "destructive"
+        })
+      }
+    } catch (error) {
+      console.error("Error deleting user:", error)
+      toast({
+        title: "Error",
+        description: "Failed to delete user",
+        variant: "destructive"
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const validateCreateForm = () => {
+    if (!createForm.username.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Username is required",
+        variant: "destructive"
+      })
+      return false
+    }
+    if (!createForm.email.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Email is required",
+        variant: "destructive"
+      })
+      return false
+    }
+    if (!createForm.password) {
+      toast({
+        title: "Validation Error",
+        description: "Password is required",
+        variant: "destructive"
+      })
+      return false
+    }
+    if (createForm.password.length < 6) {
+      toast({
+        title: "Validation Error",
+        description: "Password must be at least 6 characters",
+        variant: "destructive"
+      })
+      return false
+    }
+    if (createForm.password !== createForm.confirmPassword) {
+      toast({
+        title: "Validation Error",
+        description: "Passwords do not match",
+        variant: "destructive"
+      })
+      return false
+    }
+    // Roles are now optional - removed the validation check
+    return true
+  }
+
+  const validateEditForm = () => {
+    if (!editForm.username.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Username is required",
+        variant: "destructive"
+      })
+      return false
+    }
+    // Roles are now optional - removed the validation check
+    return true
+  }
+
+  const resetCreateForm = () => {
+    setCreateForm({
+      username: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+      roles: []
+    })
+    setShowPassword(false)
+    setShowConfirmPassword(false)
+  }
+
+  const openEditModal = (user: UserWithProfile) => {
+    setSelectedUser(user)
+    setEditForm({
+      username: user.username || "",
+      roles: Array.isArray(user.role) ? (user.role as SystemRole[]) : []
+    })
+    setIsEditModalOpen(true)
+  }
+
+  const openDeleteModal = (user: UserWithProfile) => {
+    setSelectedUser(user)
+    setIsDeleteModalOpen(true)
+  }
+
+  const handleRoleToggle = (role: SystemRole, isCreate: boolean = true) => {
+    if (isCreate) {
+      setCreateForm(prev => ({
+        ...prev,
+        roles: prev.roles.includes(role)
+          ? prev.roles.filter(r => r !== role)
+          : [...prev.roles, role]
+      }))
+    } else {
+      setEditForm(prev => ({
+        ...prev,
+        roles: prev.roles.includes(role)
+          ? prev.roles.filter(r => r !== role)
+          : [...prev.roles, role]
+      }))
+    }
+  }
 
   return (
     <CanManageUsers 
@@ -126,67 +344,102 @@ export default function UsersPage() {
               Add User
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>Create New User</DialogTitle>
-              <DialogDescription>Add a new user to the system with appropriate permissions.</DialogDescription>
+              <DialogDescription>Add a new user to the system. Roles are optional and can be assigned later.</DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="name" className="text-right">
-                  Name
-                </Label>
-                <Input id="name" className="col-span-3" />
+              <div className="grid gap-2">
+                <Label htmlFor="username">Username</Label>
+                <Input
+                  id="username"
+                  value={createForm.username}
+                  onChange={(e) => setCreateForm(prev => ({ ...prev, username: e.target.value }))}
+                  placeholder="Enter username"
+                />
               </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="email" className="text-right">
-                  Email
-                </Label>
-                <Input id="email" type="email" className="col-span-3" />
+              <div className="grid gap-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={createForm.email}
+                  onChange={(e) => setCreateForm(prev => ({ ...prev, email: e.target.value }))}
+                  placeholder="Enter email"
+                />
               </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="phone" className="text-right">
-                  Phone
-                </Label>
-                <Input id="phone" className="col-span-3" />
+              <div className="grid gap-2">
+                <Label htmlFor="password">Password</Label>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    value={createForm.password}
+                    onChange={(e) => setCreateForm(prev => ({ ...prev, password: e.target.value }))}
+                    placeholder="Enter password"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
               </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="role" className="text-right">
-                  Role
-                </Label>
-                <Select>
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Select role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="admin">Admin</SelectItem>
-                    <SelectItem value="manager">Manager</SelectItem>
-                    <SelectItem value="user">User</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="grid gap-2">
+                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <div className="relative">
+                  <Input
+                    id="confirmPassword"
+                    type={showConfirmPassword ? "text" : "password"}
+                    value={createForm.confirmPassword}
+                    onChange={(e) => setCreateForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                    placeholder="Confirm password"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  >
+                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
               </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="department" className="text-right">
-                  Department
-                </Label>
-                <Select>
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Select department" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="it">IT</SelectItem>
-                    <SelectItem value="marketing">Marketing</SelectItem>
-                    <SelectItem value="sales">Sales</SelectItem>
-                    <SelectItem value="hr">HR</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="grid gap-2">
+                <Label>Roles (Optional)</Label>
+                <div className="grid gap-2">
+                  {Object.entries(SYSTEM_ROLES).map(([key, role]) => (
+                    <div key={role} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`create-${role}`}
+                        checked={createForm.roles.includes(role)}
+                        onCheckedChange={() => handleRoleToggle(role, true)}
+                      />
+                      <Label htmlFor={`create-${role}`} className="text-sm font-normal">
+                        {key.replace(/_/g, ' ')}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsCreateModalOpen(false)}>
                 Cancel
               </Button>
-              <Button className="bg-blue-600 hover:bg-blue-700">Create User</Button>
+              <Button 
+                className="bg-blue-600 hover:bg-blue-700" 
+                onClick={handleCreateUser}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Creating..." : "Create User"}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -247,9 +500,11 @@ export default function UsersPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Roles</SelectItem>
-                <SelectItem value="admin">Admin</SelectItem>
-                <SelectItem value="manager">Manager</SelectItem>
-                <SelectItem value="user">User</SelectItem>
+                {Object.entries(SYSTEM_ROLES).map(([key, role]) => (
+                  <SelectItem key={role} value={role}>
+                    {key.replace(/_/g, ' ')}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -262,95 +517,99 @@ export default function UsersPage() {
                   <TableHead>User</TableHead>
                   <TableHead>Contact</TableHead>
                   <TableHead>Role</TableHead>
-                  <TableHead>Department</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Join Date</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredUsers.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell>
-                      <div className="flex items-center space-x-3">
-                        <Avatar>
-                          <AvatarImage src={user.avatar || "/placeholder.svg"} />
-                          <AvatarFallback>
-                            {user.name
-                              .split(" ")
-                              .map((n) => n[0])
-                              .join("")}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <div className="font-medium">{user.name}</div>
-                          <div className="text-sm text-gray-500">{user.email}</div>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="space-y-1">
-                        <div className="flex items-center text-sm">
-                          <Mail className="h-3 w-3 mr-1 text-gray-400" />
-                          {user.email}
-                        </div>
-                        <div className="flex items-center text-sm text-gray-500">
-                          <Phone className="h-3 w-3 mr-1 text-gray-400" />
-                          {user.phone}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {user.roles.map((role, index) => (
-                          <Badge key={index} variant={role === "admin" ? "default" : "secondary"}>
-                            {role}
-                          </Badge>
-                        ))}
-                      </div>
-                    </TableCell>
-                    <TableCell>{user.department}</TableCell>
-                    <TableCell>
-                      <Badge variant={user.status === "Active" ? "default" : "secondary"}>{user.status}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center text-sm">
-                        <Calendar className="h-3 w-3 mr-1 text-gray-400" />
-                        {user.joinDate}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={() => {
-                              setSelectedUser(user)
-                              setIsEditModalOpen(true)
-                            }}
-                          >
-                            <Edit className="mr-2 h-4 w-4" />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="text-red-600"
-                            onClick={() => {
-                              setSelectedUser(user)
-                              setIsDeleteModalOpen(true)
-                            }}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-8">
+                      Loading users...
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : filteredUsers.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-8">
+                      No users found
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredUsers.map((user) => (
+                    <TableRow key={user.id}>
+                      <TableCell>
+                        <div className="flex items-center space-x-3">
+                          <Avatar>
+                            <AvatarImage src={user.avatar_url || "/placeholder.svg"} />
+                            <AvatarFallback>
+                              {user.username
+                                ?.split(" ")
+                                .map((n) => n[0])
+                                .join("") || "U"}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <div className="font-medium">{user.username || "Unknown"}</div>
+                            <div className="text-sm text-gray-500">{user.email || "No email"}</div>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="space-y-1">
+                          <div className="flex items-center text-sm">
+                            <Mail className="h-3 w-3 mr-1 text-gray-400" />
+                            {user.email || "No email"}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {Array.isArray(user.role) ? user.role.map((role, index) => (
+                            <Badge key={index} variant={role === "admin" ? "default" : "secondary"}>
+                              {role}
+                            </Badge>
+                          )) : (
+                            <Badge variant="secondary">No roles</Badge>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={user.status === "Active" ? "default" : "secondary"}>
+                          {user.status || "Active"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center text-sm">
+                          <Calendar className="h-3 w-3 mr-1 text-gray-400" />
+                          {user.joinDate || "N/A"}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => openEditModal(user)}>
+                              <Edit className="mr-2 h-4 w-4" />
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-red-600"
+                              onClick={() => openDeleteModal(user)}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </div>
@@ -359,45 +618,38 @@ export default function UsersPage() {
 
       {/* Edit User Modal */}
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Edit User</DialogTitle>
-            <DialogDescription>Update user information and permissions.</DialogDescription>
+            <DialogDescription>Update user information and permissions. Roles are optional.</DialogDescription>
           </DialogHeader>
           {selectedUser && (
             <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="edit-name" className="text-right">
-                  Name
-                </Label>
-                <Input id="edit-name" defaultValue={selectedUser.name} className="col-span-3" />
+              <div className="grid gap-2">
+                <Label htmlFor="edit-username">Username</Label>
+                <Input
+                  id="edit-username"
+                  value={editForm.username}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, username: e.target.value }))}
+                  placeholder="Enter username"
+                />
               </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="edit-email" className="text-right">
-                  Email
-                </Label>
-                <Input id="edit-email" type="email" defaultValue={selectedUser.email} className="col-span-3" />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="edit-phone" className="text-right">
-                  Phone
-                </Label>
-                <Input id="edit-phone" defaultValue={selectedUser.phone} className="col-span-3" />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="edit-role" className="text-right">
-                  Role
-                </Label>
-                <Select defaultValue={selectedUser.role.toLowerCase()}>
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="admin">Admin</SelectItem>
-                    <SelectItem value="manager">Manager</SelectItem>
-                    <SelectItem value="user">User</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="grid gap-2">
+                <Label>Roles (Optional)</Label>
+                <div className="grid gap-2">
+                  {Object.entries(SYSTEM_ROLES).map(([key, role]) => (
+                    <div key={role} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`edit-${role}`}
+                        checked={editForm.roles.includes(role)}
+                        onCheckedChange={() => handleRoleToggle(role, false)}
+                      />
+                      <Label htmlFor={`edit-${role}`} className="text-sm font-normal">
+                        {key.replace(/_/g, ' ')}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           )}
@@ -405,7 +657,13 @@ export default function UsersPage() {
             <Button variant="outline" onClick={() => setIsEditModalOpen(false)}>
               Cancel
             </Button>
-            <Button className="bg-blue-600 hover:bg-blue-700">Save Changes</Button>
+            <Button 
+              className="bg-blue-600 hover:bg-blue-700" 
+              onClick={handleEditUser}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Saving..." : "Save Changes"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -423,17 +681,17 @@ export default function UsersPage() {
             <div className="py-4">
               <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg">
                 <Avatar>
-                  <AvatarImage src={selectedUser.avatar || "/placeholder.svg"} />
+                  <AvatarImage src={selectedUser.avatar_url || "/placeholder.svg"} />
                   <AvatarFallback>
-                    {selectedUser.name
-                      .split(" ")
+                    {selectedUser.username
+                      ?.split(" ")
                       .map((n: string) => n[0])
-                      .join("")}
+                      .join("") || "U"}
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <div className="font-medium">{selectedUser.name}</div>
-                  <div className="text-sm text-gray-500">{selectedUser.email}</div>
+                  <div className="font-medium">{selectedUser.username || "Unknown"}</div>
+                  <div className="text-sm text-gray-500">{selectedUser.email || "No email"}</div>
                 </div>
               </div>
             </div>
@@ -442,7 +700,13 @@ export default function UsersPage() {
             <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)}>
               Cancel
             </Button>
-            <Button variant="destructive">Delete User</Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleDeleteUser}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Deleting..." : "Delete User"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

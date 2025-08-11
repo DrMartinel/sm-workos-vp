@@ -11,8 +11,11 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { useAuth } from "@/store/hooks/useAuth"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
+import { createClient } from "@/lib/utils/supabase/client"
+import dataURLtoBlob from "./utils/dataURLtoBlob"
 import TimekeepingLoading from "./loading"
 
 const generateCalendarData = () => {
@@ -118,18 +121,23 @@ const requestTypes = [
   { value: "work-from-home", label: "Work From Home", icon: Home },
   { value: "time-edit", label: "Time Edit", icon: Edit3 },
 ]
+import { useToast } from "@/app/shared-ui/components/ui/use-toast"
 
 export default function TimekeepingPage() {
   // Timekeeping states
+  const { user } = useAuth()
+  const { toast } = useToast()
   const [currentStep, setCurrentStep] = useState(0)
   const [locationStatus, setLocationStatus] = useState<"checking" | "approved" | "denied" | null>(null)
   const [capturedImage, setCapturedImage] = useState<string | null>(null)
   const [currentTime, setCurrentTime] = useState(new Date())
   const [isCheckedIn, setIsCheckedIn] = useState(false)
   const [checkInTime, setCheckInTime] = useState<Date | null>(null)
+  const [checkOutTime, setCheckOutTime] = useState<Date | null>(null)
   const [isCheckingOut, setIsCheckingOut] = useState(false)
   const [isCheckedOut, setIsCheckedOut] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [todayTimekeeping, setTodayTimekeeping] = useState<any | null>(null);
   const [showCheckInFlow, setShowCheckInFlow] = useState(false)
   const [currentPage, setCurrentPage] = useState<"main" | "checkin" | "checkout">("main")
 
@@ -259,8 +267,42 @@ export default function TimekeepingPage() {
       }
     }
   }, [cameraStream])
+  
+  useEffect(() => {
+    if (isCameraActive && videoRef.current && cameraStream) {
+      videoRef.current.srcObject = cameraStream;
+    }
+  }, [isCameraActive, cameraStream]);
 
-  // Calculate statistics
+  useEffect(() => {
+    const fetchTimekeeping = async () => {
+      setLoading(true);
+      const supabase = createClient();
+      const { data, error } = await supabase.rpc('get_today_timekeeping_for_user');
+      if (error) {
+        console.error(error);
+        setTodayTimekeeping(null);
+        setIsCheckedIn(false);
+        setIsCheckedOut(false);
+        setCheckInTime(null);
+      } else if (data && data.length > 0) {
+        setTodayTimekeeping(data[0]);
+        setIsCheckedIn(true);
+        setIsCheckedOut(!!data[0].check_out_time);
+        setCheckInTime(data[0].check_in_time ? new Date(data[0].check_in_time) : null);
+      } else {
+        setTodayTimekeeping(null);
+        setIsCheckedIn(false);
+        setIsCheckedOut(false);
+        setCheckInTime(null);
+      }
+      setLoading(false);
+    };
+    fetchTimekeeping();
+  }, [isCheckedIn, isCheckedOut]);
+  
+
+    // Calculate statistics
   const getStatistics = () => {
     const stats = {
       "late-1-10": { count: 0, amount: 0 },
@@ -359,7 +401,6 @@ export default function TimekeepingPage() {
       totalPenalty
     }
   }
-
   const checkLocation = async (): Promise<"approved" | "denied"> => {
     setLocationStatus("checking")
 
@@ -423,7 +464,11 @@ export default function TimekeepingPage() {
       setIsCameraActive(true)
     } catch (error) {
       console.error("Error accessing camera:", error)
-      alert("Cannot access camera. Please check permissions.")
+      toast({
+        title: "Lỗi truy cập camera",
+        description: "Không thể truy cập camera. Vui lòng kiểm tra quyền truy cập.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -468,11 +513,72 @@ export default function TimekeepingPage() {
   }
 
   const handleComplete = async () => {
+        const supabase = createClient();
+
+    // Get the current user from Redux
+    if (!user) {
+      toast({
+        title: "Lỗi xác thực",
+        description: "Người dùng chưa xác thực",
+        variant: "destructive",
+      })
+      return;
+    }
+
+    let photoPath = null;
+    if (capturedImage) {
+      // Generate a unique filename
+      const fileName = `${user.id}_${Date.now()}.png`;
+      const filePath = `timekeeping/images/${fileName}`;
+      const fileBlob = dataURLtoBlob(capturedImage);
+
+      // Upload
+      const { error: uploadError } = await supabase.storage
+        .from("hrm")
+        .upload(filePath, fileBlob, { upsert: true });
+
+      if (uploadError) {
+        console.error(uploadError);
+        toast({
+          title: "Lỗi tải lên",
+          description: "Tải lên hình ảnh thất bại: " + uploadError.message,
+          variant: "destructive",
+        })
+        return;
+      }
+
+      photoPath = filePath;
+    }
+
+    // Insert into Supabase
+    const { data, error } = await supabase.rpc('add_timekeeping_record', {
+      latitude: userLatitude.current,
+      longitude: userLongitude.current,
+      photo_url: photoPath
+    });
+
+    console.log("Insert response:", { data, error });
+
+    if (error) {
+      toast({
+        title: "Lỗi lưu dữ liệu",
+        description: "Lưu dữ liệu chấm công thất bại: " + (error as any).message || JSON.stringify(error),
+        variant: "destructive",
+      })
+      return;
+    }
+
+    toast({
+      title: "Chấm công thành công",
+      description: "Chấm công vào ca thành công!",
+    })
+    setIsCheckedIn(true);
+    setIsCheckedOut(false);
+    setCapturedImage(null);
+
     const now = new Date()
-    alert("Check-in successful!")
-    setIsCheckedIn(true)
+
     setCheckInTime(now)
-    setIsCheckedOut(false)
     setCurrentPage("main")
     
     // Update calendar with actual check-in data
@@ -480,21 +586,56 @@ export default function TimekeepingPage() {
   }
 
   const handleCheckOut = async () => {
+    if (!todayTimekeeping || !todayTimekeeping.id) {
+      toast({
+        title: "Lỗi dữ liệu",
+        description: "Không tìm thấy bản ghi chấm công ngày hôm nay.",
+        variant: "destructive",
+      })
+      return;
+    }
+
+    const locationResult = await checkLocation();
+    
+    if (locationResult !== "approved") {
+      toast({
+        title: "Vị trí không hợp lệ",
+        description: "Vị trí của bạn không hợp lệ để chấm công ra ca. Vui lòng đảm bảo bạn đang ở văn phòng.",
+        variant: "destructive",
+      })
+      return;
+    }
+
     setIsCheckingOut(true)
 
-    // Mock implementation - không cần check location nữa
-    setTimeout(() => {
-      const now = new Date()
-      setIsCheckedOut(true)
-      setIsCheckingOut(false)
-      setCurrentPage("main")
-      alert("Check-out successful!")
+    const now = new Date()
+    const supabase = createClient();
+    const { error } = await supabase.rpc('checkout_timekeeping_record', {
+      record_id: todayTimekeeping.id,
+    });
+
+    setIsCheckedOut(true)
+
+        if (error) {
+      toast({
+        title: "Lỗi chấm công",
+        description: "Chấm công ra ca thất bại: " + (error as any).message || JSON.stringify(error),
+        variant: "destructive",
+      })
+      return;
+    }
+
+    toast({
+      title: "Chấm công thành công",
+      description: "Chấm công ra ca thành công!",
+    })
+    setIsCheckingOut(false)
+    setCurrentPage("main")
       
-      // Update calendar with check-out time
-      if (checkInTime) {
-        updateCalendarWithCheckIn(checkInTime, now)
-      }
-    }, 1000)
+    // Update calendar with check-out time
+    if (checkInTime) {
+      updateCalendarWithCheckIn(checkInTime, now)
+    }
   }
 
   // Request module functions
@@ -1131,7 +1272,7 @@ const renderCalendar = () => {
                 </Button>
               ) : isCheckedIn && !isCheckedOut ? (
                 <Button
-                  onClick={() => setCurrentPage("checkout")}
+                  onClick={handleCheckOut}
                   className="bg-white text-red-600 hover:bg-gray-100 font-semibold"
                 >
                   Check-out

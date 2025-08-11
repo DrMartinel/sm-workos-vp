@@ -38,7 +38,7 @@ export function useLogin() {
     
     try {
       const supabase = createClient()
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data: authData, error } = await supabase.auth.signInWithPassword({
         email: data.email,
         password: data.password,
       })
@@ -50,19 +50,23 @@ export function useLogin() {
           description: error.message,
           variant: "destructive",
         })
-      } else {
+      } else if (authData.user) {
         toast({
           title: "Login Successful",
           description: "Redirecting to your dashboard...",
         })
         
-        // Update Redux state with new user data
-        await dispatch(checkAuthStatus())
-        await dispatch(fetchUserProfile())
-        await dispatch(fetchSMRewardsBalance())
+        // Get the user ID from the authentication response
+        const userId = authData.user.id
+        
+        // Fetch user data with the authenticated user ID for better performance
+        await Promise.all([
+          dispatch(fetchUserProfile(userId)),
+          dispatch(fetchSMRewardsBalance(userId))
+        ])
         
         // Redirect to dashboard
-        router.push('/reports/overview')
+        router.push('/')
         router.refresh()
       }
     } catch (error) {
