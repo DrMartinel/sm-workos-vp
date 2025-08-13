@@ -1,12 +1,13 @@
 "use client"
 
 import React from "react"
-import { FileText, Search, Clock, Check, X } from 'lucide-react'
+import { FileText, Clock, Check, X } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Badge } from "@/components/ui/badge"
+
 import { cn } from "@/lib/utils"
+import { DateRange } from "react-day-picker"
+import { DateRangePicker } from "@/components/filters/date-range-picker"
 
 interface Request {
   id: number
@@ -24,23 +25,23 @@ interface Request {
 
 interface RequestHistoryProps {
   requests: Request[]
-  searchKeyword: string
   filterType: string
   filterStatus: string
-  onSearchChange: (value: string) => void
+  dateRange: DateRange | undefined
   onFilterTypeChange: (value: string) => void
   onFilterStatusChange: (value: string) => void
+  onDateRangeChange: (date: DateRange | undefined) => void
   onRequestClick: (request: Request) => void
 }
 
 export default function RequestHistory({
   requests,
-  searchKeyword,
   filterType,
   filterStatus,
-  onSearchChange,
+  dateRange,
   onFilterTypeChange,
   onFilterStatusChange,
+  onDateRangeChange,
   onRequestClick
 }: RequestHistoryProps) {
   const getStatusIcon = (status: string) => {
@@ -57,15 +58,18 @@ export default function RequestHistory({
   }
 
   const filteredRequests = requests.filter((request) => {
-    const matchesKeyword =
-      searchKeyword === "" ||
-      request.description.toLowerCase().includes(searchKeyword.toLowerCase()) ||
-      request.type.toLowerCase().includes(searchKeyword.toLowerCase())
-
-    const matchesType = filterType === "all" || request.type.toLowerCase().includes(filterType.toLowerCase())
+    const matchesType = filterType === "all" || request.type === filterType
     const matchesStatus = filterStatus === "all" || request.status === filterStatus
 
-    return matchesKeyword && matchesType && matchesStatus
+    const from = dateRange?.from ? new Date(dateRange.from) : undefined
+    const to = dateRange?.to ? new Date(dateRange.to) : from
+
+    const requestStart = new Date(request.startDate)
+    const requestEnd = new Date(request.endDate)
+
+    const matchesDate = !from || !to || (requestStart <= to && requestEnd >= from)
+
+    return matchesType && matchesStatus && matchesDate
   })
 
   return (
@@ -79,49 +83,45 @@ export default function RequestHistory({
       <CardContent className="px-6 pb-6">
         {/* Filter Section */}
         <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-          <div className="flex gap-3 items-center">
-            <div className="relative flex-1 min-w-[120px]">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <Input
-                placeholder="Search..."
-                value={searchKeyword}
-                onChange={(e) => onSearchChange(e.target.value)}
-                className="pl-10 border-gray-300"
-              />
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="min-w-[340px]">
+              <DateRangePicker date={dateRange} setDate={onDateRangeChange} />
             </div>
 
-            <Select value={filterType} onValueChange={onFilterTypeChange}>
-              <SelectTrigger className="w-[100px] sm:w-[180px] border-gray-300">
-                <span className="sm:hidden">Type</span>
-                <span className="hidden sm:inline">
-                  <SelectValue placeholder="Request Type" />
-                </span>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="leave-paid">Leave Paid</SelectItem>
-                <SelectItem value="leave-unpaid">Leave Unpaid</SelectItem>
-                <SelectItem value="ot">OT</SelectItem>
-                <SelectItem value="work from home">Work From Home</SelectItem>
-                <SelectItem value="go out">Go Out</SelectItem>
-                <SelectItem value="time edit">Time Edit</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex gap-3 items-center">
+              <Select value={filterType} onValueChange={onFilterTypeChange}>
+                <SelectTrigger className="w-[160px] sm:w-[200px] border-gray-300">
+                  <span className="sm:hidden">Type</span>
+                  <span className="hidden sm:inline">
+                    <SelectValue placeholder="Request Type" />
+                  </span>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="Leave Paid">Leave Paid</SelectItem>
+                  <SelectItem value="Leave Unpaid">Leave Unpaid</SelectItem>
+                  <SelectItem value="OT">OT</SelectItem>
+                  <SelectItem value="Work From Home">Work From Home</SelectItem>
+                  <SelectItem value="Go Out">Go Out</SelectItem>
+                  <SelectItem value="Time Edit">Time Edit</SelectItem>
+                </SelectContent>
+              </Select>
 
-            <Select value={filterStatus} onValueChange={onFilterStatusChange}>
-              <SelectTrigger className="w-[100px] sm:w-[140px] border-gray-300">
-                <span className="sm:hidden">Status</span>
-                <span className="hidden sm:inline">
-                  <SelectValue placeholder="Status" />
-                </span>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="approved">Approved</SelectItem>
-                <SelectItem value="rejected">Rejected</SelectItem>
-              </SelectContent>
-            </Select>
+              <Select value={filterStatus} onValueChange={onFilterStatusChange}>
+                <SelectTrigger className="w-[160px] sm:w-[200px] border-gray-300">
+                  <span className="sm:hidden">Status</span>
+                  <span className="hidden sm:inline">
+                    <SelectValue placeholder="Status" />
+                  </span>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="approved">Approved</SelectItem>
+                  <SelectItem value="rejected">Rejected</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
 

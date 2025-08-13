@@ -114,10 +114,11 @@ interface AttendanceDetailDialogProps {
   isOpen: boolean
   onOpenChange: (open: boolean) => void
   selectedDay: any
+  requests?: Array<{ id: string; type: string; status: string; description?: string }>
   onCreateRequest: () => void
 }
 
-export function AttendanceDetailDialog({ isOpen, onOpenChange, selectedDay, onCreateRequest }: AttendanceDetailDialogProps) {
+export function AttendanceDetailDialog({ isOpen, onOpenChange, selectedDay, requests = [], onCreateRequest }: AttendanceDetailDialogProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -127,60 +128,68 @@ export function AttendanceDetailDialog({ isOpen, onOpenChange, selectedDay, onCr
             Details for this day
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4">
-          <div>
-            <Label className="text-sm font-medium text-gray-700">Date:</Label>
-            <p className="text-sm">
-              {selectedDay?.date && new Date(selectedDay.date).toLocaleDateString('en-US', {weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'})}
-            </p>
-          </div>
-          {(selectedDay?.mainStatus === "late" || selectedDay?.mainStatus === "on-time") && (
+                  <div className="space-y-4">
             <div>
-              <Label className="text-sm font-medium text-gray-700">Type:</Label>
-              <p className={cn(
-                "text-sm font-bold mt-1",
-                selectedDay.mainStatus === "late" ? "text-red-700" : "text-green-700"
-              )}>
-                {selectedDay.lateType || (selectedDay.mainStatus === "late" ? "Late" : "On Time")}
-                {selectedDay.goOut && " + Go Out >30min"}
-              </p>
+              <Label className="text-sm font-medium text-gray-700 font-bold">Timekeeping:</Label>
+              <div className="mt-2 rounded-md border p-2 bg-gray-50 space-y-2">
+                <div>
+                  <p className="text-xs text-gray-500">Date</p>
+                  <p className="text-sm font-semibold">
+                    {selectedDay?.date && new Date(selectedDay.date).toLocaleDateString('en-US', {weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'})}
+                  </p>
+                </div>
+                {(selectedDay?.mainStatus === "late" || selectedDay?.mainStatus === "on-time") && (
+                  <div>
+                    <p className="text-xs text-gray-500">Status</p>
+                    <p className={cn(
+                      "text-sm font-semibold mt-0.5",
+                      selectedDay.mainStatus === "late" ? "text-red-700" : "text-green-700"
+                    )}>
+                      {selectedDay.lateType || (selectedDay.mainStatus === "late" ? "Late" : "On Time")}
+                      {selectedDay.goOut && " + Go Out >30min"}
+                    </p>
+                  </div>
+                )}
+                {selectedDay?.checkIn && (
+                  <div>
+                    <p className="text-xs text-gray-500">Check-in</p>
+                    <p className="text-sm font-semibold">{selectedDay.checkIn}</p>
+                  </div>
+                )}
+                {selectedDay?.checkOut && (
+                  <div>
+                    <p className="text-xs text-gray-500">Check-out</p>
+                    <p className="text-sm font-semibold">{selectedDay.checkOut}</p>
+                  </div>
+                )}
+              </div>
             </div>
-          )}
-          {selectedDay?.checkIn && (
-            <div>
-              <Label className="text-sm font-medium text-gray-700">Check-in:</Label>
-              <p className="text-sm">{selectedDay.checkIn}</p>
-            </div>
-          )}
-          {selectedDay?.checkOut && (
-            <div>
-              <Label className="text-sm font-medium text-gray-700">Check-out:</Label>
-              <p className="text-sm">{selectedDay.checkOut}</p>
-            </div>
-          )}
-          {selectedDay?.type === "work-online" && (
-            <div>
-              <Label className="text-sm font-medium text-gray-700">Type:</Label>
-              <p className="text-sm font-bold mt-1">Work Online</p>
-            </div>
-          )}
-          {selectedDay?.type === "paid-leave" && (
-            <div>
-              <Label className="text-sm font-medium text-gray-700">Type:</Label>
-              <p className="text-sm font-bold mt-1">Paid Leave</p>
-            </div>
-          )}
-          {selectedDay?.type === "unpaid-leave" && (
-            <div>
-              <Label className="text-sm font-medium text-gray-700">Type:</Label>
-              <p className="text-sm font-bold mt-1">Unpaid Leave</p>
-            </div>
-          )}
-          {selectedDay?.type === "no-checkin" && (
-            <div>
-              <Label className="text-sm font-medium text-gray-700">Type:</Label>
-              <p className="text-sm font-bold mt-1">No Check-in</p>
-            </div>
+
+          {/* Requests for this day */}
+          {requests && requests.length > 0 && (
+            <>
+              <div className="border-t border-gray-200 my-3" />
+              <div>
+                <Label className="text-sm font-medium text-gray-700 font-bold">Requests:</Label>
+                <div className="mt-2 space-y-2">
+                  {requests.map((req) => (
+                    <div key={req.id} className="flex items-start justify-between rounded-md border p-2 bg-gray-50">
+                      <div>
+                        <p className="text-sm font-semibold">{req.type}</p>
+                        {/* {req.description && (
+                          <p className="text-xs text-gray-600 mt-0.5 line-clamp-2">{req.description}</p>
+                        )} */}
+                      </div>
+                      <div>
+                        <Badge variant="secondary" className="text-xs capitalize">
+                          {req.status}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
           )}
         </div>
         <DialogFooter>

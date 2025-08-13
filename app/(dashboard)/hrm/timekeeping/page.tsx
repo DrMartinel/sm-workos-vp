@@ -4,6 +4,7 @@ import React from "react"
 import { useState, useRef, useEffect } from "react"
 import { Plane, Clock, Edit3, FileText } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { DateRange } from "react-day-picker"
 import { useAuth } from "@/store/hooks/useAuth"
 import { useToast } from "@/app/shared-ui/components/ui/use-toast"
 import { createClient } from "@/lib/utils/supabase/client"
@@ -79,12 +80,14 @@ export default function TimekeepingPage() {
     endTime: "",
   })
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
-  const [searchKeyword, setSearchKeyword] = useState("")
+  
   const [filterType, setFilterType] = useState("all")
   const [filterStatus, setFilterStatus] = useState("all")
+  const [historyDateRange, setHistoryDateRange] = useState<DateRange | undefined>(undefined)
   const [calendarFilter, setCalendarFilter] = useState("all")
+  const [requestFilter, setRequestFilter] = useState("all")
   const [calendarData, setCalendarData] = useState<Record<string, any>>({})
-  const [viewMode, setViewMode] = useState("all")
+
   const [isCalendarLoading, setIsCalendarLoading] = useState(false)
   const [calendarWithRequests, setCalendarWithRequests] = useState<Record<string, any>>({})
 
@@ -690,18 +693,20 @@ export default function TimekeepingPage() {
               <MonthlySummary
                 currentDate={currentDate}
                 monthlySummary={monthlySummary}
+                isLoading={isCalendarLoading}
               />
 
             {/* Calendar Card */}
               <Calendar
                 currentDate={currentDate}
                 calendarData={calendarWithRequests}
-                viewMode={viewMode}
+
                 calendarFilter={calendarFilter}
+                requestFilter={requestFilter}
                 isLoading={isCalendarLoading}
                 onNavigateMonth={navigateMonth}
-                onViewModeChange={setViewMode}
                 onCalendarFilterChange={setCalendarFilter}
+                onRequestFilterChange={setRequestFilter}
                 onDayClick={handleDayClick}
               />
           </TabsContent>
@@ -709,12 +714,12 @@ export default function TimekeepingPage() {
           <TabsContent value="history" className="mt-6">
               <RequestHistory
                 requests={requests}
-                searchKeyword={searchKeyword}
                 filterType={filterType}
                 filterStatus={filterStatus}
-                onSearchChange={setSearchKeyword}
+                dateRange={historyDateRange}
                 onFilterTypeChange={setFilterType}
                 onFilterStatusChange={setFilterStatus}
+                onDateRangeChange={setHistoryDateRange}
                 onRequestClick={handleRequestClick}
               />
           </TabsContent>
@@ -732,6 +737,7 @@ export default function TimekeepingPage() {
           isOpen={isAttendanceDetailOpen}
           onOpenChange={setIsAttendanceDetailOpen}
           selectedDay={selectedDay}
+          requests={selectedDay?.date ? (calendarWithRequests[selectedDay.date]?.requests || []) : []}
           onCreateRequest={handleOpenCreateRequest}
         />
 

@@ -11,9 +11,10 @@ interface MonthlySummaryProps {
     efficiency: number
     totalPenalty: number
   }
+  isLoading?: boolean
 }
 
-export default function MonthlySummary({ currentDate, monthlySummary }: MonthlySummaryProps) {
+export default function MonthlySummary({ currentDate, monthlySummary, isLoading = false }: MonthlySummaryProps) {
   return (
     <Card className="mb-6 shadow-lg border-0">
       <CardHeader className="text-center pb-4">
@@ -24,22 +25,45 @@ export default function MonthlySummary({ currentDate, monthlySummary }: MonthlyS
       </CardHeader>
       <CardContent className="px-8 pb-6">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-          <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
-            <div className="text-2xl font-bold text-blue-700">{monthlySummary.totalHours}h</div>
-            <div className="text-sm text-blue-600 font-medium">Total Hours</div>
-          </div>
-          <div className="bg-green-50 rounded-lg p-4 border border-green-100">
-            <div className="text-2xl font-bold text-green-700">{monthlySummary.otHours}h</div>
-            <div className="text-sm text-green-600 font-medium">OT Hours</div>
-          </div>
-          <div className="bg-purple-50 rounded-lg p-4 border border-purple-100">
-            <div className="text-2xl font-bold text-purple-700">{monthlySummary.efficiency}%</div>
-            <div className="text-sm text-purple-600 font-medium">Efficiency</div>
-          </div>
-          <div className="bg-red-50 rounded-lg p-4 border border-red-100">
-            <div className="text-2xl font-bold text-red-700">${(monthlySummary.totalPenalty / 25000).toFixed(2)}</div>
-            <div className="text-sm text-red-600 font-medium">Penalty</div>
-          </div>
+          {isLoading ? (
+            <>
+              <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
+                <div className="text-2xl font-bold text-blue-700 animate-pulse bg-blue-200 h-8 rounded"></div>
+                <div className="text-sm text-blue-600 font-medium">Total Hours</div>
+              </div>
+              <div className="bg-green-50 rounded-lg p-4 border border-green-100">
+                <div className="text-2xl font-bold text-green-700 animate-pulse bg-green-200 h-8 rounded"></div>
+                <div className="text-sm text-green-600 font-medium">OT Hours</div>
+              </div>
+              <div className="bg-purple-50 rounded-lg p-4 border border-purple-100">
+                <div className="text-2xl font-bold text-purple-700 animate-pulse bg-purple-200 h-8 rounded"></div>
+                <div className="text-sm text-purple-600 font-medium">Efficiency</div>
+              </div>
+              <div className="bg-red-50 rounded-lg p-4 border border-red-100">
+                <div className="text-2xl font-bold text-red-700 animate-pulse bg-red-200 h-8 rounded"></div>
+                <div className="text-sm text-red-600 font-medium">Penalty</div>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
+                <div className="text-2xl font-bold text-blue-700">{monthlySummary.totalHours}h</div>
+                <div className="text-sm text-blue-600 font-medium">Total Hours</div>
+              </div>
+              <div className="bg-green-50 rounded-lg p-4 border border-green-100">
+                <div className="text-2xl font-bold text-green-700">{monthlySummary.otHours}h</div>
+                <div className="text-sm text-green-600 font-medium">OT Hours</div>
+              </div>
+              <div className="bg-purple-50 rounded-lg p-4 border border-purple-100">
+                <div className="text-2xl font-bold text-purple-700">{monthlySummary.efficiency}%</div>
+                <div className="text-sm text-purple-600 font-medium">Efficiency</div>
+              </div>
+              <div className="bg-red-50 rounded-lg p-4 border border-red-100">
+                <div className="text-2xl font-bold text-red-700">${(monthlySummary.totalPenalty / 25000).toFixed(2)}</div>
+                <div className="text-sm text-red-600 font-medium">Penalty</div>
+              </div>
+            </>
+          )}
         </div>
       </CardContent>
     </Card>

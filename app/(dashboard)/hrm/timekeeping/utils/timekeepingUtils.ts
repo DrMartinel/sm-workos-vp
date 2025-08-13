@@ -298,17 +298,22 @@ export const getRequestIndicatorStyles = (requestType: string): {
 export const shouldShowDay = (
   dayData: TimekeepingDayData,
   viewMode: string,
-  calendarFilter: string
+  calendarFilter: string,
+  requestFilter: string = "all"
 ): boolean => {
   if (!dayData) return false
   
-  // Category filtering
-  const shouldShowByCategory = calendarFilter === "all" || 
+  // Category filtering (timekeeping)
+  const matchesTimekeeping = calendarFilter === "all" || 
     (calendarFilter === "late" && dayData?.isLate === true) ||
     (calendarFilter === "on-time" && dayData?.isLate === false) ||
     (calendarFilter === "no-checkin" && dayData?.isLate === undefined)
   
-  return shouldShowByCategory
+  // Request filtering
+  const matchesRequest = requestFilter === "all" ||
+    (Array.isArray((dayData as any).requests) && (dayData as any).requests.some((r: any) => r?.type === requestFilter))
+  
+  return matchesTimekeeping && matchesRequest
 }
 
 export const getFirstDayOfMonth = (date: Date) => {

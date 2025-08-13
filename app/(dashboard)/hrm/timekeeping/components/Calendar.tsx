@@ -1,7 +1,7 @@
 "use client"
 
 import React from "react"
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Clock } from 'lucide-react'
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Clock, Plane, Edit3, FileText, Home, LogOut } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -9,7 +9,6 @@ import { cn } from "@/lib/utils"
 import { 
   getTimekeepingLabel,
   getTimekeepingStyles, 
-  getRequestIndicatorStyles,
   shouldShowDay,
   type TimekeepingDayData 
 } from "../utils/timekeepingUtils"
@@ -17,24 +16,25 @@ import {
 interface CalendarProps {
   currentDate: Date
   calendarData: Record<string, any>
-  viewMode: string
+
   calendarFilter: string
+  requestFilter: string
   isLoading?: boolean
   onNavigateMonth: (direction: "prev" | "next") => void
-  onViewModeChange: (value: string) => void
   onCalendarFilterChange: (value: string) => void
+  onRequestFilterChange: (value: string) => void
   onDayClick: (dayData: any, dateStr: string) => void
 }
 
 export default function Calendar({
   currentDate,
   calendarData,
-  viewMode,
   calendarFilter,
+  requestFilter,
   isLoading = false,
   onNavigateMonth,
-  onViewModeChange,
   onCalendarFilterChange,
+  onRequestFilterChange,
   onDayClick
 }: CalendarProps) {
   const getDaysInMonth = (date: Date) => {
@@ -73,7 +73,7 @@ export default function Calendar({
     for (let day = 1; day <= daysInMonth; day++) {
       const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`
       const dayData = calendarData[dateStr]
-      const shouldShow = shouldShowDay(dayData as TimekeepingDayData, viewMode, calendarFilter)
+      const shouldShow = shouldShowDay(dayData as TimekeepingDayData, "all", calendarFilter, requestFilter)
       const { cardBgColor, textColor } = getTimekeepingStyles(dayData as TimekeepingDayData)
       const hasAttendance = dayData?.isLate !== undefined
 
@@ -93,29 +93,23 @@ export default function Calendar({
           {/* Request indicators in top right */}
           {dayData?.requests && dayData.requests.length > 0 && (
             <div className="absolute top-1 right-1 flex flex-col gap-1">
-              {dayData.requests.slice(0, 2).map((request: any, index: number) => {
-                const { bgColor, textColor } = getRequestIndicatorStyles(request.type)
-                return (
-                  <div
-                    key={`${dateStr}-${request.id}-${index}`}
-                    className={cn(
-                      "w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold",
-                      bgColor,
-                      textColor
-                    )}
-                    title={`${request.type} - ${request.status}`}
-                  >
-                    {request.type === "Leave Paid" && "P"}
-                    {request.type === "Leave Unpaid" && "U"}
-                    {request.type === "OT" && "O"}
-                    {request.type === "Work From Home" && "W"}
-                    {request.type === "Go Out" && "G"}
-                    {request.type === "Time Edit" && "T"}
-                  </div>
-                )
-              })}
+              {dayData.requests.slice(0, 2).map((request: any, index: number) => (
+                <div
+                  key={`${dateStr}-${request.id}-${index}`}
+                  className="flex items-center justify-center"
+                  title={`${request.type} - ${request.status}`}
+                >
+                  {request.type === "Leave Paid" && <Plane className="w-3 h-3 text-gray-600" />}
+                  {request.type === "Leave Unpaid" && <Plane className="w-3 h-3 text-gray-600" />}
+                  {request.type === "OT" && <Clock className="w-3 h-3 text-gray-600" />}
+                  {request.type === "Work From Home" && <Home className="w-3 h-3 text-gray-600" />}
+                  {request.type === "Go Out" && <LogOut className="w-3 h-3 text-gray-600" />}
+                  {request.type === "Time Edit" && <Edit3 className="w-3 h-3 text-gray-600" />}
+                  {!["Leave Paid", "Leave Unpaid", "OT", "Work From Home", "Go Out", "Time Edit"].includes(request.type) && <FileText className="w-3 h-3 text-gray-600" />}
+                </div>
+              ))}
               {dayData.requests.length > 2 && (
-                <div className="w-4 h-4 rounded-full bg-gray-500 text-white flex items-center justify-center text-[6px] font-bold">
+                <div className="text-[8px] font-semibold text-gray-500 text-right">
                   +{dayData.requests.length - 2}
                 </div>
               )}
@@ -159,27 +153,31 @@ export default function Calendar({
             </CardTitle>
           </div>
           <div className="flex items-center gap-3">
-            <Select value={viewMode} onValueChange={onViewModeChange}>
-              <SelectTrigger className="w-[140px] border-gray-300">
-                <SelectValue placeholder="View" />
+
+            <Select value={calendarFilter} onValueChange={onCalendarFilterChange}>
+              <SelectTrigger className="w-[155px] border-gray-300">
+                <SelectValue placeholder="Timekeeping" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Days</SelectItem>
-                <SelectItem value="working">Working Days</SelectItem>
-                <SelectItem value="weekends">Weekends Only</SelectItem>
+                <SelectItem value="all">All Timekeeping</SelectItem>
+                <SelectItem value="late">Late</SelectItem>
+                <SelectItem value="on-time">On Time</SelectItem>
+                <SelectItem value="no-checkin">No Check-in</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={calendarFilter} onValueChange={onCalendarFilterChange}>
-              <SelectTrigger className="w-[140px] border-gray-300">
-                <SelectValue placeholder="Filter" />
+
+            <Select value={requestFilter} onValueChange={onRequestFilterChange}>
+              <SelectTrigger className="w-[160px] border-gray-300">
+                <SelectValue placeholder="Requests" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="late">Late Days</SelectItem>
-                <SelectItem value="on-time">On Time</SelectItem>
-                <SelectItem value="leave">Leave Days</SelectItem>
-                <SelectItem value="work-online">Work Online</SelectItem>
-                <SelectItem value="no-checkin">No Check-in</SelectItem>
+                <SelectItem value="all">All Requests</SelectItem>
+                <SelectItem value="Leave Paid">Leave Paid</SelectItem>
+                <SelectItem value="Leave Unpaid">Leave Unpaid</SelectItem>
+                <SelectItem value="OT">OT</SelectItem>
+                <SelectItem value="Work From Home">Work From Home</SelectItem>
+                <SelectItem value="Go Out">Go Out</SelectItem>
+                <SelectItem value="Time Edit">Time Edit</SelectItem>
               </SelectContent>
             </Select>
             <Button 
@@ -241,31 +239,31 @@ export default function Calendar({
           <h4 className="text-xs font-semibold text-gray-600 mt-3 mb-2">Request Indicators (Top Right)</h4>
           <div className="grid grid-cols-3 gap-x-4 gap-y-1 text-xs">
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-blue-200 rounded-full text-blue-800 text-[8px] font-bold flex items-center justify-center">P</div>
+              <Plane className="w-3 h-3 text-800" />
               <span>Paid Leave</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-orange-200 rounded-full text-orange-800 text-[8px] font-bold flex items-center justify-center">U</div>
+              <Plane className="w-3 h-3 text-800" />
               <span>Unpaid Leave</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-purple-200 rounded-full text-purple-800 text-[8px] font-bold flex items-center justify-center">O</div>
+              <Clock className="w-3 h-3 text-800" />
               <span>OT</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-indigo-200 rounded-full text-indigo-800 text-[8px] font-bold flex items-center justify-center">W</div>
+              <Home className="w-3 h-3 text-800" />
               <span>WFH</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-yellow-200 rounded-full text-yellow-800 text-[8px] font-bold flex items-center justify-center">G</div>
+              <LogOut className="w-3 h-3 text-800" />
               <span>Go Out</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-teal-200 rounded-full text-teal-800 text-[8px] font-bold flex items-center justify-center">T</div>
+              <Edit3 className="w-3 h-3 text-800" />
               <span>Time Edit</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-gray-200 rounded-full text-gray-800 text-[8px] font-bold flex items-center justify-center">+</div>
+              <span className="text-[10px] font-bold text-600">+</span>
               <span>More Requests</span>
             </div>
           </div>
