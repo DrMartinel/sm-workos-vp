@@ -1,98 +1,3 @@
-export const generateCalendarData = () => {
-  const data: Record<string, any> = {}
-
-  const buildLabel = (base: string, goOut?: boolean) =>
-    goOut ? `${base} + Go Out` : base
-
-  const startDate = new Date(2025, 6, 1) // 1/7/2025
-  const endDate = new Date(2025, 7, 8)   // 8/8/2025
-
-  for (let date = new Date(startDate); date <= endDate; date.setDate(date.getDate() + 1)) {
-    const day = date.getDate()
-    const dayOfWeek = date.getDay()
-    const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`
-
-    if (dayOfWeek === 0 || dayOfWeek === 6) {
-      data[dateStr] = { type: "weekend", label: "Weekend" }
-    } else if (day % 10 === 0) {
-      data[dateStr] = { type: "paid-leave", label: "Leave Paid" }
-    } else if (day % 15 === 0) {
-      data[dateStr] = { type: "unpaid-leave", label: "Leave Unpaid" }
-    } else if (day % 9 === 0) {
-      data[dateStr] = { type: "no-checkin", label: "No Check-in" }
-    } else {
-      const seed = day % 10
-      // Random goOut for on-time or late with ~30% chance
-      const goOut = [2, 4, 7].includes(seed)
-
-      if (seed >= 5) {
-        data[dateStr] = {
-          type: "on-time",
-          checkIn: "08:01",
-          checkOut: "17:05",
-          label: buildLabel("On Time", goOut),
-          mainStatus: "on-time",
-          ...(goOut && { goOut: true })
-        }
-      } else if (seed === 3) {
-        data[dateStr] = {
-          type: "work-online",
-          label: "Work Online",
-          checkIn: "08:00",
-          checkOut: "17:00"
-        }
-      } else if (seed === 2) {
-        data[dateStr] = {
-          type: "late-1-10",
-          checkIn: "08:08",
-          checkOut: "17:15",
-          label: buildLabel("Late 1-10min", goOut),
-          mainStatus: "late",
-          ...(goOut && { goOut: true })
-        }
-      } else if (seed === 1) {
-        data[dateStr] = {
-          type: "late-10-30",
-          checkIn: "08:25",
-          checkOut: "17:30",
-          label: buildLabel("Late 10-30min", goOut),
-          mainStatus: "late",
-          ...(goOut && { goOut: true })
-        }
-      } else {
-        data[dateStr] = {
-          type: "late-over-30",
-          checkIn: "09:15",
-          checkOut: "18:00",
-          label: buildLabel("Late > 30min", goOut),
-          mainStatus: "late",
-          ...(goOut && { goOut: true })
-        }
-      }
-    }
-  }
-
-  // add fallback for every day of the current month
-  const now = new Date()
-  const fallbackMonth = now.getMonth()
-  const fallbackYear = now.getFullYear()
-  const daysInFallbackMonth = new Date(fallbackYear, fallbackMonth + 1, 0).getDate()
-
-  for (let day = 1; day <= daysInFallbackMonth; day++) {
-    const date = new Date(fallbackYear, fallbackMonth, day)
-    const dateStr = `${fallbackYear}-${String(fallbackMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`
-    if (!data[dateStr]) {
-      data[dateStr] = {
-        type: "not-generated",
-        label: "Chưa có dữ liệu",
-        allowRequest: true
-      }
-    }
-  }
-
-  return data
-}
-
 export const getStatistics = (calendarData: Record<string, any>) => {
   const stats = {
     "late-1-10": { count: 0, amount: 0 },
@@ -120,9 +25,8 @@ export const getStatistics = (calendarData: Record<string, any>) => {
   return stats
 }
 
-export const getMonthlySummary = (currentDate: Date, calendarData: Record<string, any>, mockRequests: any[]) => {
+export const getMonthlySummary = (currentDate: Date, calendarData: Record<string, any>, requests: any[]) => {
   const daysInMonth = getDaysInMonth(currentDate)
-  const stats = getStatistics(calendarData)
   
   // Calculate weekdays in month
   let weekdays = 0
@@ -134,14 +38,8 @@ export const getMonthlySummary = (currentDate: Date, calendarData: Record<string
     }
   }
 
-  // Total attendance hours (8 hours per weekday)
-  const totalAttendanceHours = weekdays * 8
-
-  // Calculate actual working hours from calendar data
-  let actualWorkingHours = 0
-  let onlineWorkHours = 0
-  let goOutOver30Hours = 0
-
+  // Calculate actual working hours from timekeeping data
+  let totalHours = 0
   Object.values(calendarData).forEach((dayData: any) => {
     if (dayData.checkIn && dayData.checkOut) {
       const [inHour, inMinute] = dayData.checkIn.split(":").map(Number)
@@ -150,42 +48,37 @@ export const getMonthlySummary = (currentDate: Date, calendarData: Record<string
       const outTime = outHour * 60 + outMinute
       const totalMinutes = outTime - inTime
       const hours = totalMinutes / 60
-      actualWorkingHours += hours
-    } else if (dayData.type === "work-online") {
-      onlineWorkHours += 8 // Assume 8 hours for online work
-      actualWorkingHours += 8
-    } else if (dayData.type === "go-out-over-30") {
-      goOutOver30Hours += 0.5 // 30 minutes
-      actualWorkingHours += 7.5 // 8 - 0.5
-    } else if (dayData.type === "paid-leave") {
-      actualWorkingHours += 8 // Paid leave counts as working hours
+      totalHours += hours
     }
   })
 
   // Calculate OT hours from approved requests
-  const otHours = mockRequests
+  const otHours = requests
     .filter(req => req.type === "OT" && req.status === "approved")
     .reduce((total, req) => total + (req.otHours || 0), 0)
 
-  // Happy hours (mock calculation - could be based on events, team activities, etc.)
-  const happyHours = 12 // Mock value
+  // Calculate efficiency (actual hours vs expected hours)
+  const expectedHours = weekdays * 8 // 8 hours per weekday
+  const efficiency = expectedHours > 0 ? ((totalHours + otHours) / expectedHours) * 100 : 0
 
-  // Total hours including OT and happy hours
-  const totalHours = actualWorkingHours + otHours + happyHours
-
-  // Efficiency
-  const efficiency = totalAttendanceHours > 0 ? (totalHours / totalAttendanceHours) * 100 : 0
-
-  // Total penalty amount
-  const totalPenalty = stats["late-1-10"].amount + stats["late-10-30"].amount + stats["late-over-30"].amount
+  // Calculate penalty from late check-ins
+  let totalPenalty = 0
+  Object.values(calendarData).forEach((dayData: any) => {
+    if (dayData.isLate === true && dayData.checkIn) {
+      const classification = classifyTimekeeping(dayData.checkIn)
+      if (classification.lateMinutes <= 10) {
+        totalPenalty += 50000 // 50k VND for 1-10 min late
+      } else if (classification.lateMinutes <= 30) {
+        totalPenalty += 100000 // 100k VND for 10-30 min late
+      } else {
+        totalPenalty += 200000 // 200k VND for >30 min late
+      }
+    }
+  })
 
   return {
-    totalAttendanceHours: Math.round(totalAttendanceHours),
-    otHours: Math.round(otHours),
-    happyHours: Math.round(happyHours),
-    onlineWorkHours: Math.round(onlineWorkHours),
-    goOutOver30Hours: Math.round(goOutOver30Hours * 10) / 10, // Round to 1 decimal
     totalHours: Math.round(totalHours),
+    otHours: Math.round(otHours),
     efficiency: Math.round(efficiency * 10) / 10, // Round to 1 decimal
     totalPenalty
   }
@@ -193,6 +86,229 @@ export const getMonthlySummary = (currentDate: Date, calendarData: Record<string
 
 export const getDaysInMonth = (date: Date) => {
   return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate()
+}
+
+// Helper function to format time from database timestamp
+export const formatTimeFromTimestamp = (timestamp: string | null): string | null => {
+  if (!timestamp) return null
+  try {
+    const date = new Date(timestamp)
+    return date.toLocaleTimeString('en-US', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: false 
+    })
+  } catch {
+    return null
+  }
+}
+
+// ============================================================================
+// TIMEKEEPING CLASSIFICATION SYSTEM
+// ============================================================================
+// This module centralizes all timekeeping classification logic to prevent
+// inconsistencies and make maintenance easier.
+
+export interface TimekeepingClassification {
+  isLate: boolean
+  lateMinutes: number
+}
+
+export interface TimekeepingDayData {
+  isLate?: boolean
+  checkIn?: string
+  checkOut?: string
+  requests?: Array<{
+    id: string
+    type: string
+    status: string
+    description?: string
+  }>
+}
+
+/**
+ * Classifies timekeeping status based on check-in time
+ * @param checkInTime - Check-in time in HH:MM format
+ * @param workdayStart - Workday start time (default: "08:30")
+ * @returns Classification object
+ */
+export const classifyTimekeeping = (
+  checkInTime: string, 
+  workdayStart: string = "08:30"
+): TimekeepingClassification => {
+  const [checkInHour, checkInMinute] = checkInTime.split(':').map(Number)
+  const [workHour, workMinute] = workdayStart.split(':').map(Number)
+  
+  const checkInMinutes = checkInHour * 60 + checkInMinute
+  const workMinutes = workHour * 60 + workMinute
+  const lateMinutes = checkInMinutes - workMinutes
+  console.log(lateMinutes)
+  
+  if (lateMinutes <= 0) {
+    return {
+      isLate: false,
+      lateMinutes: 0
+    }
+  } else if (lateMinutes <= 10) {
+    return {
+      isLate: true,
+      lateMinutes
+    }
+  } else if (lateMinutes <= 30) {
+    return {
+      isLate: true,
+      lateMinutes
+    }
+  } else {
+    return {
+      isLate: true,
+      lateMinutes
+    }
+  }
+}
+
+/**
+ * Gets the display label for a timekeeping day based on its data
+ * @param dayData - The day data object
+ * @param dateStr - Date string in YYYY-MM-DD format (optional, for weekend detection)
+ * @returns Display label string
+ */
+export const getTimekeepingLabel = (dayData: TimekeepingDayData, dateStr?: string): string => {
+  if (!dayData) return "No data"
+
+  // Check if it's a weekend
+  if (dateStr) {
+    const date = new Date(dateStr)
+    const dayOfWeek = date.getDay()
+    if (dayOfWeek === 0 || dayOfWeek === 6) {
+      return "Weekend"
+    }
+  }
+
+  if (dayData.isLate === false) {
+    return "On Time"
+  }
+  
+  if (dayData.isLate === true) {
+    if (dayData.checkIn) {
+      const classification = classifyTimekeeping(dayData.checkIn)
+      if (classification.lateMinutes <= 10) {
+        return "Late 1-10min"
+      } else if (classification.lateMinutes <= 30) {
+        return "Late 10-30min"
+      } else {
+        return "Late >30min"
+      }
+    }
+    return "Late"
+  }
+  
+  return "No Check-in"
+}
+
+/**
+ * Gets the CSS classes for styling a timekeeping day card
+ * @param dayData - The day data object
+ * @returns Object with background and text color classes
+ */
+export const getTimekeepingStyles = (dayData: TimekeepingDayData): {
+  cardBgColor: string
+  textColor: string
+} => {
+  if (!dayData) {
+    return {
+      cardBgColor: "bg-gray-100 border-gray-300",
+      textColor: "text-gray-400"
+    }
+  }
+
+  if (dayData.isLate === true) {
+    return {
+      cardBgColor: "bg-red-50 border-red-300",
+      textColor: "text-red-700"
+    }
+  } else if (dayData.isLate === false) {
+    return {
+      cardBgColor: "bg-green-50 border-green-300",
+      textColor: "text-green-700"
+    }
+  }
+  
+  return {
+    cardBgColor: "bg-gray-100 border-gray-300",
+    textColor: "text-gray-400"
+  }
+}
+
+/**
+ * Gets the CSS classes for styling request indicators
+ * @param requestType - The type of request
+ * @returns Object with background and text color classes for request indicators
+ */
+export const getRequestIndicatorStyles = (requestType: string): {
+  bgColor: string
+  textColor: string
+} => {
+  switch (requestType) {
+    case "Leave Paid":
+      return {
+        bgColor: "bg-blue-200",
+        textColor: "text-blue-800"
+      }
+    case "Leave Unpaid":
+      return {
+        bgColor: "bg-orange-200",
+        textColor: "text-orange-800"
+      }
+    case "OT":
+      return {
+        bgColor: "bg-purple-200",
+        textColor: "text-purple-800"
+      }
+    case "Work From Home":
+      return {
+        bgColor: "bg-indigo-200",
+        textColor: "text-indigo-800"
+      }
+    case "Go Out":
+      return {
+        bgColor: "bg-yellow-200",
+        textColor: "text-yellow-800"  
+      }
+    case "Time Edit":
+      return {
+        bgColor: "bg-teal-200",
+        textColor: "text-teal-800"
+      }
+    default:
+      return {
+        bgColor: "bg-gray-200",
+        textColor: "text-gray-800"
+      }
+  }
+}
+
+/**
+ * Determines if a day should be shown based on view mode and filter
+ * @param dayData - The day data object
+ * @param viewMode - Current view mode ("all", "working", "weekends")
+ * @param calendarFilter - Current filter ("all", "late", "on-time", etc.)
+ * @returns Boolean indicating if the day should be shown
+ */
+export const shouldShowDay = (
+  dayData: TimekeepingDayData,
+  viewMode: string,
+  calendarFilter: string
+): boolean => {
+  if (!dayData) return false
+  
+  // Category filtering
+  const shouldShowByCategory = calendarFilter === "all" || 
+    (calendarFilter === "late" && dayData?.isLate === true) ||
+    (calendarFilter === "on-time" && dayData?.isLate === false) ||
+    (calendarFilter === "no-checkin" && dayData?.isLate === undefined)
+  
+  return shouldShowByCategory
 }
 
 export const getFirstDayOfMonth = (date: Date) => {

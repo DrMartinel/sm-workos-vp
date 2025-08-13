@@ -1,6 +1,122 @@
 # Project Changelog
 
-## [Latest] - Telegram Bot Integration for Meeting Notifications
+## [Latest] - Timekeeping Classification System Refactoring
+
+### Overview
+Refactored the scattered timekeeping classification logic across multiple files into a centralized, maintainable system. This eliminates code duplication and ensures consistency in how timekeeping data is classified and displayed throughout the application.
+
+### Problem Solved
+Previously, timekeeping classification logic was duplicated in three different locations:
+1. `app/(dashboard)/hrm/timekeeping/page.tsx` - Duplicate `classifyLate` function
+2. `app/(dashboard)/hrm/timekeeping/utils/timekeepingUtils.ts` - Original `classifyLate` function  
+3. `app/(dashboard)/hrm/timekeeping/components/Calendar.tsx` - Inline classification logic
+
+This led to maintenance issues, potential inconsistencies, and difficulty in making changes to classification rules.
+
+### Solution Implemented
+
+#### 1. Centralized Classification System (`app/(dashboard)/hrm/timekeeping/utils/timekeepingUtils.ts`)
+- **`classifyTimekeeping()`**: Main classification function with configurable workday start time
+- **`getTimekeepingLabel()`**: Generates human-readable labels for display
+- **`getTimekeepingStyles()`**: Provides consistent CSS styling classes
+- **`shouldShowDay()`**: Handles filtering logic for calendar views
+- **TypeScript Interfaces**: `TimekeepingClassification` and `TimekeepingDayData` for type safety
+
+#### 2. Classification Rules
+- **On Time**: Check-in ≤ 08:30
+- **Late 1-10min**: Check-in 08:31 - 08:40
+- **Late 10-30min**: Check-in 08:41 - 09:00  
+- **Late >30min**: Check-in > 09:00
+
+#### 3. Day Types Supported
+- `weekend`, `paid-leave`, `unpaid-leave`, `no-checkin`, `work-online`
+- `on-time`, `late-1-10`, `late-10-30`, `late-over-30`
+
+### Files Modified
+
+#### 1. Enhanced Utilities (`app/(dashboard)/hrm/timekeeping/utils/timekeepingUtils.ts`)
+- **Added**: Comprehensive classification system with TypeScript interfaces
+- **Added**: Utility functions for labels, styling, and filtering
+- **Maintained**: Backward compatibility with existing `classifyLate` function
+- **Added**: Extensive documentation and JSDoc comments
+
+#### 2. Refactored Page (`app/(dashboard)/hrm/timekeeping/page.tsx`)
+- **Removed**: Duplicate `classifyLate` function (lines 95-101)
+- **Updated**: Import to use centralized `classifyTimekeeping` function
+- **Simplified**: Label generation using centralized utility
+
+#### 3. Refactored Calendar Component (`app/(dashboard)/hrm/timekeeping/components/Calendar.tsx`)
+- **Removed**: Inline classification logic (lines 111-121)
+- **Removed**: Duplicate filtering and styling logic
+- **Added**: Imports for centralized utility functions
+- **Simplified**: Day rendering using `getTimekeepingLabel()` and `getTimekeepingStyles()`
+
+#### 4. Documentation (`documentation/TIMEKEEPING_CLASSIFICATION_SYSTEM.md`)
+- **Created**: Comprehensive documentation covering:
+  - System architecture and design decisions
+  - Usage examples and migration guide
+  - Data types and interfaces
+  - Classification rules and day types
+  - Benefits and future considerations
+  - Testing guidelines and maintenance procedures
+
+### Benefits Achieved
+
+1. **Single Source of Truth**: All classification logic centralized in one location
+2. **Consistency**: Same rules applied everywhere in the application
+3. **Maintainability**: Changes only need to be made in one place
+4. **Type Safety**: TypeScript interfaces ensure data consistency
+5. **Documentation**: Clear function purposes and comprehensive documentation
+6. **Testability**: Centralized functions are easier to unit test
+7. **Backward Compatibility**: Existing code continues to work without changes
+
+### Usage Examples
+
+#### Before (Scattered Logic)
+```typescript
+// In page.tsx
+const classifyLate = (hhmm: string) => {
+  const toMin = (t: string) => { const [h,m] = t.split(":").map(Number); return h*60+m }
+  const delta = toMin(hhmm) - toMin("08:30")
+  if (delta <= 0) return { type: "on-time", mainStatus: "on-time" as const }
+  // ... more logic
+}
+
+// In Calendar.tsx
+{hasMainStatus === "late" && (
+  (() => {
+    if (dayData.checkIn) {
+      const [hour, minute] = dayData.checkIn.split(':').map(Number);
+      const checkInMinutes = hour * 60 + minute;
+      const lateThreshold10m = 8 * 60 + 40;
+      // ... more inline logic
+    }
+  })()
+)}
+```
+
+#### After (Centralized Logic)
+```typescript
+// In page.tsx
+import { classifyTimekeeping } from './utils/timekeepingUtils'
+const cls = classifyTimekeeping(inTime);
+
+// In Calendar.tsx
+import { getTimekeepingLabel } from '../utils/timekeepingUtils'
+{getTimekeepingLabel(dayData as TimekeepingDayData)}
+```
+
+### Future Considerations
+
+1. **Configuration**: Make workday start time configurable per user/organization
+2. **Time Zones**: Add timezone support for distributed teams
+3. **Custom Rules**: Allow for custom late thresholds or special rules
+4. **Audit Trail**: Track classification changes for compliance
+5. **Performance**: Cache classification results for large datasets
+
+---
+
+## [Previous] - Telegram Bot Integration for Meeting Notifications
 
 ### Overview
 Implemented a comprehensive Telegram bot integration system that automatically sends notifications to a Telegram chat when meetings are created or cancelled in the meeting booking system. This provides real-time updates to team members about meeting schedule changes.

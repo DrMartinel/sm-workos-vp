@@ -20,12 +20,12 @@ export default function AttendanceStatusBanner({
   onCheckOut
 }: AttendanceStatusBannerProps) {
   return (
-    <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg p-4 text-white shadow-lg">
+    <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg p-8 text-white shadow-lg min-h-[130px]">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Clock className="h-5 w-5" />
+          <Clock className="h-8 w-8" />
           <div>
-            <h3 className="font-semibold text-lg">Attendance Status</h3>
+            <h3 className="font-semibold text-2xl">Attendance Status</h3>
             {!isCheckedIn ? (
               <p className="text-blue-100 text-sm">You haven't checked in today</p>
             ) : isCheckedIn && !isCheckedOut ? (

@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 interface MonthlySummaryProps {
   currentDate: Date
   monthlySummary: {
-    totalAttendanceHours: number
+    totalHours: number
     otHours: number
     efficiency: number
     totalPenalty: number
@@ -25,7 +25,7 @@ export default function MonthlySummary({ currentDate, monthlySummary }: MonthlyS
       <CardContent className="px-8 pb-6">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
           <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
-            <div className="text-2xl font-bold text-blue-700">{monthlySummary.totalAttendanceHours}h</div>
+            <div className="text-2xl font-bold text-blue-700">{monthlySummary.totalHours}h</div>
             <div className="text-sm text-blue-600 font-medium">Total Hours</div>
           </div>
           <div className="bg-green-50 rounded-lg p-4 border border-green-100">

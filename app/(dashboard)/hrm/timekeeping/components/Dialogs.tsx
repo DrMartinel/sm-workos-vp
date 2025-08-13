@@ -141,7 +141,7 @@ export function AttendanceDetailDialog({ isOpen, onOpenChange, selectedDay, onCr
                 "text-sm font-bold mt-1",
                 selectedDay.mainStatus === "late" ? "text-red-700" : "text-green-700"
               )}>
-                {selectedDay.mainStatus === "late" ? "Late" : "On Time"}
+                {selectedDay.lateType || (selectedDay.mainStatus === "late" ? "Late" : "On Time")}
                 {selectedDay.goOut && " + Go Out >30min"}
               </p>
             </div>
