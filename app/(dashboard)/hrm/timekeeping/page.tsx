@@ -540,6 +540,24 @@ export default function TimekeepingPage() {
     setIsEditModalOpen(true)
   }
 
+  const handleDeleteRequest = async (requestId: string) => {
+    try {
+      await HrmRequestsApi.remove(requestId)
+      toast({
+        title: "Request deleted",
+        description: "The request has been successfully deleted.",
+      })
+      setRequestRefreshTrigger(prev => prev + 1)
+    } catch (error) {
+      console.error("Error deleting request:", error)
+      toast({
+        title: "Error",
+        description: "Failed to delete the request. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
+
   const handleOpenCreateRequest = () => {
     setIsAttendanceDetailOpen(false);
     setIsCreateModalOpen(true);
@@ -731,6 +749,7 @@ export default function TimekeepingPage() {
           onOpenChange={setIsRequestDetailOpen}
           request={selectedRequest}
           onEdit={handleEditRequest}
+          onDelete={handleDeleteRequest}
         />
         
         <AttendanceDetailDialog

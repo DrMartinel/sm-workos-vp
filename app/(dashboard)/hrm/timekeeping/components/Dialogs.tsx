@@ -1,7 +1,7 @@
 "use client"
 
 import React from "react"
-import { Clock, Check, X, Plane, Edit3, FileText } from 'lucide-react'
+import { Clock, Check, X, Plane, Edit3, FileText, Trash2 } from 'lucide-react'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { cn } from "@/lib/utils"
 
 interface Request {
@@ -30,9 +31,10 @@ interface RequestDetailDialogProps {
   onOpenChange: (open: boolean) => void
   request: Request | null
   onEdit: (request: Request) => void
+  onDelete: (requestId: string) => void
 }
 
-export function RequestDetailDialog({ isOpen, onOpenChange, request, onEdit }: RequestDetailDialogProps) {
+export function RequestDetailDialog({ isOpen, onOpenChange, request, onEdit, onDelete }: RequestDetailDialogProps) {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "pending":
@@ -95,14 +97,44 @@ export function RequestDetailDialog({ isOpen, onOpenChange, request, onEdit }: R
             Close
           </Button>
           {request?.status === "pending" && (
-            <Button 
-              onClick={() => {
-                onOpenChange(false)
-                onEdit(request)
-              }}
-            >
-              Edit
-            </Button>
+            <>
+              <Button 
+                onClick={() => {
+                  onOpenChange(false)
+                  onEdit(request)
+                }}
+              >
+                Edit
+              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" size="sm">
+                    <Trash2 className="h-4 w-4 mr-1" />
+                    Delete
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete Request</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to delete this request? This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => {
+                        onDelete(request.id.toString())
+                        onOpenChange(false)
+                      }}
+                      className="bg-red-600 hover:bg-red-700"
+                    >
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </>
           )}
         </DialogFooter>
       </DialogContent>
@@ -181,7 +213,15 @@ export function AttendanceDetailDialog({ isOpen, onOpenChange, selectedDay, requ
                         )} */}
                       </div>
                       <div>
-                        <Badge variant="secondary" className="text-xs capitalize">
+                        <Badge 
+                          variant="secondary" 
+                          className={cn(
+                            "text-xs capitalize",
+                            req.status === "approved" && "bg-green-100 text-green-800 border-green-200",
+                            req.status === "pending" && "bg-yellow-100 text-yellow-800 border-yellow-200",
+                            req.status === "rejected" && "bg-red-100 text-red-800 border-red-200"
+                          )}
+                        >
                           {req.status}
                         </Badge>
                       </div>
