@@ -1,28 +1,42 @@
 #!/bin/bash
+
+# Exit immediately if a command exits with a non-zero status.
 set -e
 
+# Replace the placeholder with your actual GitHub username
 GITHUB_USER="quangsmg"
 
-# --- Function to handle a single submodule ---
-setup_submodule() {
-    local path=$1
-    local repo_name=$2
-    local repo_url="https://github.com/${GITHUB_USER}/${repo_name}.git"
+# An array of your submodule paths and their corresponding repo URLs
+declare -A submodules
+submodules["app/shared-ui"]="sm-workos-shared-ui"
+submodules["app/domain-apps"]="sm-workos-domain-apps"
 
-    echo "--- Processing submodule: $path ---"
+echo "Initializing submodules..."
 
-    # Clean up previous state if it exists
-    git submodule deinit -f "$path" >/dev/null 2>&1 || true
-    git rm -f "$path" >/dev/null 2>&1 || true
-    rm -rf ".git/modules/$path"
-    rm -rf "$path"
+for path in "${!submodules[@]}"; do
+  repo_name=${submodules[$path]}
+  repo_url="https://oauth2:${GITHUB_PAT}@github.com/${GITHUB_USER}/${repo_name}.git"
+  
+  echo "Processing submodule: $path"
 
-    echo "Adding submodule from $repo_url"
-    git submodule add "$repo_url" "$path"
-}
+  # Remove the submodule configuration from .git/config
+  git config -f .git/config --remove-section "submodule.$path" 2>/dev/null || true
+  
+  # Remove the submodule entry from .gitmodules
+  git config -f .gitmodules --remove-section "submodule.$path" 2>/dev/null || true
 
-# --- Handle mandatory submodules ---
-setup_submodule "app/shared-ui" "sm-workos-shared-ui"
-setup_submodule "app/domain-apps" "sm-workos-domain-apps"
+  # Remove the submodule directory from the git index
+  git rm --cached "$path" 2>/dev/null || true
 
-echo "--- HRM environment setup complete! ---" 
+  # Remove the submodule's git directory
+  rm -rf ".git/modules/$path"
+
+  # Remove the local submodule directory
+  rm -rf "$path"
+  
+  # Add the submodule with the PAT, using --force to override the .gitignore rule
+  echo "Adding submodule $repo_name at $path"
+  git submodule add --force "$repo_url" "$path"
+done
+
+echo "Submodule initialization complete." 
