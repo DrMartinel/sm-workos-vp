@@ -51,7 +51,7 @@ export default function Calendar({
       return Array.from({ length: 42 }, (_, i) => (
         <div
           key={`skeleton-${i}`}
-          className="aspect-square h-28 p-2 rounded-lg bg-gray-100 animate-pulse"
+          className="aspect-square h-28 p-2 rounded-lg bg-gray-100 animate-pulse md:block hidden"
         >
           <div className="h-4 bg-gray-200 rounded mb-2"></div>
           <div className="h-3 bg-gray-200 rounded mb-1"></div>
@@ -66,7 +66,14 @@ export default function Calendar({
 
     // Empty cells for days before the first day of the month
     for (let i = 0; i < firstDay; i++) {
-      days.push(<div key={`empty-${i}`} className="aspect-square"></div>)
+      days.push(
+        <div key={`empty-${i}`}>
+          {/* Desktop empty cell */}
+          <div className="aspect-square hidden md:block"></div>
+          {/* Mobile empty cell */}
+          <div className="w-10 h-10 md:hidden"></div>
+        </div>
+      )
     }
 
     // Days of the month
@@ -77,67 +84,76 @@ export default function Calendar({
       const { cardBgColor, textColor } = getTimekeepingStyles(dayData as TimekeepingDayData)
       const hasAttendance = dayData?.isLate !== undefined
 
- // ... (các phần code khác)
+      days.push(
+        <div key={day}>
+          {/* Desktop Calendar Card */}
+          <div
+            className={cn(
+              "aspect-square h-28 p-2 text-xs rounded-lg transition-all duration-200 shadow-sm cursor-pointer relative hidden md:flex md:flex-col md:items-center md:justify-between",
+              shouldShow ? cardBgColor : "bg-gray-50 border border-gray-100 text-gray-300",
+              shouldShow ? "opacity-100" : "opacity-30"
+            )}
+            onClick={() => shouldShow && onDayClick(dayData, dateStr)}
+          >
+            {/* Request indicators in top right */}
+            {dayData?.requests && dayData.requests.length > 0 && (
+              <div className="absolute top-1 right-1 flex flex-col gap-1">
+                {dayData.requests.slice(0, 2).map((request: any, index: number) => (
+                  <div
+                    key={`${dateStr}-${request.id}-${index}`}
+                    className="flex items-center justify-center"
+                    title={`${request.type} - ${request.status}`}
+                  >
+                    {request.type === "Leave Paid" && <Plane className="w-3 h-3 text-gray-600" />}
+                    {request.type === "Leave Unpaid" && <Plane className="w-3 h-3 text-gray-600" />}
+                    {request.type === "OT" && <Clock className="w-3 h-3 text-gray-600" />}
+                    {request.type === "Work From Home" && <Home className="w-3 h-3 text-gray-600" />}
+                    {request.type === "Go Out" && <LogOut className="w-3 h-3 text-gray-600" />}
+                    {request.type === "Time Edit" && <Edit3 className="w-3 h-3 text-gray-600" />}
+                    {!["Leave Paid", "Leave Unpaid", "OT", "Work From Home", "Go Out", "Time Edit"].includes(request.type) && <FileText className="w-3 h-3 text-gray-600" />}
+                  </div>
+                ))}
+                {dayData.requests.length > 2 && (
+                  <div className="text-[8px] font-semibold text-gray-500 text-right">
+                    +{dayData.requests.length - 2}
+                  </div>
+                )}
+              </div>
+            )}
 
-   days.push(
-        <div
-          key={day}
-          className={cn(
-            "aspect-square h-28 p-2 text-xs rounded-lg transition-all duration-200 shadow-sm cursor-pointer relative",
-            shouldShow ? cardBgColor : "bg-gray-50 border border-gray-100 text-gray-300",
-            "flex flex-col items-center justify-between",
-            shouldShow ? "opacity-100" : "opacity-30"
-          )}
-          onClick={() => shouldShow && onDayClick(dayData, dateStr)}
-        >
-          {/* Request indicators in top right */}
-          {dayData?.requests && dayData.requests.length > 0 && (
-            <div className="absolute top-1 right-1 flex flex-col gap-1">
-              {dayData.requests.slice(0, 2).map((request: any, index: number) => (
-                <div
-                  key={`${dateStr}-${request.id}-${index}`}
-                  className="flex items-center justify-center"
-                  title={`${request.type} - ${request.status}`}
-                >
-                  {request.type === "Leave Paid" && <Plane className="w-3 h-3 text-gray-600" />}
-                  {request.type === "Leave Unpaid" && <Plane className="w-3 h-3 text-gray-600" />}
-                  {request.type === "OT" && <Clock className="w-3 h-3 text-gray-600" />}
-                  {request.type === "Work From Home" && <Home className="w-3 h-3 text-gray-600" />}
-                  {request.type === "Go Out" && <LogOut className="w-3 h-3 text-gray-600" />}
-                  {request.type === "Time Edit" && <Edit3 className="w-3 h-3 text-gray-600" />}
-                  {!["Leave Paid", "Leave Unpaid", "OT", "Work From Home", "Go Out", "Time Edit"].includes(request.type) && <FileText className="w-3 h-3 text-gray-600" />}
-                </div>
-              ))}
-              {dayData.requests.length > 2 && (
-                <div className="text-[8px] font-semibold text-gray-500 text-right">
-                  +{dayData.requests.length - 2}
+            <div className="flex justify-between w-full">
+              <div className={cn("font-semibold text-sm", textColor)}>{day}</div>
+            </div>
+            
+            <div className="mt-1 flex-1 w-full flex flex-col items-center">
+              <div className={cn("font-semibold text-xs text-center w-full", hasAttendance ? textColor : "text-gray-400")}>
+                {getTimekeepingLabel(dayData as TimekeepingDayData, dateStr)}
+              </div>
+
+              {hasAttendance && (
+                <div className="text-gray-600 text-[10px] mt-1 w-full text-center">
+                  {dayData.checkIn && <div>In: {dayData.checkIn}</div>}
+                  {dayData.checkOut && <div>Out: {dayData.checkOut}</div>}
                 </div>
               )}
             </div>
-          )}
-
-          <div className="flex justify-between w-full">
-            <div className={cn("font-semibold text-sm", textColor)}>{day}</div>
           </div>
-          
-          <div className="mt-1 flex-1 w-full flex flex-col items-center">
-            <div className={cn("font-semibold text-xs text-center w-full", hasAttendance ? textColor : "text-gray-400")}>
-              {getTimekeepingLabel(dayData as TimekeepingDayData, dateStr)}
-            </div>
 
-            {hasAttendance && (
-              <div className="text-gray-600 text-[10px] mt-1 w-full text-center">
-                {dayData.checkIn && <div>In: {dayData.checkIn}</div>}
-                {dayData.checkOut && <div>Out: {dayData.checkOut}</div>}
-              </div>
+          {/* Mobile Calendar Card - Circular */}
+          <div
+            className={cn(
+              "w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold cursor-pointer transition-all duration-200 shadow-sm md:hidden",
+              shouldShow ? cardBgColor : "bg-gray-50 border border-gray-100 text-gray-300",
+              shouldShow ? "opacity-100" : "opacity-30"
             )}
+            onClick={() => shouldShow && onDayClick(dayData, dateStr)}
+            title={shouldShow ? `${day} - ${getTimekeepingLabel(dayData as TimekeepingDayData, dateStr)}` : `${day}`}
+          >
+            {day}
           </div>
-        </div>,
+        </div>
       )
     }
-
-// ... (các phần code khác)
-
 
     return days
   }
@@ -145,15 +161,67 @@ export default function Calendar({
   return (
     <Card className="shadow-lg border-0">
       <CardHeader className="pb-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <CardTitle className="flex items-center gap-2 text-xl">
               <CalendarIcon className="h-5 w-5" />
               {currentDate.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
             </CardTitle>
           </div>
-          <div className="flex items-center gap-3">
+          
+          {/* Mobile: Filters and navigation on same row */}
+          <div className="flex md:hidden items-center gap-2 w-full">
+            <Select value={calendarFilter} onValueChange={onCalendarFilterChange}>
+              <SelectTrigger className="w-20 border-gray-300 text-xs">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="late">Late</SelectItem>
+                <SelectItem value="on-time">On Time</SelectItem>
+                <SelectItem value="no-checkin">No Check-in</SelectItem>
+              </SelectContent>
+            </Select>
 
+            <Select value={requestFilter} onValueChange={onRequestFilterChange}>
+              <SelectTrigger className="w-20 border-gray-300 text-xs">
+                <SelectValue placeholder="Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="Leave Paid">Paid</SelectItem>
+                <SelectItem value="Leave Unpaid">Unpaid</SelectItem>
+                <SelectItem value="OT">OT</SelectItem>
+                <SelectItem value="Work From Home">WFH</SelectItem>
+                <SelectItem value="Go Out">Out</SelectItem>
+                <SelectItem value="Time Edit">Edit</SelectItem>
+              </SelectContent>
+            </Select>
+            
+            <div className="flex gap-1 ml-auto">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => onNavigateMonth("prev")} 
+                className="border-gray-300 h-8 w-8 p-0"
+                disabled={isLoading}
+              >
+                <ChevronLeft className="h-3 w-3" />
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => onNavigateMonth("next")} 
+                className="border-gray-300 h-8 w-8 p-0"
+                disabled={isLoading}
+              >
+                <ChevronRight className="h-3 w-3" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Desktop: Original layout */}
+          <div className="hidden md:flex md:flex-row gap-3 w-full md:w-auto">
             <Select value={calendarFilter} onValueChange={onCalendarFilterChange}>
               <SelectTrigger className="w-[155px] border-gray-300">
                 <SelectValue placeholder="Timekeeping" />
@@ -180,24 +248,27 @@ export default function Calendar({
                 <SelectItem value="Time Edit">Time Edit</SelectItem>
               </SelectContent>
             </Select>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => onNavigateMonth("prev")} 
-              className="border-gray-300"
-              disabled={isLoading}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => onNavigateMonth("next")} 
-              className="border-gray-300"
-              disabled={isLoading}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
+            
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => onNavigateMonth("prev")} 
+                className="border-gray-300"
+                disabled={isLoading}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => onNavigateMonth("next")} 
+                className="border-gray-300"
+                disabled={isLoading}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
       </CardHeader>
@@ -228,43 +299,42 @@ export default function Calendar({
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 bg-gray-100 border border-gray-300 rounded-sm"></div>
-              <span>No Check-in</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-gray-100 border border-gray-300 rounded-sm"></div>
-              <span>Weekend</span>
+              <span>No Check-in / Weekend</span>
             </div>
           </div>
           
-          <h4 className="text-xs font-semibold text-gray-600 mt-3 mb-2">Request Indicators (Top Right)</h4>
-          <div className="grid grid-cols-3 gap-x-4 gap-y-1 text-xs">
-            <div className="flex items-center gap-2">
-              <Plane className="w-3 h-3 text-800" />
-              <span>Paid Leave</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Plane className="w-3 h-3 text-800" />
-              <span>Unpaid Leave</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Clock className="w-3 h-3 text-800" />
-              <span>OT</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Home className="w-3 h-3 text-800" />
-              <span>WFH</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <LogOut className="w-3 h-3 text-800" />
-              <span>Go Out</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Edit3 className="w-3 h-3 text-800" />
-              <span>Time Edit</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold text-600">+</span>
-              <span>More Requests</span>
+          {/* Request Indicators Legend - Desktop Only */}
+          <div className="hidden md:block">
+            <h4 className="text-xs font-semibold text-gray-600 mt-3 mb-2">Request Indicators (Top Right)</h4>
+            <div className="grid grid-cols-3 gap-x-4 gap-y-1 text-xs">
+              <div className="flex items-center gap-2">
+                <Plane className="w-3 h-3 text-800" />
+                <span>Paid Leave</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Plane className="w-3 h-3 text-800" />
+                <span>Unpaid Leave</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Clock className="w-3 h-3 text-800" />
+                <span>OT</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Home className="w-3 h-3 text-800" />
+                <span>WFH</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <LogOut className="w-3 h-3 text-800" />
+                <span>Go Out</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Edit3 className="w-3 h-3 text-800" />
+                <span>Time Edit</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold text-600">+</span>
+                <span>More Requests</span>
+              </div>
             </div>
           </div>
         </div>

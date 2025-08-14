@@ -317,8 +317,14 @@ export const shouldShowDay = (
 }
 
 export const getFirstDayOfMonth = (date: Date) => {
+  // Get the day of week for the first day of the month (0 = Sunday, 1 = Monday, etc.)
   const firstDay = new Date(date.getFullYear(), date.getMonth(), 1).getDay()
-  return firstDay === 0 ? 6 : firstDay - 1
+  
+  // Convert to Monday-based week (0 = Monday, 1 = Tuesday, ..., 6 = Sunday)
+  // Sunday becomes 6, Monday becomes 0, Tuesday becomes 1, etc.
+  const mondayBasedDay = firstDay === 0 ? 6 : firstDay - 1
+  
+  return mondayBasedDay
 }
 
 export const checkLocation = async (): Promise<"approved" | "denied"> => {

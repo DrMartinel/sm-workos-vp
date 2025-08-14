@@ -1,6 +1,6 @@
 "use client"
 
-import React from "react"
+import React, { useState, useEffect, useRef } from "react"
 import { FileText, Clock, Check, X } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { cn } from "@/lib/utils"
 import { DateRange } from "react-day-picker"
 import { DateRangePicker } from "@/components/filters/date-range-picker"
+import { Calendar } from "@/components/ui/calendar"
 
 interface Request {
   id: number
@@ -44,6 +45,32 @@ export default function RequestHistory({
   onDateRangeChange,
   onRequestClick
 }: RequestHistoryProps) {
+  const [showMobileDatePicker, setShowMobileDatePicker] = useState(false)
+  const datePickerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (datePickerRef.current && !datePickerRef.current.contains(event.target as Node)) {
+        setShowMobileDatePicker(false)
+      }
+    }
+
+    // Add touch event handling for mobile
+    const handleTouchOutside = (event: TouchEvent) => {
+      if (datePickerRef.current && !datePickerRef.current.contains(event.target as Node)) {
+        setShowMobileDatePicker(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener('touchstart', handleTouchOutside)
+    
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('touchstart', handleTouchOutside)
+    }
+  }, [])
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "pending":
@@ -83,7 +110,157 @@ export default function RequestHistory({
       <CardContent className="px-6 pb-6">
         {/* Filter Section */}
         <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          {/* Mobile: All filters on same row */}
+          <div className="flex md:hidden items-center gap-2 w-full">
+            {/* Mobile: Compact date range display */}
+            <div className="flex-1 min-w-0 relative">
+              <div 
+                className="text-xs text-center px-2 py-1 bg-white border border-gray-300 rounded cursor-pointer hover:bg-gray-50"
+                onClick={() => setShowMobileDatePicker(!showMobileDatePicker)}
+              >
+                {dateRange?.from ? 
+                  `${dateRange.from.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}${dateRange.to ? ` - ${dateRange.to.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ''}` : 
+                  'Select dates'
+                }
+              </div>
+              
+              {/* Mobile Date Picker Popover */}
+              {showMobileDatePicker && (
+                <div ref={datePickerRef} className="absolute top-full left-0 right-0 mt-1 z-50 bg-white border border-gray-300 rounded-lg shadow-lg p-3 w-max">
+                  {/* Mobile Preset Selector */}
+                  <div className="mb-3">
+                    <label className="block text-xs font-medium text-gray-700 mb-2">Quick Select</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => {
+                          const now = new Date()
+                          onDateRangeChange({ from: now, to: now })
+                          setShowMobileDatePicker(false)
+                        }}
+                        className="px-2 py-1 text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 rounded border border-blue-200 active:bg-blue-200"
+                      >
+                        Today
+                      </button>
+                      <button
+                        onClick={() => {
+                          const yesterday = new Date()
+                          yesterday.setDate(yesterday.getDate() - 1)
+                          onDateRangeChange({ from: yesterday, to: yesterday })
+                          setShowMobileDatePicker(false)
+                        }}
+                        className="px-2 py-1 text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 rounded border border-blue-200 active:bg-blue-200"
+                      >
+                        Yesterday
+                      </button>
+                      <button
+                        onClick={() => {
+                          const now = new Date()
+                          const last7 = new Date()
+                          last7.setDate(now.getDate() - 6)
+                          onDateRangeChange({ from: last7, to: now })
+                          setShowMobileDatePicker(false)
+                        }}
+                        className="px-2 py-1 text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 rounded border border-blue-200 active:bg-blue-200"
+                      >
+                        Last 7 days
+                      </button>
+                      <button
+                        onClick={() => {
+                          const now = new Date()
+                          const last30 = new Date()
+                          last30.setDate(now.getDate() - 29)
+                          onDateRangeChange({ from: last30, to: now })
+                          setShowMobileDatePicker(false)
+                        }}
+                        className="px-2 py-1 text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 rounded border border-blue-200 active:bg-blue-200"
+                      >
+                        Last 30 days
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {/* Mobile Calendar */}
+                  <div className="mb-3">
+                    <label className="block text-xs font-medium text-gray-700 mb-2">Select Dates</label>
+                    <div className="border rounded-lg p-2 overflow-hidden">
+                      <Calendar
+                        mode="range"
+                        defaultMonth={dateRange?.from}
+                        selected={dateRange}
+                        onSelect={(newDateRange) => {
+                          onDateRangeChange(newDateRange)
+                          if (newDateRange?.from && newDateRange?.to) {
+                            setShowMobileDatePicker(false)
+                          }
+                        }}
+                        numberOfMonths={1}
+                        className="w-full"
+                        classNames={{
+                          months: "flex flex-col",
+                          month: "space-y-4",
+                          caption: "flex justify-center pt-1 relative items-center",
+                          caption_label: "text-sm font-medium",
+                          nav: "space-x-1 flex items-center",
+                          nav_button: "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100",
+                          nav_button_previous: "absolute left-1",
+                          nav_button_next: "absolute right-1",
+                          table: "w-full border-collapse space-y-1",
+                          head_row: "flex",
+                          head_cell: "text-muted-foreground rounded-md w-8 font-normal text-[0.8rem]",
+                          row: "flex w-full mt-2",
+                          cell: "text-center text-sm p-0 relative [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
+                          day: "h-8 w-8 p-0 font-normal aria-selected:opacity-100",
+                          day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
+                          day_today: "bg-accent text-accent-foreground",
+                          day_outside: "text-muted-foreground opacity-50",
+                          day_disabled: "text-muted-foreground opacity-50",
+                          day_range_middle: "aria-selected:bg-accent aria-selected:text-accent-foreground",
+                          day_hidden: "invisible",
+                        }}
+                      />
+                    </div>
+                  </div>
+                  
+                  <button
+                    onClick={() => setShowMobileDatePicker(false)}
+                    className="w-full px-3 py-2 text-xs bg-gray-100 hover:bg-gray-200 active:bg-gray-300 rounded border border-gray-300"
+                  >
+                    Close
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <Select value={filterType} onValueChange={onFilterTypeChange}>
+              <SelectTrigger className="w-20 border-gray-300 text-xs">
+                <SelectValue placeholder="Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="Leave Paid">Paid</SelectItem>
+                <SelectItem value="Leave Unpaid">Unpaid</SelectItem>
+                <SelectItem value="OT">OT</SelectItem>
+                <SelectItem value="Work From Home">WFH</SelectItem>
+                <SelectItem value="Go Out">Out</SelectItem>
+                <SelectItem value="Time Edit">Edit</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={filterStatus} onValueChange={onFilterStatusChange}>
+              <SelectTrigger className="w-20 border-gray-300 text-xs">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="approved">Approved</SelectItem>
+                <SelectItem value="rejected">Rejected</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Desktop: Original layout */}
+          <div className="hidden md:flex flex-col gap-3 md:flex-row md:items-center">
             <div className="min-w-[340px]">
               <DateRangePicker date={dateRange} setDate={onDateRangeChange} />
             </div>
