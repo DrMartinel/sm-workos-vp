@@ -1,6 +1,6 @@
 {
   "buildCommand": "pnpm run build",
-  "installCommand": "if [ \"$ENVIRONMENT\" = \"hrm\" ]; then pnpm run hrm-install && pnpm install && cd /vercel/path0/app/shared-ui && git pull origin hrm; else pnpm vercel-install && pnpm install; fi",
+  "installCommand": "if [ \"$ENVIRONMENT\" = \"hrm\" ]; then pnpm run dev-install && pnpm install && cd /vercel/path0/app/shared-ui && git pull origin hrm; else pnpm vercel-install && pnpm install; fi",
   "framework": "nextjs",
   "functions": {
     "app/api/**/*.ts": {
