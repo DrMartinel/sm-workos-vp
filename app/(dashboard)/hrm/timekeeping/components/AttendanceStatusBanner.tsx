@@ -20,12 +20,14 @@ export default function AttendanceStatusBanner({
   onCheckOut
 }: AttendanceStatusBannerProps) {
   return (
-    <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg p-8 text-white shadow-lg min-h-[130px]">
+    <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg p-4 md:p-6 text-white shadow-lg">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Clock className="h-8 w-8" />
+          <div className="bg-white/20 rounded-full p-2">
+            <Clock className="h-5 w-5 md:h-6 md:w-6" />
+          </div>
           <div>
-            <h3 className="font-semibold text-2xl">Attendance Status</h3>
+            <h3 className="font-semibold text-lg md:text-xl">Attendance Status</h3>
             {!isCheckedIn ? (
               <p className="text-blue-100 text-sm">You haven't checked in today</p>
             ) : isCheckedIn && !isCheckedOut ? (
@@ -37,18 +39,18 @@ export default function AttendanceStatusBanner({
             )}
           </div>
         </div>
-        <div>
+        <div className="flex-shrink-0">
           {!isCheckedIn ? (
             <Button
               onClick={onCheckIn}
-              className="bg-white text-blue-600 hover:bg-gray-100 font-semibold"
+              className="bg-white text-blue-600 hover:bg-gray-100 font-semibold px-4 py-2 h-auto"
             >
               Check-in
             </Button>
           ) : isCheckedIn && !isCheckedOut ? (
             <Button
               onClick={onCheckOut}
-              className="bg-white text-red-600 hover:bg-gray-100 font-semibold"
+              className="bg-white text-red-600 hover:bg-gray-100 font-semibold px-4 py-2 h-auto"
             >
               Check-out
             </Button>

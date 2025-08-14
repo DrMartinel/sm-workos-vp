@@ -48,39 +48,46 @@ export default function CheckInFlow({
   ]
 
   return (
-    <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6 bg-gray-50 min-h-screen">
       <div className="max-w-2xl mx-auto">
-        <div className="flex items-center gap-4 mb-6">
+        <div className="flex items-center gap-4 mb-4 md:mb-6">
           <Button 
             variant="outline" 
             onClick={onBack}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 md:hidden p-2 border-0 hover:bg-gray-100"
+          >
+            <ArrowRight className="h-4 w-4 rotate-180" />
+          </Button>
+          <Button 
+            variant="outline" 
+            onClick={onBack}
+            className="hidden md:flex items-center gap-2"
           >
             <ArrowRight className="h-4 w-4 rotate-180" />
             Back
           </Button>
-          <h1 className="text-3xl font-bold text-gray-900">Check-in</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Check-in</h1>
         </div>
 
         {/* Progress Steps */}
-        <div className="mb-6 sm:mb-8">
-          <div className="flex items-center w-full">
+        <div className="mb-4 md:mb-6 sm:mb-8">
+          <div className="flex items-center justify-between w-full">
             {steps.map((step, index) => (
               <React.Fragment key={step.number}>
-                <div className="flex items-center flex-1">
+                <div className="flex flex-col items-center flex-1">
                   <div
                     className={cn(
-                      "w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center border-2 transition-colors",
+                      "w-12 h-12 md:w-10 md:h-10 rounded-full flex items-center justify-center border-2 transition-colors",
                       currentStep === step.number && "border-blue-500 bg-blue-500 text-white",
                       currentStep > step.number && "border-green-500 bg-green-500 text-white",
                       currentStep < step.number && "border-gray-300 bg-white text-gray-400",
                     )}
                   >
-                    {currentStep > step.number ? <Check className="h-4 w-4 sm:h-5 sm:w-5" /> : React.createElement(step.icon, { className: "h-4 w-4 sm:h-5 sm:w-5" })}
+                    {currentStep > step.number ? <Check className="h-5 w-5 md:h-4 md:w-4" /> : React.createElement(step.icon, { className: "h-5 w-5 md:h-4 md:w-4" })}
                   </div>
                   <span
                     className={cn(
-                      "text-xs sm:text-sm mt-2 font-medium text-center",
+                      "text-xs md:text-sm mt-2 font-medium text-center",
                       currentStep === step.number && "text-blue-600",
                       currentStep > step.number && "text-green-600",
                       currentStep < step.number && "text-gray-400",
@@ -92,7 +99,7 @@ export default function CheckInFlow({
                 {index < steps.length - 1 && (
                   <div
                     className={cn(
-                      "flex-1 h-0.5 mx-2 sm:mx-4 transition-colors",
+                      "flex-1 h-0.5 mx-2 md:mx-4 transition-colors",
                       currentStep > step.number ? "bg-green-500" : "bg-gray-300",
                     )}
                   />
@@ -103,36 +110,36 @@ export default function CheckInFlow({
         </div>
 
         {/* Step Content */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+        <Card className="shadow-sm">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-2 text-base md:text-lg">
               {steps[currentStep - 1] && (
                 <>
-                  {React.createElement(steps[currentStep - 1].icon, { className: "h-5 w-5" })}
+                  {React.createElement(steps[currentStep - 1].icon, { className: "h-4 w-4 md:h-5 md:w-5" })}
                   Step {currentStep}: {steps[currentStep - 1].title}
                 </>
               )}
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-sm">
               {currentStep === 1 && "We need to verify you are within 100m from the office"}
               {currentStep === 2 && "Take a photo to verify your attendance"}
               {currentStep === 3 && "Review and confirm your check-in"}
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-4 md:space-y-6">
             {/* Step 1: Location Check */}
             {currentStep === 1 && (
               <div className="text-center">
-                <div className="w-20 h-20 sm:w-24 sm:h-24 mx-auto bg-blue-100 rounded-full flex items-center justify-center mb-4 relative">
+                <div className="w-16 h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 mx-auto bg-blue-100 rounded-full flex items-center justify-center mb-4 relative">
                   {locationStatus === "checking" && (
                     <>
-                      <MapPin className="h-10 w-10 sm:h-12 sm:w-12 text-blue-600 animate-pulse" />
+                      <MapPin className="h-8 w-8 md:h-10 md:w-10 lg:h-12 lg:w-12 text-blue-600 animate-pulse" />
                       <div className="absolute inset-0 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
                     </>
                   )}
-                  {locationStatus === "approved" && <CheckCircle className="h-10 w-10 sm:h-12 sm:w-12 text-green-600" />}
-                  {locationStatus === "denied" && <AlertCircle className="h-10 w-10 sm:h-12 sm:w-12 text-red-600" />}
-                  {locationStatus === null && <MapPin className="h-10 w-10 sm:h-12 sm:w-12 text-blue-600" />}
+                  {locationStatus === "approved" && <CheckCircle className="h-8 w-8 md:h-10 md:w-10 lg:h-12 lg:w-12 text-green-600" />}
+                  {locationStatus === "denied" && <AlertCircle className="h-8 w-8 md:h-10 md:w-10 lg:h-12 lg:w-12 text-red-600" />}
+                  {locationStatus === null && <MapPin className="h-8 w-8 md:h-10 md:w-10 lg:h-12 lg:w-12 text-blue-600" />}
                 </div>
 
                 {locationStatus === null && (
@@ -146,7 +153,7 @@ export default function CheckInFlow({
 
                 {locationStatus === "approved" && (
                   <div>
-                    <h3 className="text-lg font-medium text-green-600 mb-2">Location Approved</h3>
+                    <h3 className="text-base md:text-lg font-medium text-green-600 mb-2">Location Approved</h3>
                     <p className="text-gray-600 mb-4">You are within the required range from the office</p>
                     <Button onClick={onNextStep} className="bg-green-600 hover:bg-green-700">
                       Next Step
@@ -157,7 +164,7 @@ export default function CheckInFlow({
 
                 {locationStatus === "denied" && (
                   <div>
-                    <h3 className="text-lg font-medium text-red-600 mb-2">Location Too Far</h3>
+                    <h3 className="text-base md:text-lg font-medium text-red-600 mb-2">Location Too Far</h3>
                     <p className="text-gray-600 mb-4">You need to be within 100 meters from the office to check in</p>
                     <Button
                       onClick={onLocationRetry}
@@ -173,14 +180,14 @@ export default function CheckInFlow({
 
             {/* Step 2: Take Photo */}
             {currentStep === 2 && (
-              <div className="text-center space-y-6">
+              <div className="text-center space-y-4 md:space-y-6">
                 <div>
                   {/* Camera Preview Frame */}
                   <div className="relative mb-4">
-                    <div className="w-full max-w-md mx-auto aspect-[4/3] bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden">
+                    <div className="w-full max-w-sm md:max-w-md mx-auto aspect-[4/3] bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden">
                       {!isCameraActive ? (
                         <div className="text-center">
-                          <Camera className="h-10 w-10 sm:h-12 sm:w-12 text-gray-400 mx-auto mb-2" />
+                          <Camera className="h-8 w-8 md:h-10 md:w-10 lg:h-12 lg:w-12 text-gray-400 mx-auto mb-2" />
                           <p className="text-gray-500 text-sm">Camera preview will appear here</p>
                         </div>
                       ) : (
@@ -207,27 +214,27 @@ export default function CheckInFlow({
 
             {/* Step 3: Confirm */}
             {currentStep === 3 && (
-              <div className="text-center space-y-6">
-                <div className="w-20 h-20 sm:w-24 sm:h-24 mx-auto bg-green-100 rounded-full flex items-center justify-center">
-                  <Check className="h-10 w-10 sm:h-12 sm:w-12 text-green-600" />
+              <div className="text-center space-y-4 md:space-y-6">
+                <div className="w-16 h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 mx-auto bg-green-100 rounded-full flex items-center justify-center">
+                  <Check className="h-8 w-8 md:h-10 md:w-10 lg:h-12 lg:w-12 text-green-600" />
                 </div>
 
                 <div>
-                  <h3 className="text-lg font-medium mb-4">Confirm Check-in</h3>
+                  <h3 className="text-base md:text-lg font-medium mb-4">Confirm Check-in</h3>
 
                   {capturedImage && (
                     <div className="mb-4">
                       <img
                         src={capturedImage || "/placeholder.svg"}
                         alt="Captured photo"
-                        className="w-32 h-32 sm:w-48 sm:h-48 object-cover rounded-lg border-2 border-gray-300 mx-auto mb-4"
+                        className="w-24 h-24 md:w-32 md:h-32 lg:w-48 lg:h-48 object-cover rounded-lg border-2 border-gray-300 mx-auto mb-4"
                       />
                     </div>
                   )}
 
-                  <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                  <div className="bg-gray-50 rounded-lg p-3 md:p-4 mb-4">
                     <div className="text-sm text-gray-600 mb-1">Check-in Time</div>
-                    <div className="text-lg sm:text-xl font-bold text-gray-900">
+                    <div className="text-base md:text-lg lg:text-xl font-bold text-gray-900">
                       {currentTime}
                     </div>
                     <div className="text-sm text-gray-600">

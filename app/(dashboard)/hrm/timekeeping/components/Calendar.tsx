@@ -49,13 +49,15 @@ export default function Calendar({
   const renderCalendar = () => {
     if (isLoading) {
       return Array.from({ length: 42 }, (_, i) => (
-        <div
-          key={`skeleton-${i}`}
-          className="aspect-square h-28 p-2 rounded-lg bg-gray-100 animate-pulse md:block hidden"
-        >
-          <div className="h-4 bg-gray-200 rounded mb-2"></div>
-          <div className="h-3 bg-gray-200 rounded mb-1"></div>
-          <div className="h-2 bg-gray-200 rounded"></div>
+        <div key={`skeleton-${i}`}>
+          {/* Desktop skeleton */}
+          <div className="aspect-square h-28 p-2 rounded-lg bg-gray-100 animate-pulse md:block hidden">
+            <div className="h-4 bg-gray-200 rounded mb-2"></div>
+            <div className="h-3 bg-gray-200 rounded mb-1"></div>
+            <div className="h-2 bg-gray-200 rounded"></div>
+          </div>
+          {/* Mobile skeleton */}
+          <div className="w-10 h-10 rounded-full bg-gray-100 animate-pulse md:hidden"></div>
         </div>
       ))
     }
@@ -91,9 +93,9 @@ export default function Calendar({
             className={cn(
               "aspect-square h-28 p-2 text-xs rounded-lg transition-all duration-200 shadow-sm cursor-pointer relative hidden md:flex md:flex-col md:items-center md:justify-between",
               shouldShow ? cardBgColor : "bg-gray-50 border border-gray-100 text-gray-300",
-              shouldShow ? "opacity-100" : "opacity-30"
+              shouldShow ? "opacity-100" : "opacity-40"
             )}
-            onClick={() => shouldShow && onDayClick(dayData, dateStr)}
+            onClick={() => onDayClick(dayData, dateStr)}
           >
             {/* Request indicators in top right */}
             {dayData?.requests && dayData.requests.length > 0 && (
@@ -144,9 +146,9 @@ export default function Calendar({
             className={cn(
               "w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold cursor-pointer transition-all duration-200 shadow-sm md:hidden",
               shouldShow ? cardBgColor : "bg-gray-50 border border-gray-100 text-gray-300",
-              shouldShow ? "opacity-100" : "opacity-30"
+              shouldShow ? "opacity-100" : "opacity-40"
             )}
-            onClick={() => shouldShow && onDayClick(dayData, dateStr)}
+            onClick={() => onDayClick(dayData, dateStr)}
             title={shouldShow ? `${day} - ${getTimekeepingLabel(dayData as TimekeepingDayData, dateStr)}` : `${day}`}
           >
             {day}
@@ -172,11 +174,11 @@ export default function Calendar({
           {/* Mobile: Filters and navigation on same row */}
           <div className="flex md:hidden items-center gap-2 w-full">
             <Select value={calendarFilter} onValueChange={onCalendarFilterChange}>
-              <SelectTrigger className="w-20 border-gray-300 text-xs">
+              <SelectTrigger className="w-32 border-gray-300 text-xs h-8">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="all">Timekeeping</SelectItem>
                 <SelectItem value="late">Late</SelectItem>
                 <SelectItem value="on-time">On Time</SelectItem>
                 <SelectItem value="no-checkin">No Check-in</SelectItem>
@@ -184,11 +186,11 @@ export default function Calendar({
             </Select>
 
             <Select value={requestFilter} onValueChange={onRequestFilterChange}>
-              <SelectTrigger className="w-20 border-gray-300 text-xs">
+              <SelectTrigger className="w-24 border-gray-300 text-xs h-8">
                 <SelectValue placeholder="Type" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="all">Request</SelectItem>
                 <SelectItem value="Leave Paid">Paid</SelectItem>
                 <SelectItem value="Leave Unpaid">Unpaid</SelectItem>
                 <SelectItem value="OT">OT</SelectItem>
@@ -206,7 +208,11 @@ export default function Calendar({
                 className="border-gray-300 h-8 w-8 p-0"
                 disabled={isLoading}
               >
-                <ChevronLeft className="h-3 w-3" />
+                {isLoading ? (
+                  <div className="h-3 w-3 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                ) : (
+                  <ChevronLeft className="h-3 w-3" />
+                )}
               </Button>
               <Button 
                 variant="outline" 
@@ -215,7 +221,11 @@ export default function Calendar({
                 className="border-gray-300 h-8 w-8 p-0"
                 disabled={isLoading}
               >
-                <ChevronRight className="h-3 w-3" />
+                {isLoading ? (
+                  <div className="h-3 w-3 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                ) : (
+                  <ChevronRight className="h-3 w-3" />
+                )}
               </Button>
             </div>
           </div>
@@ -257,7 +267,11 @@ export default function Calendar({
                 className="border-gray-300"
                 disabled={isLoading}
               >
-                <ChevronLeft className="h-4 w-4" />
+                {isLoading ? (
+                  <div className="h-4 w-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                ) : (
+                  <ChevronLeft className="h-4 w-4" />
+                )}
               </Button>
               <Button 
                 variant="outline" 
@@ -266,7 +280,11 @@ export default function Calendar({
                 className="border-gray-300"
                 disabled={isLoading}
               >
-                <ChevronRight className="h-4 w-4" />
+                {isLoading ? (
+                  <div className="h-4 w-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                ) : (
+                  <ChevronRight className="h-4 w-4" />
+                )}
               </Button>
             </div>
           </div>

@@ -62,7 +62,7 @@ export function RequestDetailDialog({ isOpen, onOpenChange, request, onEdit, onD
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="w-[95vw] max-w-md sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{request?.type}</DialogTitle>
         </DialogHeader>
@@ -89,10 +89,11 @@ export function RequestDetailDialog({ isOpen, onOpenChange, request, onEdit, onD
             <p className="text-sm">{request?.description}</p>
           </div>
         </div>
-        <DialogFooter>
+        <DialogFooter className="flex flex-row gap-2 justify-end">
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
+            className="w-1/3"
           >
             Close
           </Button>
@@ -103,31 +104,32 @@ export function RequestDetailDialog({ isOpen, onOpenChange, request, onEdit, onD
                   onOpenChange(false)
                   onEdit(request)
                 }}
+                className="w-1/3"
               >
                 Edit
               </Button>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="destructive" size="sm">
+                  <Button variant="destructive" size="sm" className="w-1/3">
                     <Trash2 className="h-4 w-4 mr-1" />
                     Delete
                   </Button>
                 </AlertDialogTrigger>
-                <AlertDialogContent>
+                <AlertDialogContent className="w-[95vw] max-w-md sm:max-w-md">
                   <AlertDialogHeader>
                     <AlertDialogTitle>Delete Request</AlertDialogTitle>
                     <AlertDialogDescription>
                       Are you sure you want to delete this request? This action cannot be undone.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogFooter className="flex flex-row gap-2 justify-end">
+                    <AlertDialogCancel className="w-1/3">Cancel</AlertDialogCancel>
                     <AlertDialogAction
                       onClick={() => {
                         onDelete(request.id.toString())
                         onOpenChange(false)
                       }}
-                      className="bg-red-600 hover:bg-red-700"
+                      className="bg-red-600 hover:bg-red-700 w-1/3"
                     >
                       Delete
                     </AlertDialogAction>
@@ -153,7 +155,7 @@ interface AttendanceDetailDialogProps {
 export function AttendanceDetailDialog({ isOpen, onOpenChange, selectedDay, requests = [], onCreateRequest }: AttendanceDetailDialogProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="w-[95vw] max-w-md sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Attendance Details</DialogTitle>
           <DialogDescription>
@@ -165,14 +167,14 @@ export function AttendanceDetailDialog({ isOpen, onOpenChange, selectedDay, requ
               <Label className="text-sm font-medium text-gray-700 font-bold">Timekeeping:</Label>
               <div className="mt-2 rounded-md border p-2 bg-gray-50 space-y-2">
                 <div>
-                  <p className="text-xs text-gray-500">Date</p>
+                  <p className="text-sm text-gray-500">Date</p>
                   <p className="text-sm font-semibold">
                     {selectedDay?.date && new Date(selectedDay.date).toLocaleDateString('en-US', {weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'})}
                   </p>
                 </div>
                 {(selectedDay?.mainStatus === "late" || selectedDay?.mainStatus === "on-time") && (
                   <div>
-                    <p className="text-xs text-gray-500">Status</p>
+                    <p className="text-sm text-gray-500">Status</p>
                     <p className={cn(
                       "text-sm font-semibold mt-0.5",
                       selectedDay.mainStatus === "late" ? "text-red-700" : "text-green-700"
@@ -184,13 +186,13 @@ export function AttendanceDetailDialog({ isOpen, onOpenChange, selectedDay, requ
                 )}
                 {selectedDay?.checkIn && (
                   <div>
-                    <p className="text-xs text-gray-500">Check-in</p>
+                    <p className="text-sm text-gray-500">Check-in</p>
                     <p className="text-sm font-semibold">{selectedDay.checkIn}</p>
                   </div>
                 )}
                 {selectedDay?.checkOut && (
                   <div>
-                    <p className="text-xs text-gray-500">Check-out</p>
+                    <p className="text-sm text-gray-500">Check-out</p>
                     <p className="text-sm font-semibold">{selectedDay.checkOut}</p>
                   </div>
                 )}
@@ -216,7 +218,7 @@ export function AttendanceDetailDialog({ isOpen, onOpenChange, selectedDay, requ
                         <Badge 
                           variant="secondary" 
                           className={cn(
-                            "text-xs capitalize",
+                            "text-sm capitalize",
                             req.status === "approved" && "bg-green-100 text-green-800 border-green-200",
                             req.status === "pending" && "bg-yellow-100 text-yellow-800 border-yellow-200",
                             req.status === "rejected" && "bg-red-100 text-red-800 border-red-200"
@@ -232,14 +234,15 @@ export function AttendanceDetailDialog({ isOpen, onOpenChange, selectedDay, requ
             </>
           )}
         </div>
-        <DialogFooter>
+        <DialogFooter className="flex flex-row gap-2 justify-end">
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
+            className="w-1/3"
           >
             Close
           </Button>
-          <Button onClick={onCreateRequest}>
+          <Button onClick={onCreateRequest} className="w-1/3">
             Create Request
           </Button>
         </DialogFooter>
@@ -283,7 +286,7 @@ export function CreateRequestDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="w-[95vw] max-w-[425px] sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Create request</DialogTitle>
           <DialogDescription>
@@ -293,7 +296,7 @@ export function CreateRequestDialog({
         <form onSubmit={e => { e.preventDefault(); onSubmit(); }}>
           <div className="grid gap-4 py-4">
             <div className="grid items-center grid-cols-4 gap-4">
-              <Label htmlFor="type" className="text-right">
+              <Label htmlFor="type" className="text-right text-sm">
                 Request Type
               </Label>
               <Select onValueChange={value => onFormDataChange("type", value)} value={formData.type}>
@@ -312,7 +315,7 @@ export function CreateRequestDialog({
             </div>
             
             <div className="grid items-center grid-cols-4 gap-4">
-              <Label htmlFor="description" className="text-right">
+              <Label htmlFor="description" className="text-right text-sm">
                 Description
               </Label>
               <Textarea
@@ -323,35 +326,35 @@ export function CreateRequestDialog({
               />
               {formErrors.description && <p className="col-start-2 col-span-3 text-sm text-red-500">{formErrors.description}</p>}
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid items-center grid-cols-4 col-span-1 gap-4">
-                <Label htmlFor="startTime" className="text-right">
-                  Start Time
+            <div className="grid grid-cols-2 gap-2">
+              <div className="grid items-center grid-cols-3 col-span-1 gap-2">
+                <Label htmlFor="startTime" className="text-right text-sm">
+                  Start
                 </Label>
                 <Input
                   id="startTime"
                   type="time"
                   value={formData.startTime}
                   onChange={e => onFormDataChange("startTime", e.target.value)}
-                  className="col-span-3"
+                  className="col-span-2 text-sm px-2 py-1 [&::-webkit-calendar-picker-indicator]:w-3 [&::-webkit-calendar-picker-indicator]:h-3 [&::-webkit-calendar-picker-indicator]:opacity-60"
                 />
               </div>
-              <div className="grid items-center grid-cols-4 col-span-1 gap-4">
-                <Label htmlFor="endTime" className="text-right">
-                  End Time
+              <div className="grid items-center grid-cols-3 col-span-1 gap-2">
+                <Label htmlFor="endTime" className="text-right text-sm">
+                  End
                 </Label>
                 <Input
                   id="endTime"
                   type="time"
                   value={formData.endTime}
                   onChange={e => onFormDataChange("endTime", e.target.value)}
-                  className="col-span-3"
+                  className="col-span-2 text-sm px-2 py-1 [&::-webkit-calendar-picker-indicator]:w-3 [&::-webkit-calendar-picker-indicator]:h-3 [&::-webkit-calendar-picker-indicator]:opacity-60"
                 />
               </div>
             </div>
           </div>
-          <DialogFooter>
-            <Button type="submit">Send</Button>
+          <DialogFooter className="flex flex-row gap-2 justify-end">
+            <Button type="submit" className="w-1/3">Send</Button>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -392,14 +395,14 @@ export function EditRequestDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="w-[95vw] max-w-[425px] sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Edit Request</DialogTitle>
         </DialogHeader>
         <form onSubmit={e => { e.preventDefault(); onSubmit(); }}>
           <div className="grid gap-4 py-4">
             <div className="grid items-center grid-cols-4 gap-4">
-              <Label htmlFor="type" className="text-right">
+              <Label htmlFor="type" className="text-right text-sm">
                 Request Type
               </Label>
               <Select onValueChange={value => onFormDataChange("type", value)} value={formData.type}>
@@ -418,7 +421,7 @@ export function EditRequestDialog({
             </div>
 
             <div className="grid items-center grid-cols-4 gap-4">
-              <Label htmlFor="description" className="text-right">
+              <Label htmlFor="description" className="text-right text-sm">
                 Description
               </Label>
               <Textarea
@@ -429,35 +432,35 @@ export function EditRequestDialog({
               />
               {formErrors.description && <p className="col-start-2 col-span-3 text-sm text-red-500">{formErrors.description}</p>}
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid items-center grid-cols-4 col-span-1 gap-4">
-                <Label htmlFor="startTime" className="text-right">
-                  Start Time
+            <div className="grid grid-cols-2 gap-2">
+              <div className="grid items-center grid-cols-3 col-span-1 gap-2">
+                <Label htmlFor="startTime" className="text-right text-sm">
+                  Start
                 </Label>
                 <Input
                   id="startTime"
                   type="time"
                   value={formData.startTime}
                   onChange={e => onFormDataChange("startTime", e.target.value)}
-                  className="col-span-3"
+                  className="col-span-2 text-sm px-2 py-1 [&::-webkit-calendar-picker-indicator]:w-3 [&::-webkit-calendar-picker-indicator]:h-3 [&::-webkit-calendar-picker-indicator]:opacity-60"
                 />
               </div>
-              <div className="grid items-center grid-cols-4 col-span-1 gap-4">
-                <Label htmlFor="endTime" className="text-right">
-                  End Time
+              <div className="grid items-center grid-cols-3 col-span-1 gap-2">
+                <Label htmlFor="endTime" className="text-right text-sm">
+                  End
                 </Label>
                 <Input
                   id="endTime"
                   type="time"
                   value={formData.endTime}
                   onChange={e => onFormDataChange("endTime", e.target.value)}
-                  className="col-span-3"
+                  className="col-span-2 text-sm px-2 py-1 [&::-webkit-calendar-picker-indicator]:w-3 [&::-webkit-calendar-picker-indicator]:h-3 [&::-webkit-calendar-picker-indicator]:opacity-60"
                 />
               </div>
             </div>
           </div>
-          <DialogFooter>
-            <Button type="submit">Update</Button>
+          <DialogFooter className="flex flex-row gap-2 justify-end">
+            <Button type="submit" className="w-1/3">Update</Button>
           </DialogFooter>
         </form>
       </DialogContent>

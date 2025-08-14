@@ -115,7 +115,7 @@ export default function RequestHistory({
             {/* Mobile: Compact date range display */}
             <div className="flex-1 min-w-0 relative">
               <div 
-                className="text-xs text-center px-2 py-1 bg-white border border-gray-300 rounded cursor-pointer hover:bg-gray-50"
+                className="text-xs text-center px-2 py-1 bg-white border border-gray-300 rounded cursor-pointer hover:bg-gray-50 h-8 flex items-center justify-center"
                 onClick={() => setShowMobileDatePicker(!showMobileDatePicker)}
               >
                 {dateRange?.from ? 
@@ -126,53 +126,32 @@ export default function RequestHistory({
               
               {/* Mobile Date Picker Popover */}
               {showMobileDatePicker && (
-                <div ref={datePickerRef} className="absolute top-full left-0 right-0 mt-1 z-50 bg-white border border-gray-300 rounded-lg shadow-lg p-3 w-max">
+                <div ref={datePickerRef} className="absolute top-full left-0 right-0 mt-1 z-50 bg-white border border-gray-300 rounded-lg shadow-lg p-3 w-full">
                   {/* Mobile Preset Selector */}
                   <div className="mb-3">
                     <label className="block text-xs font-medium text-gray-700 mb-2">Quick Select</label>
                     <div className="grid grid-cols-2 gap-2">
                       <button
-                        onClick={() => {
-                          const now = new Date()
-                          onDateRangeChange({ from: now, to: now })
-                          setShowMobileDatePicker(false)
-                        }}
-                        className="px-2 py-1 text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 rounded border border-blue-200 active:bg-blue-200"
+                        onClick={() => onDateRangeChange({ from: new Date(), to: new Date() })}
+                        className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 active:bg-blue-200 rounded border border-gray-300"
                       >
                         Today
                       </button>
                       <button
-                        onClick={() => {
-                          const yesterday = new Date()
-                          yesterday.setDate(yesterday.getDate() - 1)
-                          onDateRangeChange({ from: yesterday, to: yesterday })
-                          setShowMobileDatePicker(false)
-                        }}
-                        className="px-2 py-1 text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 rounded border border-blue-200 active:bg-blue-200"
+                        onClick={() => onDateRangeChange({ from: new Date(Date.now() - 24 * 60 * 60 * 1000), to: new Date(Date.now() - 24 * 60 * 60 * 1000) })}
+                        className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 active:bg-blue-200 rounded border border-gray-300"
                       >
                         Yesterday
                       </button>
                       <button
-                        onClick={() => {
-                          const now = new Date()
-                          const last7 = new Date()
-                          last7.setDate(now.getDate() - 6)
-                          onDateRangeChange({ from: last7, to: now })
-                          setShowMobileDatePicker(false)
-                        }}
-                        className="px-2 py-1 text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 rounded border border-blue-200 active:bg-blue-200"
+                        onClick={() => onDateRangeChange({ from: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), to: new Date() })}
+                        className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 active:bg-blue-200 rounded border border-gray-300"
                       >
                         Last 7 days
                       </button>
                       <button
-                        onClick={() => {
-                          const now = new Date()
-                          const last30 = new Date()
-                          last30.setDate(now.getDate() - 29)
-                          onDateRangeChange({ from: last30, to: now })
-                          setShowMobileDatePicker(false)
-                        }}
-                        className="px-2 py-1 text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 rounded border border-blue-200 active:bg-blue-200"
+                        onClick={() => onDateRangeChange({ from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), to: new Date() })}
+                        className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 active:bg-blue-200 rounded border border-gray-300"
                       >
                         Last 30 days
                       </button>
@@ -196,7 +175,7 @@ export default function RequestHistory({
                         numberOfMonths={1}
                         className="w-full"
                         classNames={{
-                          months: "flex flex-col",
+                          months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
                           month: "space-y-4",
                           caption: "flex justify-center pt-1 relative items-center",
                           caption_label: "text-sm font-medium",
@@ -232,11 +211,11 @@ export default function RequestHistory({
             </div>
 
             <Select value={filterType} onValueChange={onFilterTypeChange}>
-              <SelectTrigger className="w-20 border-gray-300 text-xs">
+              <SelectTrigger className="w-20 border-gray-300 text-xs h-8">
                 <SelectValue placeholder="Type" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="all">Type</SelectItem>
                 <SelectItem value="Leave Paid">Paid</SelectItem>
                 <SelectItem value="Leave Unpaid">Unpaid</SelectItem>
                 <SelectItem value="OT">OT</SelectItem>
@@ -247,11 +226,11 @@ export default function RequestHistory({
             </Select>
 
             <Select value={filterStatus} onValueChange={onFilterStatusChange}>
-              <SelectTrigger className="w-20 border-gray-300 text-xs">
+              <SelectTrigger className="w-20 border-gray-300 text-xs h-8">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="all">Status</SelectItem>
                 <SelectItem value="pending">Pending</SelectItem>
                 <SelectItem value="approved">Approved</SelectItem>
                 <SelectItem value="rejected">Rejected</SelectItem>
