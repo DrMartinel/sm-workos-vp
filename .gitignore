@@ -29,7 +29,4 @@ next-env.d.ts
 # Submodules
 .gitmodules
 
-# Ignore submodule paths to prevent accidental commits of dummy modules
-/app/(dashboard)/reports
-
 .vscode
