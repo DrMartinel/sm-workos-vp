@@ -13,15 +13,14 @@ import { Calendar } from "@/components/ui/calendar"
 interface Request {
   id: number
   type: string
-  icon: any
   description: string
-  startDate: string
-  endDate: string
-  submittedDate: string
+  start_date: string
+  end_date: string
+  created_at?: string
   status: string
-  checkIn: string
-  checkOut: string
-  otHours?: number
+  start_time?: string
+  end_time?: string
+  ot_hours?: number
 }
 
 interface RequestHistoryProps {
@@ -91,10 +90,16 @@ export default function RequestHistory({
     const from = dateRange?.from ? new Date(dateRange.from) : undefined
     const to = dateRange?.to ? new Date(dateRange.to) : from
 
-    const requestStart = new Date(request.startDate)
-    const requestEnd = new Date(request.endDate)
+    const requestStart = new Date(request.start_date)
+    const requestEnd = new Date(request.end_date)
 
-    const matchesDate = !from || !to || (requestStart <= to && requestEnd >= from)
+    // Normalize dates to start of day for comparison
+    const fromDate = from ? new Date(from.getFullYear(), from.getMonth(), from.getDate()) : undefined
+    const toDate = to ? new Date(to.getFullYear(), to.getMonth(), to.getDate()) : undefined
+    const requestStartDate = new Date(requestStart.getFullYear(), requestStart.getMonth(), requestStart.getDate())
+    const requestEndDate = new Date(requestEnd.getFullYear(), requestEnd.getMonth(), requestEnd.getDate())
+
+    const matchesDate = !fromDate || !toDate || (requestStartDate >= fromDate && requestStartDate <= toDate)
 
     return matchesType && matchesStatus && matchesDate
   })
@@ -284,7 +289,6 @@ export default function RequestHistory({
         {/* Request List */}
         <div className="space-y-3">
           {filteredRequests.map((request) => {
-            const Icon = request.icon
             return (
               <div
                 key={request.id}
@@ -298,12 +302,15 @@ export default function RequestHistory({
               >
                 <div className="flex items-center gap-4">
                   <div className="flex items-center justify-center w-10 h-10 bg-gray-100 rounded-lg border border-gray-200">
-                    <Icon className="h-5 w-5 text-gray-600" />
+                    <FileText className="h-5 w-5 text-gray-600" />
                   </div>
                   <div>
                     <h4 className="font-semibold text-gray-900">{request.type}</h4>
                     <p className="text-sm text-gray-500">
-                      {new Date(request.startDate).toLocaleDateString("en-US")} - {new Date(request.endDate).toLocaleDateString("en-US")}
+                      {new Date(request.start_date).toLocaleDateString("en-US")} - {new Date(request.end_date).toLocaleDateString("en-US")}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      {request.start_time || ""} - {request.end_time || ""}
                     </p>
                   </div>
                 </div>

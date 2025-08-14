@@ -15,15 +15,14 @@ import { cn } from "@/lib/utils"
 interface Request {
   id: number
   type: string
-  icon: any
   description: string
-  startDate: string
-  endDate: string
-  submittedDate: string
+  start_date: string
+  end_date: string
+  created_at?: string
   status: string
-  checkIn: string
-  checkOut: string
-  otHours?: number
+  start_time?: string
+  end_time?: string
+  ot_hours?: number
 }
 
 interface RequestDetailDialogProps {
@@ -68,25 +67,33 @@ export function RequestDetailDialog({ isOpen, onOpenChange, request, onEdit, onD
         </DialogHeader>
         <div className="space-y-4">
           <div>
-            <Label className="text-sm font-medium text-gray-700">Period:</Label>
-            <p className="text-sm">
-              {request?.startDate && new Date(request.startDate).toLocaleDateString("en-US")} -{" "}
-              {request?.endDate && new Date(request.endDate).toLocaleDateString("en-US")}
-            </p>
+            <Label className="text-sm font-medium text-gray-700 font-bold">Period:</Label>
+            <div className="mt-2 rounded-md border p-2 bg-gray-50">
+              <p className="text-sm">
+                {request?.start_date && new Date(request.start_date).toLocaleDateString("en-US")} -{" "}
+                {request?.end_date && new Date(request.end_date).toLocaleDateString("en-US")}
+              </p>
+            </div>
           </div>
           <div>
-            <Label className="text-sm font-medium text-gray-700">Submitted:</Label>
-            <p className="text-sm">
-              {request?.submittedDate && new Date(request.submittedDate).toLocaleDateString("en-US")}
-            </p>
+            <Label className="text-sm font-medium text-gray-700 font-bold">Submitted:</Label>
+            <div className="mt-2 rounded-md border p-2 bg-gray-50">
+              <p className="text-sm">
+                {request?.created_at && new Date(request.created_at).toLocaleDateString("en-US")}
+              </p>
+            </div>
           </div>
           <div>
-            <Label className="text-sm font-medium text-gray-700">Status:</Label>
-            <div className="mt-1">{request && getStatusBadge(request.status)}</div>
+            <Label className="text-sm font-medium text-gray-700 font-bold">Status:</Label>
+            <div className="mt-2 rounded-md border p-2 bg-gray-50">
+              {request && getStatusBadge(request.status)}
+            </div>
           </div>
           <div>
-            <Label className="text-sm font-medium text-gray-700">Description:</Label>
-            <p className="text-sm">{request?.description}</p>
+            <Label className="text-sm font-medium text-gray-700 font-bold">Description:</Label>
+            <div className="mt-2 rounded-md border p-2 bg-gray-50">
+              <p className="text-sm">{request?.description}</p>
+            </div>
           </div>
         </div>
         <DialogFooter className="flex flex-row gap-2 justify-end">
@@ -294,62 +301,75 @@ export function CreateRequestDialog({
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={e => { e.preventDefault(); onSubmit(); }}>
-          <div className="grid gap-4 py-4">
-            <div className="grid items-center grid-cols-4 gap-4">
-              <Label htmlFor="type" className="text-right text-sm">
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="type" className="text-sm font-medium text-gray-700 font-bold">
                 Request Type
               </Label>
-              <Select onValueChange={value => onFormDataChange("type", value)} value={formData.type}>
-                <SelectTrigger id="type" className="col-span-3">
-                  <SelectValue placeholder="Select request type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {requestTypes.map(type => (
-                    <SelectItem key={type.value} value={type.value}>
-                      {type.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {formErrors.type && <p className="col-start-2 col-span-3 text-sm text-red-500">{formErrors.type}</p>}
+              <div className="mt-2 rounded-md border p-2 bg-gray-50">
+                <Select onValueChange={value => onFormDataChange("type", value)} value={formData.type}>
+                  <SelectTrigger id="type" className="border-0 bg-transparent p-0 h-auto">
+                    <SelectValue placeholder="Select request type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {requestTypes.map(type => (
+                      <SelectItem key={type.value} value={type.value}>
+                        {type.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {formErrors.type && <p className="text-sm text-red-500 mt-1">{formErrors.type}</p>}
             </div>
             
-            <div className="grid items-center grid-cols-4 gap-4">
-              <Label htmlFor="description" className="text-right text-sm">
+            <div>
+              <Label htmlFor="description" className="text-sm font-medium text-gray-700 font-bold">
                 Description
               </Label>
-              <Textarea
-                id="description"
-                value={formData.description}
-                onChange={e => onFormDataChange("description", e.target.value)}
-                className="col-span-3"
-              />
-              {formErrors.description && <p className="col-start-2 col-span-3 text-sm text-red-500">{formErrors.description}</p>}
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="grid items-center grid-cols-3 col-span-1 gap-2">
-                <Label htmlFor="startTime" className="text-right text-sm">
-                  Start
-                </Label>
-                <Input
-                  id="startTime"
-                  type="time"
-                  value={formData.startTime}
-                  onChange={e => onFormDataChange("startTime", e.target.value)}
-                  className="col-span-2 text-sm px-2 py-1 [&::-webkit-calendar-picker-indicator]:w-3 [&::-webkit-calendar-picker-indicator]:h-3 [&::-webkit-calendar-picker-indicator]:opacity-60"
+              <div className="mt-2 rounded-md border p-2 bg-gray-50">
+                <Textarea
+                  id="description"
+                  value={formData.description}
+                  onChange={e => onFormDataChange("description", e.target.value)}
+                  className="border-0 bg-transparent p-0 resize-none min-h-[60px]"
+                  placeholder="Enter request description..."
                 />
               </div>
-              <div className="grid items-center grid-cols-3 col-span-1 gap-2">
-                <Label htmlFor="endTime" className="text-right text-sm">
-                  End
-                </Label>
-                <Input
-                  id="endTime"
-                  type="time"
-                  value={formData.endTime}
-                  onChange={e => onFormDataChange("endTime", e.target.value)}
-                  className="col-span-2 text-sm px-2 py-1 [&::-webkit-calendar-picker-indicator]:w-3 [&::-webkit-calendar-picker-indicator]:h-3 [&::-webkit-calendar-picker-indicator]:opacity-60"
-                />
+              {formErrors.description && <p className="text-sm text-red-500 mt-1">{formErrors.description}</p>}
+            </div>
+            
+            <div>
+              <Label className="text-sm font-medium text-gray-700 font-bold">
+                Time Period
+              </Label>
+              <div className="mt-2 rounded-md border p-2 bg-gray-50">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="startTime" className="text-xs text-gray-500 block mb-1">
+                      Start Time
+                    </Label>
+                    <Input
+                      id="startTime"
+                      type="time"
+                      value={formData.startTime}
+                      onChange={e => onFormDataChange("startTime", e.target.value)}
+                      className="border-0 bg-transparent p-0 text-sm [&::-webkit-calendar-picker-indicator]:w-3 [&::-webkit-calendar-picker-indicator]:h-3 [&::-webkit-calendar-picker-indicator]:opacity-60"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="endTime" className="text-xs text-gray-500 block mb-1">
+                      End Time
+                    </Label>
+                    <Input
+                      id="endTime"
+                      type="time"
+                      value={formData.endTime}
+                      onChange={e => onFormDataChange("endTime", e.target.value)}
+                      className="border-0 bg-transparent p-0 text-sm [&::-webkit-calendar-picker-indicator]:w-3 [&::-webkit-calendar-picker-indicator]:h-3 [&::-webkit-calendar-picker-indicator]:opacity-60"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           </div>

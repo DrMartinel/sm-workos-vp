@@ -94,7 +94,7 @@ export default function TimekeepingPage() {
   const [requests, setRequests] = useState<any[]>([])
   const [requestRefreshTrigger, setRequestRefreshTrigger] = useState(0)
 
-  // Map DB record to UI shape expected by RequestHistory and dialogs
+  // Get icon for request type
   const getTypeIcon = (t: string) => {
     const key = t.toLowerCase()
     if (key.includes("leave") && key.includes("unpaid")) return Plane
@@ -103,19 +103,6 @@ export default function TimekeepingPage() {
     if (key.includes("time") && key.includes("edit")) return Edit3
     return FileText
   }
-  const mapRequest = (r: HrmRequest) => ({
-    id: r.id,
-    type: r.type, // keep label like "OT", "Leave Paid"
-    icon: getTypeIcon(r.type),
-    description: r.description,
-    startDate: r.start_date,
-    endDate: r.end_date,
-    submittedDate: r.created_at?.slice(0,10),
-    status: r.status,
-    checkIn: r.start_time ?? "",
-    checkOut: r.end_time ?? "",
-    otHours: r.ot_hours ?? 0,
-  })
 
   useEffect(() => {
     const loadRequests = async () => {
@@ -132,7 +119,7 @@ export default function TimekeepingPage() {
           console.warn('Duplicate request IDs found:', ids.filter((id, index) => ids.indexOf(id) !== index))
         }
         
-        setRequests(list.map(mapRequest))
+        setRequests(list)
       } catch (e) {
         console.error('Error loading requests:', e)
       }
@@ -464,12 +451,20 @@ export default function TimekeepingPage() {
       if (editingRequest?.id) {
         await HrmRequestsApi.update(editingRequest.id, {
           type: typeLabel,
-        description: formData.description,
+          description: formData.description,
           start_date: selectedDay?.date,
           end_date: selectedDay?.date,
           start_time: formData.startTime || null,
           end_time: formData.endTime || null,
-          ot_hours: typeLabel === "OT" ? (editingRequest.otHours ?? 0) : 0,
+          ot_hours: typeLabel === "OT" ? (() => {
+            if (!formData.startTime || !formData.endTime) return 0;
+            const [startHour, startMinute] = formData.startTime.split(':').map(Number);
+            const [endHour, endMinute] = formData.endTime.split(':').map(Number);
+            const startMinutes = startHour * 60 + startMinute;
+            const endMinutes = endHour * 60 + endMinute;
+            const diffMinutes = endMinutes - startMinutes;
+            return diffMinutes / 60; // Convert minutes to hours
+          })() : 0,
         })
         setIsEditModalOpen(false)
         setEditingRequest(null)
@@ -482,7 +477,15 @@ export default function TimekeepingPage() {
           end_date: selectedDay?.date,
           start_time: formData.startTime || null,
           end_time: formData.endTime || null,
-          ot_hours: typeLabel === "OT" ? 0 : 0,
+          ot_hours: typeLabel === "OT" ? (() => {
+            if (!formData.startTime || !formData.endTime) return 0;
+            const [startHour, startMinute] = formData.startTime.split(':').map(Number);
+            const [endHour, endMinute] = formData.endTime.split(':').map(Number);
+            const startMinutes = startHour * 60 + startMinute;
+            const endMinutes = endHour * 60 + endMinute;
+            const diffMinutes = endMinutes - startMinutes;
+            return diffMinutes / 60; // Convert minutes to hours
+          })() : 0,
         })
         setIsCreateModalOpen(false)
       }
@@ -534,8 +537,8 @@ export default function TimekeepingPage() {
       description: request.description,
       startDate: "",
       endDate: "",
-      startTime: request.checkIn || "",
-      endTime: request.checkOut || "",
+      startTime: request.start_time || "",
+      endTime: request.end_time || "",
     })
     setIsEditModalOpen(true)
   }
@@ -594,7 +597,7 @@ export default function TimekeepingPage() {
     })
     
     requests.forEach(request => {
-      const startDate = new Date(request.startDate)
+      const startDate = new Date(request.start_date)
       const dateKey = startDate.toISOString().slice(0, 10)
       
       // Only show request on its start date

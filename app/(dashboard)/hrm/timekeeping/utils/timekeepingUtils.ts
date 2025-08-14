@@ -52,10 +52,21 @@ export const getMonthlySummary = (currentDate: Date, calendarData: Record<string
     }
   })
 
-  // Calculate OT hours from approved requests
+  // Calculate OT hours from approved requests for current month only
   const otHours = requests
-    .filter(req => req.type === "OT" && req.status === "approved")
-    .reduce((total, req) => total + (req.otHours || 0), 0)
+    .filter(req => {
+      if (req.type !== "OT" || req.status !== "approved") return false;
+      
+      // Check if request is in current month
+      const requestDate = new Date(req.start_date);
+      const requestYear = requestDate.getFullYear();
+      const requestMonth = requestDate.getMonth();
+      const currentYear = currentDate.getFullYear();
+      const currentMonth = currentDate.getMonth();
+      
+      return requestYear === currentYear && requestMonth === currentMonth;
+    })
+    .reduce((total, req) => total + (req.ot_hours || 0), 0)
 
   // Calculate efficiency (actual hours vs expected hours)
   const expectedHours = weekdays * 8 // 8 hours per weekday
