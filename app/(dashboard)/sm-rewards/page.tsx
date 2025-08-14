@@ -988,7 +988,6 @@ export default function SMRewardsPage() {
                 onScan={handleBarcodeScan} 
                 onError={handleScanError}
                 showCloseButton={false}
-                showFlipButton={true}
                 autoStart={true}
               />
             ) : (

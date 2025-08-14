@@ -310,7 +310,7 @@ export default function RequestHistory({
                       {new Date(request.start_date).toLocaleDateString("en-US")} - {new Date(request.end_date).toLocaleDateString("en-US")}
                     </p>
                     <p className="text-sm text-gray-500">
-                      {request.start_time || ""} - {request.end_time || ""}
+                      {request.start_time?.slice(0, -3) || ""} - {request.end_time?.slice(0, -3) || ""}
                     </p>
                   </div>
                 </div>
