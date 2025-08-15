@@ -317,7 +317,6 @@ export default function SMRewardsPage() {
           const deductSuccess = await profilesService.deductSMRewards(amount)
           
           if (deductSuccess) {
-                      // Step 2: Add to recipient's balance
           const addSuccess = await profilesService.addSMRewardsToUser(transferRecipient, amount)
           
           if (addSuccess) {
@@ -338,7 +337,7 @@ export default function SMRewardsPage() {
               // Step 4: Create transaction for recipient (incoming transfer)
               await transactionsService.createTransactionForUser(
                 transferRecipient,
-                'transfer',
+                'earn',
                 amount,
                 `Transfer from ${senderName}`,
                 date,

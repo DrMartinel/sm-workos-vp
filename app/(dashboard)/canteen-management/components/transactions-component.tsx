@@ -37,12 +37,14 @@ import {
   ChevronsRight,
 } from "lucide-react"
 import { transactionsService, Transaction } from "@/lib/utils/supabase/transactions"
+import { profilesService, UserProfile } from "@/lib/utils/supabase/profiles"
 import { Label } from "@/components/ui/label"
 import { useAuth } from "@/store/hooks/useAuth"
 
 export function TransactionsComponent() {
   const { profile } = useAuth()
   const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [profiles, setProfiles] = useState<UserProfile[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
@@ -61,15 +63,16 @@ export function TransactionsComponent() {
   const [successMessage, setSuccessMessage] = useState("")
   const [errorMessage, setErrorMessage] = useState("")
 
-  // Load transactions on component mount
+  // Load transactions and profiles on component mount
   useEffect(() => {
     loadTransactions()
+    loadProfiles()
   }, [])
 
   const loadTransactions = async () => {
     setIsLoading(true)
     try {
-      const transactionsData = await transactionsService.getMyTransactions()
+      const transactionsData = await transactionsService.getAllTransactions()
       setTransactions(transactionsData)
     } catch (error) {
       console.error('Error loading transactions:', error)
@@ -77,6 +80,15 @@ export function TransactionsComponent() {
       setShowErrorModal(true)
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const loadProfiles = async () => {
+    try {
+      const profilesData = await profilesService.getAllProfiles()
+      setProfiles(profilesData)
+    } catch (error) {
+      console.error('Error loading profiles:', error)
     }
   }
 
@@ -141,6 +153,12 @@ export function TransactionsComponent() {
 
   const goToPage = (page: number) => {
     setCurrentPage(Math.max(1, Math.min(page, totalPages)))
+  }
+
+  // Helper function to get username by user ID
+  const getUsernameById = (userId: string) => {
+    const userProfile = profiles.find(profile => profile.id === userId)
+    return userProfile?.username || userId
   }
 
   // Calculate summary stats
@@ -364,7 +382,7 @@ export function TransactionsComponent() {
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <User className="h-4 w-4 text-muted-foreground" />
-                            <span className="font-medium">{profile?.username || transaction.user_id}</span>
+                            <span className="font-medium">{getUsernameById(transaction.user_id)}</span>
                           </div>
                         </TableCell>
                         <TableCell>
@@ -529,6 +547,10 @@ export function TransactionsComponent() {
                 <div>
                   <Label className="text-sm font-medium">Transaction ID</Label>
                   <p className="text-sm text-gray-600">#{selectedTransaction.id}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">User</Label>
+                  <p className="text-sm text-gray-600">{getUsernameById(selectedTransaction.user_id)}</p>
                 </div>
                 <div>
                   <Label className="text-sm font-medium">Type</Label>
