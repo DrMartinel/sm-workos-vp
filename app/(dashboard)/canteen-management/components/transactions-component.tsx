@@ -38,8 +38,10 @@ import {
 } from "lucide-react"
 import { transactionsService, Transaction } from "@/lib/utils/supabase/transactions"
 import { Label } from "@/components/ui/label"
+import { useAuth } from "@/store/hooks/useAuth"
 
 export function TransactionsComponent() {
+  const { profile } = useAuth()
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
@@ -53,6 +55,12 @@ export function TransactionsComponent() {
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
 
+  // Success and Error modal states
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
+  const [showErrorModal, setShowErrorModal] = useState(false)
+  const [successMessage, setSuccessMessage] = useState("")
+  const [errorMessage, setErrorMessage] = useState("")
+
   // Load transactions on component mount
   useEffect(() => {
     loadTransactions()
@@ -65,6 +73,8 @@ export function TransactionsComponent() {
       setTransactions(transactionsData)
     } catch (error) {
       console.error('Error loading transactions:', error)
+      setErrorMessage("Failed to load transactions. Please try again.")
+      setShowErrorModal(true)
     } finally {
       setIsLoading(false)
     }
@@ -80,9 +90,18 @@ export function TransactionsComponent() {
           t.id === transactionId ? { ...t, status } : t
         ))
         setShowTransactionDetails(false)
+        
+        const statusText = status === "completed" ? "approved" : status === "failed" ? "rejected" : status
+        setSuccessMessage(`Transaction #${transactionId} has been ${statusText} successfully!`)
+        setShowSuccessModal(true)
+      } else {
+        setErrorMessage("Failed to update transaction status. Please try again.")
+        setShowErrorModal(true)
       }
     } catch (error) {
       console.error('Error updating transaction status:', error)
+      setErrorMessage("An error occurred while updating the transaction status. Please try again.")
+      setShowErrorModal(true)
     } finally {
       setIsUpdatingStatus(false)
     }
@@ -320,6 +339,7 @@ export function TransactionsComponent() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>ID</TableHead>
+                    <TableHead>User</TableHead>
                     <TableHead>Type</TableHead>
                     <TableHead>Amount</TableHead>
                     <TableHead>Description</TableHead>
@@ -341,6 +361,12 @@ export function TransactionsComponent() {
                     currentTransactions.map((transaction) => (
                       <TableRow key={transaction.id}>
                         <TableCell className="font-mono text-sm">#{transaction.id}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <User className="h-4 w-4 text-muted-foreground" />
+                            <span className="font-medium">{profile?.username || transaction.user_id}</span>
+                          </div>
+                        </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
                             {getTypeIcon(transaction.type)}
@@ -557,6 +583,30 @@ export function TransactionsComponent() {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Success Modal */}
+      <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
+        <DialogContent className="max-w-md">
+          <div className="text-center py-6">
+            <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Success!</h3>
+            <p className="text-gray-600 mb-4">{successMessage}</p>
+            <Button onClick={() => setShowSuccessModal(false)}>Close</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Error Modal */}
+      <Dialog open={showErrorModal} onOpenChange={setShowErrorModal}>
+        <DialogContent className="max-w-md">
+          <div className="text-center py-6">
+            <XCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Error</h3>
+            <p className="text-gray-600 mb-4">{errorMessage}</p>
+            <Button onClick={() => setShowErrorModal(false)}>Close</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
