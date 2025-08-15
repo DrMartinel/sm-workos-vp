@@ -23,6 +23,7 @@ import {
   ChevronLeft,
   AlertCircle,
   FlipHorizontal,
+  Type,
 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -60,6 +61,7 @@ export default function SMRewardsPage() {
   const [showInstructionsModal, setShowInstructionsModal] = useState(false)
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [showErrorModal, setShowErrorModal] = useState(false)
+  const [showQRPaymentModal, setShowQRPaymentModal] = useState(false)
   const [topUpAmount, setTopUpAmount] = useState("")
   const [paymentMethod, setPaymentMethod] = useState("")
   const [transferAmount, setTransferAmount] = useState("")
@@ -82,6 +84,9 @@ export default function SMRewardsPage() {
   const [showQRTesting, setShowQRTesting] = useState(false)
   const [modalAmount, setModalAmount] = useState<string | null>(null);
   const [modalOrderInfo, setModalOrderInfo] = useState<string | null>(null);
+  const [showEnlargedQR, setShowEnlargedQR] = useState(false);
+  const [showManualInput, setShowManualInput] = useState(false);
+  const [manualProductCode, setManualProductCode] = useState("");
 
   const skipInitialBalanceFetch = useRef(false);
 
@@ -197,44 +202,97 @@ export default function SMRewardsPage() {
           setShowErrorModal(true);
           return;
         }
-      } else {
-        const coinsToAdd = Number(amount);
-  
-        try {
-          // Update balance in database
-          const success = await profilesService.addSMRewards(coinsToAdd)
+      } else if (paymentMethod === "qr") {
+        // Show QR payment modal instead of processing immediately
+        setShowTopUpModal(false);
+        setShowQRPaymentModal(true);
+      }
+    }
+  }
+
+  const handleQRPaymentConfirm = async () => {
+    if (topUpAmount) {
+      const amount = Number.parseInt(topUpAmount);
+      
+      try {
+        // Create a pending transaction
+        const { date, time } = getCurrentDateTime();
+        const currentUser = getCurrentUserProfile();
+        const senderName = currentUser?.username || 'Unknown User';
+        
+        const transaction = await transactionsService.createTransaction(
+          'topup',
+          amount,
+          `Top-up via QR Code Payment - ${amount.toLocaleString()} VND`,
+          date,
+          time,
+          'pending'
+        );
+
+        if (transaction) {
+          // Refresh transactions to show the pending transaction
+          fetchTransactions();
           
-          if (success) {
-            refreshBalance()
-  
-            // Create transaction in database
-            const { date, time } = getCurrentDateTime();
-            await transactionsService.createTransaction(
-              'topup',
-              coinsToAdd,
-              `Top-up via ${paymentMethod === "bank" ? "Bank Transfer" : paymentMethod === "qr" ? "QR Code Payment" : "Credit Card"}`,
-              date,
-              time,
-              'completed'
-            );
-  
-            // Refresh transactions
-            fetchTransactions();
-  
-            setShowTopUpModal(false)
-            setShowSuccessModal(true)
-            setTopUpAmount("")
-            setPaymentMethod("")
-          } else {
-            // Handle error
-            setShowTopUpModal(false)
-            setShowErrorModal(true)
-          }
-        } catch (error) {
-          console.error('Error updating SM rewards balance:', error)
-          setShowTopUpModal(false)
-          setShowErrorModal(true)
+          setShowQRPaymentModal(false);
+          setShowSuccessModal(true);
+          setTopUpAmount("");
+          setPaymentMethod("");
+        } else {
+          setShowQRPaymentModal(false);
+          setShowErrorModal(true);
         }
+      } catch (error) {
+        console.error('Error creating QR payment transaction:', error);
+        setShowQRPaymentModal(false);
+        setShowErrorModal(true);
+      }
+    }
+  }
+
+  const handleManualProductCodeSubmit = async () => {
+    if (manualProductCode.trim()) {
+      setIsProcessingScan(true);
+      try {
+        const product = await canteenProductsService.getProductByQR(manualProductCode.trim());
+        if (product) {
+          setScannedProduct({
+            id: product.id,
+            name: product.name,
+            price: product.price_sm_rewards,
+            image: product.image_url || "/placeholder.svg?height=100&width=100&text=Food",
+            description: product.description || undefined,
+            stock_quantity: product.stock_quantity
+          });
+        } else {
+          // Product not found - show error state
+          setScannedProduct({
+            id: 0,
+            name: "Product Not Found",
+            price: 0,
+            image: "/placeholder.svg?height=100&width=100&text=Not+Found",
+            description: `Product code "${manualProductCode.trim()}" is not registered in our system.`,
+            stock_quantity: 0,
+            notFound: true
+          });
+        }
+        setShowManualInput(false);
+        setManualProductCode("");
+      } catch (error) {
+        console.error("Error fetching product:", error);
+        // Show error state instead of fallback mock data
+        setScannedProduct({
+          id: 0,
+          name: "Error Loading Product",
+          price: 0,
+          image: "/placeholder.svg?height=100&width=100&text=Error",
+          description: "Unable to fetch product information. Please try again.",
+          stock_quantity: 0,
+          error: true
+        });
+        setShowManualInput(false);
+        setManualProductCode("");
+      } finally {
+        setIsProcessingScan(false);
       }
     }
   }
@@ -949,9 +1007,7 @@ export default function SMRewardsPage() {
                   <SelectValue placeholder="Select payment method" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="bank">Bank Transfer</SelectItem>
                   <SelectItem value="qr">QR Code Payment</SelectItem>
-                  <SelectItem value="card">Credit Card</SelectItem>
                   <SelectItem value="vnpay">VNPay (ATM/Bank)</SelectItem>
                 </SelectContent>
               </Select>
@@ -974,7 +1030,7 @@ export default function SMRewardsPage() {
           <DialogHeader>
             <DialogTitle>Scan to Pay</DialogTitle>
             <DialogDescription>
-              Point your camera at a QR code to scan and make a payment
+              Point your camera at a QR code to scan and make a payment, or enter product code manually
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -984,12 +1040,67 @@ export default function SMRewardsPage() {
                 <p className="text-gray-600">Processing scanned product...</p>
               </div>
             ) : !scannedProduct ? (
-              <BarcodeScanner
-                onScan={handleBarcodeScan} 
-                onError={handleScanError}
-                showCloseButton={false}
-                autoStart={true}
-              />
+              <>
+                <BarcodeScanner
+                  onScan={handleBarcodeScan} 
+                  onError={handleScanError}
+                  showCloseButton={false}
+                  autoStart={true}
+                />
+                
+                {/* Manual Input Section */}
+                <div className="border-t pt-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-medium text-gray-900">Or enter product code manually</h3>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowManualInput(!showManualInput)}
+                      className="flex items-center gap-1"
+                    >
+                      <Type className="h-4 w-4" />
+                      {showManualInput ? 'Hide' : 'Manual Entry'}
+                    </Button>
+                  </div>
+                  
+                  {showManualInput && (
+                    <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Type className="h-4 w-4 text-orange-600" />
+                        <p className="text-orange-700 text-sm font-medium">Enter Product Code</p>
+                      </div>
+                      <div className="space-y-2">
+                        <Input
+                          value={manualProductCode}
+                          onChange={(e) => setManualProductCode(e.target.value)}
+                          placeholder="Enter product code (e.g., 1234567890123)"
+                          className="text-sm"
+                        />
+                        <div className="flex gap-2">
+                          <Button
+                            onClick={handleManualProductCodeSubmit}
+                            size="sm"
+                            className="bg-orange-600 hover:bg-orange-700"
+                            disabled={!manualProductCode.trim()}
+                          >
+                            Find Product
+                          </Button>
+                          <Button
+                            onClick={() => {
+                              setShowManualInput(false);
+                              setManualProductCode("");
+                            }}
+                            variant="outline"
+                            size="sm"
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </>
             ) : (
               <div className="space-y-4">
                 <div className="text-center">
@@ -1131,15 +1242,110 @@ export default function SMRewardsPage() {
         </DialogContent>
       </Dialog>
 
+      {/* QR Payment Modal */}
+      <Dialog open={showQRPaymentModal} onOpenChange={setShowQRPaymentModal}>
+        <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <QrCode className="h-5 w-5" />
+              QR Code Payment
+            </DialogTitle>
+            <DialogDescription>
+              Scan the QR code to complete your payment
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col md:flex-row gap-4 md:gap-6">
+            {/* QR Code Image - centered on mobile, left on desktop */}
+            <div className="flex flex-col items-center md:items-start gap-2">
+              <div 
+                className="relative group cursor-pointer"
+                onClick={() => setShowEnlargedQR(true)}
+              >
+                <img
+                  src="/bankQrCode.jpeg"
+                  alt="Bank QR Code"
+                  className="h-48 w-48 md:h-64 md:w-64 rounded-lg object-cover border transition-transform hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 rounded-lg transition-all duration-200 flex items-center justify-center">
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-white bg-opacity-90 rounded-full p-2">
+                    <QrCode className="h-6 w-6 text-gray-700" />
+                  </div>
+                </div>
+              </div>
+              <p className="text-xs text-gray-500 text-center md:text-left">
+                Click QR code to enlarge
+              </p>
+            </div>
+            
+            {/* Payment Details */}
+            <div className="flex-1 space-y-4">
+              <div className="space-y-3">
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-0">
+                    <span className="text-sm font-medium text-gray-700">Bank Account:</span>
+                    <span className="text-sm text-gray-900 font-mono break-all">1234567890</span>
+                  </div>
+                </div>
+                
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-0">
+                    <span className="text-sm font-medium text-gray-700">Account Owner:</span>
+                    <span className="text-sm text-gray-900 break-all">SM COMPANY</span>
+                  </div>
+                </div>
+                
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-0">
+                    <span className="text-sm font-medium text-gray-700">Amount:</span>
+                    <span className="text-sm text-gray-900 font-bold break-all">{Number(topUpAmount).toLocaleString()} VND</span>
+                  </div>
+                </div>
+                
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <div className="space-y-1">
+                    <span className="text-sm font-medium text-gray-700">Description:</span>
+                    <div className="text-xs text-gray-900 font-mono break-all">
+                      {(() => {
+                        const currentUser = getCurrentUserProfile();
+                        const senderName = currentUser?.username || 'UNKNOWN USER';
+                        return `TOPUP ${Number(topUpAmount).toLocaleString()} VND ${senderName.toUpperCase()}`;
+                      })()}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button onClick={handleQRPaymentConfirm} className="flex-1">
+                  Confirm Payment
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setShowQRPaymentModal(false);
+                    setShowTopUpModal(true);
+                  }}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Success Modal */}
       <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
-        <DialogTitle>Transaction Successful</DialogTitle>
+        <DialogTitle></DialogTitle>
         <DialogContent>
           <div className="text-center py-6">
             <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">Transaction Successful!</h3>
             <p className="text-gray-600 mb-4">
-              {modalAmount && `You have topped up ${Number(modalAmount).toLocaleString()} Coins.`}
+              {paymentMethod === "qr" 
+                ? `QR payment transaction created successfully. Please complete the bank transfer and contact support for verification.`
+                : modalAmount && `You have topped up ${Number(modalAmount).toLocaleString()} Coins.`
+              }
               {modalOrderInfo && <br />}
               {modalOrderInfo && <span>({decodeURIComponent(modalOrderInfo)})</span>}
             </p>
@@ -1153,21 +1359,59 @@ export default function SMRewardsPage() {
         <DialogContent>
           <div className="text-center py-6">
             <XCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Insufficient Balance</h3>
-            <p className="text-gray-600 mb-4">You don't have enough SM Points for this transaction.</p>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              {paymentMethod === "qr" ? "Transaction Failed" : "Insufficient Balance"}
+            </h3>
+            <p className="text-gray-600 mb-4">
+              {paymentMethod === "qr" 
+                ? "Failed to create QR payment transaction. Please try again."
+                : "You don't have enough SM Points for this transaction."
+              }
+            </p>
             <div className="flex gap-2 justify-center">
               <Button
                 onClick={() => {
                   setShowErrorModal(false)
-                  setShowTopUpModal(true)
+                  if (paymentMethod === "qr") {
+                    setShowQRPaymentModal(true)
+                  } else {
+                    setShowTopUpModal(true)
+                  }
                 }}
               >
-                Top Up Now
+                {paymentMethod === "qr" ? "Try Again" : "Top Up Now"}
               </Button>
               <Button variant="outline" onClick={() => setShowErrorModal(false)}>
                 Close
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Enlarged QR Code Modal */}
+      <Dialog open={showEnlargedQR} onOpenChange={setShowEnlargedQR}>
+        <DialogContent className="max-w-md w-[95vw]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <QrCode className="h-5 w-5" />
+              QR Code
+            </DialogTitle>
+            <DialogDescription>
+              Scan this QR code with your banking app
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-center">
+            <img
+              src="/bankQrCode.jpeg"
+              alt="Bank QR Code"
+              className="h-80 w-80 rounded-lg object-cover border shadow-lg"
+            />
+          </div>
+          <div className="text-center">
+            <p className="text-sm text-gray-600 mt-4">
+              Make sure your banking app supports QR code scanning
+            </p>
           </div>
         </DialogContent>
       </Dialog>
