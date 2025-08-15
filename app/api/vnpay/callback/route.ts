@@ -69,14 +69,6 @@ export async function GET(request: NextRequest) {
         // Update transaction status to completed if we have a transaction ID
         if (transactionId) {
           await transactionsService.updateTransactionStatus(transactionId, 'completed');
-          const transaction = await transactionsService.getTransactionById(transactionId);
-          userId = transaction?.user_id;
-          if (userId) {
-            const addResult = await profilesService.addSMRewardsToUser(userId, coinsToAdd);
-            console.log('addSMRewardsToUser result:', addResult);
-          } else {
-            console.error('Cannot add SM rewards: userId is undefined');
-          }
         }
         
         // Instead of returning JSON, redirect to /sm-rewards
