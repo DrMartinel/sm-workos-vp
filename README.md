@@ -1,7 +1,8 @@
 # Smartmove WorkOS
 
 Demo: https://beta.workos.smartmove.com.vn/
-Demo Account: hoang.nct@smartmove.com.vn || 123455678
+
+Feel free to contact me if you need any demo
 
 Welcome to the central repository for the Smartmove WorkOS project. This document provides all the necessary information for developers to get started, understand the architecture, and contribute effectively.
 
